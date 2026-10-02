@@ -69,9 +69,10 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: "Projects",
     href: "/projects",
     icon: FolderKanban,
-    summary: "Project records with lifecycle, skills, technologies and evidence.",
+    summary:
+      "Engineering dossiers: lifecycle, milestones, health, technologies, evidence and portfolio analytics.",
     availability: "available",
-    plannedIn: "Records: Phase 1 (available). Project intelligence: Phase 3.",
+    plannedIn: "Records: Phase 1. Project intelligence: Phase 3 (available).",
     placement: "main",
     mobilePrimary: true,
   },

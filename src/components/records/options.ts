@@ -2,6 +2,7 @@ import { humanize } from "@/components/data/detail";
 import type { FieldOption } from "@/components/forms/entity-form";
 import { certificationStatusSchema } from "@/modules/certifications/certification.schemas";
 import { evidenceTypeSchema } from "@/modules/evidence/evidence.schemas";
+import { milestoneStatusSchema } from "@/modules/milestones/milestone.schemas";
 import {
   projectHealthSchema,
   projectStatusSchema,
@@ -20,6 +21,9 @@ export const PROJECT_HEALTH_OPTIONS = fromValues(projectHealthSchema.options, {
   not_assessed: "Not assessed",
   on_track: "On track",
   at_risk: "At risk",
+});
+export const MILESTONE_STATUS_OPTIONS = fromValues(milestoneStatusSchema.options, {
+  in_progress: "In progress",
 });
 export const USAGE_TYPE_OPTIONS = fromValues(technologyUsageTypeSchema.options);
 export const CERTIFICATION_STATUS_OPTIONS = fromValues(certificationStatusSchema.options);

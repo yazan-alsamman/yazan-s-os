@@ -68,11 +68,14 @@ export function ProjectsList() {
         },
         { name: "completedFrom", label: "Completed from" },
         { name: "completedTo", label: "Completed to" },
+        { name: "technologyId", label: "Uses technology", format: () => "selected technology" },
+        { name: "skillId", label: "Demonstrates skill", format: () => "selected skill" },
+        { name: "hasEvidence", label: "Has evidence", format: yesNo },
       ]}
       searchPlaceholder="Name, description, problem, impact…"
       filters={[
         { name: "status", label: "Status", options: PROJECT_STATUS_OPTIONS },
-        { name: "healthStatus", label: "Health", options: PROJECT_HEALTH_OPTIONS },
+        { name: "healthStatus", label: "Manual health", options: PROJECT_HEALTH_OPTIONS },
       ]}
       sortOptions={[
         { value: "-updatedAt", label: "Recently updated" },
@@ -90,7 +93,7 @@ export function ProjectsList() {
         { header: "Project", cell: (p) => p.name },
         { header: "Status", cell: (p) => labelOf(PROJECT_STATUS_OPTIONS, p.status) },
         {
-          header: "Health",
+          header: "Manual health",
           cell: (p) => (
             <Badge tone={HEALTH_TONE[p.healthStatus]}>
               {labelOf(PROJECT_HEALTH_OPTIONS, p.healthStatus)}
@@ -257,6 +260,7 @@ export function EvidenceList() {
         { name: "dateFrom", label: "Dated from" },
         { name: "dateTo", label: "Dated to" },
         { name: "dated", label: "Has a date", format: yesNo },
+        { name: "projectId", label: "Linked to project", format: () => "this project" },
       ]}
       searchPlaceholder="Title, description, source URL…"
       filters={[

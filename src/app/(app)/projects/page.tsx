@@ -10,7 +10,7 @@ export default function ProjectsPage() {
     <>
       <PageHeader
         title="Projects"
-        description="Project records with lifecycle, skills, technologies and evidence. Health scoring and portfolio analytics arrive in Phase 3."
+        description="Project records with lifecycle, milestones, manual and computed health, skills, technologies and evidence. Open a project for its full engineering dossier."
       />
       <ProjectsList />
     </>

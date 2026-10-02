@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useForm, type FieldValues, type Path } from "react-hook-form";
 import { z } from "zod";
 
@@ -151,9 +151,22 @@ interface EntityFormDialogProps {
 }
 
 export function EntityFormDialog(props: EntityFormDialogProps) {
+  // Controlled dialogs have no Radix trigger, so remember the element that opened the dialog
+  // (captured before focus moves in) and return focus to it on close (WCAG 2.4.3).
+  const opener = useRef<HTMLElement | null>(null);
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"
+        onOpenAutoFocus={() => {
+          opener.current = document.activeElement as HTMLElement | null;
+        }}
+        onCloseAutoFocus={(event) => {
+          if (!opener.current?.isConnected) return;
+          event.preventDefault();
+          opener.current.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>
           <DialogDescription>

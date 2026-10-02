@@ -10,6 +10,8 @@ export interface DrillFilters {
   evidenceVerified?: string;
   evidenceOrigin?: string;
   skillCategory?: string;
+  /** Phase 3: a single project's dossier metrics drill into that project's records. */
+  projectId?: string;
 }
 
 export interface DrillPeriod {
@@ -37,6 +39,16 @@ const evidenceBase = (f: DrillFilters) => ({
   origin: f.evidenceOrigin,
 });
 const skillBase = (f: DrillFilters) => ({ category: f.skillCategory });
+const milestones = (f: DrillFilters, params: Record<string, string | undefined | null> = {}) =>
+  href("/projects/milestones", { projectId: f.projectId, ...params });
+
+/** "YYYY-MM" → inclusive first/last day of the month, or null for anything else. */
+export function monthBounds(month: string): { from: string; to: string } | null {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return null;
+  const [y, m] = month.split("-").map(Number);
+  const last = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
+  return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}` };
+}
 
 /** Drill-down for a single-value metric. Returns null for metrics without a list equivalent. */
 export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): string | null {
@@ -82,6 +94,35 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
       return "/certifications";
     case "certifications.expiring":
       return href("/certifications", { expiry: "expiring", current: "true", sort: "expiryDate" });
+    // ── Phase 3 (ADR 0025) ──
+    case "projects.milestones_total":
+      return milestones(f);
+    case "projects.milestones_completed":
+    case "projects.delivery_rate": // numerator list; the denominator adds overdue=true
+      return milestones(f, { status: "completed", sort: "-completedAt" });
+    case "projects.milestones_completed_in_period":
+      return period.from
+        ? milestones(f, {
+            completedFrom: period.from,
+            completedTo: period.to,
+            sort: "-completedAt",
+          })
+        : milestones(f, { status: "completed", sort: "-completedAt" });
+    case "projects.milestones_overdue":
+      return milestones(f, { overdue: "true" });
+    case "projects.milestones_blocked":
+      return milestones(f, { status: "blocked" });
+    case "projects.health_score":
+    case "projects.health_component.schedule":
+    case "projects.health_component.milestones":
+    case "projects.health_component.blockers":
+    case "projects.health_component.recent_activity":
+      // Scores are explained by their component breakdown, not by a list (documented exception).
+      return f.projectId ? `/projects/${f.projectId}#health` : "/projects/health";
+    case "projects.evidence_linked":
+      return f.projectId ? href("/evidence", { projectId: f.projectId }) : null;
+    case "projects.evidence_verified":
+      return f.projectId ? href("/evidence", { projectId: f.projectId, verified: "true" }) : null;
     default:
       return null;
   }
@@ -99,6 +140,31 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
       return bucket.startsWith("__") ? null : href("/skills", { category: bucket });
     case "certifications.expiry_distribution":
       return href("/certifications", { expiry: bucket, current: "true", sort: "expiryDate" });
+    // ── Phase 3 (ADR 0025) ──
+    case "projects.computed_health_distribution":
+      return href("/projects/health", { computed: bucket });
+    case "projects.health_comparison": {
+      const [manual, computed] = bucket.split("|");
+      return manual && computed ? href("/projects/health", { manual, computed }) : null;
+    }
+    case "projects.technology_usage":
+      return href("/projects", { technologyId: bucket });
+    case "projects.evidence_coverage":
+      return bucket === "true" || bucket === "false"
+        ? href("/projects", { hasEvidence: bucket })
+        : null;
+    case "projects.evidence_by_type":
+      return f.projectId ? href("/evidence", { projectId: f.projectId, type: bucket }) : null;
+    case "projects.delivery_trend": {
+      const m = monthBounds(bucket);
+      return m ? href("/projects", { completedFrom: m.from, completedTo: m.to }) : null;
+    }
+    case "projects.milestone_completion_trend": {
+      const m = monthBounds(bucket);
+      return m
+        ? milestones(f, { completedFrom: m.from, completedTo: m.to, sort: "-completedAt" })
+        : null;
+    }
     default:
       return null;
   }

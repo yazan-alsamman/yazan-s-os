@@ -66,6 +66,8 @@ export interface ResourceListProps<T extends { id: string }> {
   related?: readonly string[];
   empty: { title: string; body: ReactNode };
   searchPlaceholder: string;
+  /** false when records are created elsewhere (e.g. milestones inside a project). Default true. */
+  canCreate?: boolean;
 }
 
 /**
@@ -191,10 +193,12 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
               ))}
             </NativeSelect>
           </label>
-          <Button onClick={() => setCreating(true)}>
-            <Plus aria-hidden />
-            New {props.singular}
-          </Button>
+          {props.canCreate !== false && (
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden />
+              New {props.singular}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -249,12 +253,12 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
             >
               Clear search and filters
             </Button>
-          ) : (
+          ) : props.canCreate !== false ? (
             <Button size="sm" onClick={() => setCreating(true)}>
               <Plus aria-hidden />
               Add the first {props.singular}
             </Button>
-          )}
+          ) : null}
         </div>
       ) : (
         <>

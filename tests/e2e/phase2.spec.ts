@@ -75,6 +75,9 @@ async function createFixtures(page: Page) {
   });
 }
 
+/** Filter controls, scoped: "Project health" also names a chart region, its image and its info button. */
+const filters = (page: Page) => page.getByRole("region", { name: "Command Center filters" });
+
 const kpi = (page: Page, name: string) =>
   page.getByRole("link", { name: new RegExp(`^${name}: .*View the records$`) });
 
@@ -190,13 +193,13 @@ test.describe("with records", () => {
   });
 
   test("filters live in the URL, survive reload and narrow the widgets", async ({ page }) => {
-    await page.getByLabel("Project health").selectOption("blocked");
+    await filters(page).getByLabel("Project health").selectOption("blocked");
     await expect(page).toHaveURL(/projectHealth=blocked/);
-    await page.getByLabel("Date range").selectOption("365d");
+    await filters(page).getByLabel("Date range").selectOption("365d");
     await expect(page).toHaveURL(/range=365d/);
     await page.reload();
-    await expect(page.getByLabel("Project health")).toHaveValue("blocked");
-    await expect(page.getByLabel("Date range")).toHaveValue("365d");
+    await expect(filters(page).getByLabel("Project health")).toHaveValue("blocked");
+    await expect(filters(page).getByLabel("Date range")).toHaveValue("365d");
     await expect(kpi(page, "Active projects")).toHaveAccessibleName(/: 1\./);
     const timeline = page.getByRole("region", { name: "Evidence timeline" });
     await expect(
@@ -233,7 +236,7 @@ test.describe("with records", () => {
   });
 
   test("keyboard: filters, KPIs and chart tables are reachable with Tab", async ({ page }) => {
-    await page.getByLabel("Date range").focus();
+    await filters(page).getByLabel("Date range").focus();
     const reached = new Set<string>();
     for (let i = 0; i < 60; i++) {
       await page.keyboard.press("Tab");

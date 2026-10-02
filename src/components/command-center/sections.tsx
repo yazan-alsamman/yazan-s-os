@@ -58,7 +58,7 @@ function EmptySection({
 }
 
 /** Horizontal bar option for a distribution (labels + values on bars: never colour alone). */
-function distributionOption(
+export function distributionOption(
   buckets: DistributionBucket[],
   colors: (p: ChartPalette, key: string) => string,
 ) {
@@ -93,7 +93,7 @@ function distributionOption(
   });
 }
 
-function distributionTable(metric: MetricResult, hrefFor: (key: string) => string | null) {
+export function distributionTable(metric: MetricResult, hrefFor: (key: string) => string | null) {
   return {
     caption: metric.name,
     columns: ["Count"],
@@ -162,8 +162,12 @@ export function ProjectHealthCard({
         }}
       />
       <p className="text-caption text-muted-foreground">
-        Health is your manual assessment. The computed health score (schedule, blockers, milestones)
-        arrives in Phase 3.
+        This chart shows your manual assessment. The computed health signal (schedule, milestones,
+        blockers, activity) is shown on each project and in{" "}
+        <Link href="/projects/portfolio" className="underline underline-offset-4">
+          Projects → Portfolio
+        </Link>
+        .
       </p>
     </ChartCard>
   );
@@ -174,7 +178,8 @@ export function ProjectHealthCard({
 export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
   const projects = dashboard.projects.attention;
   const certs = dashboard.certifications.attention;
-  const empty = projects.length === 0 && certs.length === 0;
+  const overdue = dashboard.projects.overdueMilestones;
+  const empty = projects.length === 0 && certs.length === 0 && overdue.length === 0;
   return (
     <section aria-labelledby="attention-title" className="rounded-lg border bg-surface">
       <header className="border-b px-4 py-3">
@@ -182,14 +187,14 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
           Needs attention
         </h2>
         <p className="mt-1 text-caption text-muted-foreground">
-          Blocked or at-risk projects (not archived) and certifications expired or expiring within
-          90 days. Up to 10 each.
+          Blocked or at-risk projects (not archived), overdue milestones, and certifications expired
+          or expiring within 90 days. Up to 10 each.
         </p>
       </header>
       {empty ? (
         <p className="p-4 text-muted-foreground">
           {dashboard.hasAnyData
-            ? "Nothing flagged: no blocked or at-risk projects, no expiring certifications."
+            ? "Nothing flagged: no blocked or at-risk projects, no overdue milestones, no expiring certifications."
             : "Nothing to review yet."}
         </p>
       ) : (
@@ -206,6 +211,18 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
                 <AlertTriangle aria-hidden className="size-3" />
                 {p.healthStatus === "blocked" ? "Blocked" : "At risk"}
               </Badge>
+            </li>
+          ))}
+          {overdue.map((m) => (
+            <li key={m.id} className="flex items-center justify-between gap-2 px-4 py-2">
+              <Link
+                href={`/projects/${m.project.id}#milestones` as never}
+                className="min-w-0 truncate font-medium hover:underline"
+              >
+                {m.title}
+                <span className="font-normal text-muted-foreground"> · {m.project.name}</span>
+              </Link>
+              <Badge tone="danger">Overdue since {formatDate(m.dueDate)}</Badge>
             </li>
           ))}
           {certs.map((c) => {

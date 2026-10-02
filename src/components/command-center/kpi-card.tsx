@@ -25,10 +25,22 @@ export function comparisonText(metric: MetricResult): string | null {
  * KPI tile: value, label, state, period/comparison, definition access and drill-down.
  * Missing data renders as "—" with the reason — never as a fabricated 0.
  */
-export function KpiCard({ metric, href }: { metric: MetricResult; href: string | null }) {
+export function KpiCard({
+  metric,
+  href,
+  format = formatNumber,
+  detail,
+}: {
+  metric: MetricResult;
+  href: string | null;
+  /** Value formatter, e.g. a percentage for ratio metrics. */
+  format?: (value: number) => string;
+  /** Extra explanation under the value, e.g. the numerator and denominator of a ratio. */
+  detail?: string | null;
+}) {
   const showDefinition = useShowDefinition();
   const hasValue = metric.value !== null;
-  const display = hasValue ? formatNumber(metric.value!) : "—";
+  const display = hasValue ? format(metric.value!) : "—";
   const comparison = comparisonText(metric);
   const labelId = `kpi-${metric.key.replace(/\W/g, "-")}`;
 
@@ -68,6 +80,7 @@ export function KpiCard({ metric, href }: { metric: MetricResult; href: string |
           {display}
         </p>
       )}
+      {detail && hasValue && <p className="text-caption text-muted-foreground">{detail}</p>}
       {metric.stateReason && (
         <p className="text-caption text-muted-foreground">{metric.stateReason}</p>
       )}

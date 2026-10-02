@@ -1,9 +1,11 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import { MetricDefinitionProvider } from "@/components/command-center/metric-definition";
 import { ConfirmDelete } from "@/components/data/confirm-delete";
 import {
   BackLink,
@@ -20,6 +22,17 @@ import {
 import { RelationPicker, type PickedItem } from "@/components/data/relation-picker";
 import { ErrorState } from "@/components/data/states";
 import { EntityFormDialog, type FieldDescriptor } from "@/components/forms/entity-form";
+import {
+  BAND_TONE,
+  DeliveryPanel,
+  DossierNav,
+  DossierSection,
+  EvidencePanel,
+  HealthPanel,
+  LifecyclePanel,
+  ProjectActivity,
+  useProjectIntelligence,
+} from "@/components/projects/dossier";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useApiItem, useApiMutation } from "@/lib/api/hooks";
@@ -189,145 +202,234 @@ export function ProjectDetail({ id }: { id: string }) {
     invalidates,
   );
 
-  return (
-    <DetailFrame query={query} backHref="/projects" backLabel="All projects">
-      {(p) => (
-        <>
-          <DetailHeader
-            title={p.name}
-            subtitle={<span className="font-mono text-caption">{p.slug}</span>}
-            badges={
-              <>
-                <Badge>{labelOf(PROJECT_STATUS_OPTIONS, p.status)}</Badge>
-                <Badge>Health: {labelOf(PROJECT_HEALTH_OPTIONS, p.healthStatus)}</Badge>
-                <OriginBadge origin={p.origin} />
-              </>
-            }
-            actions={
-              <EditDeleteActions
-                label="project"
-                fields={PROJECT_FIELDS}
-                entity={p}
-                onSave={(payload) => update.mutateAsync(payload)}
-                onDelete={() => remove.mutateAsync()}
-                afterDelete="/projects"
-              />
-            }
-          />
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="flex flex-col gap-4 lg:col-span-2">
-              <Panel title="Overview">
-                <FieldGrid
-                  items={[
-                    { label: "Description", value: p.description, wide: true },
-                    { label: "Problem", value: p.problem, wide: true },
-                    { label: "Solution", value: p.solution, wide: true },
-                    { label: "Impact", value: p.impact, wide: true },
-                  ]}
-                />
-              </Panel>
-              <RelationPanel
-                title="Skills"
-                items={p.skills.map((s) => ({
-                  id: s.id,
-                  label: s.name,
-                  href: `/skills/${s.id}`,
-                  meta: s.category && <Badge>{s.category}</Badge>,
-                }))}
-                emptyText="No skills linked yet."
-                onManage={() => setPicker("skills")}
-                manageLabel="Manage skills"
-              />
-              <RelationPanel
-                title="Technologies"
-                items={p.technologies.map((t) => ({
-                  id: t.id,
-                  label: t.version ? `${t.name} ${t.version}` : t.name,
-                  href: `/skills/technologies/${t.id}`,
-                  meta: <Badge>{labelOf(USAGE_TYPE_OPTIONS, t.usageType)}</Badge>,
-                }))}
-                emptyText="No technologies linked yet."
-                onManage={() => setPicker("technologies")}
-                manageLabel="Manage technologies"
-              />
-              <RelationPanel
-                title="Evidence"
-                items={p.evidence.map(evidenceItem)}
-                emptyText="No evidence linked yet."
-                onManage={() => setPicker("evidence")}
-                manageLabel="Manage evidence"
-              />
-            </div>
-            <div className="flex flex-col gap-4">
-              <Panel title="Metadata">
-                <FieldGrid
-                  items={[
-                    { label: "Start", value: formatDate(p.startDate) },
-                    { label: "Target", value: formatDate(p.targetDate) },
-                    { label: "Completed", value: formatDate(p.completedAt) },
-                    {
-                      label: "Repository",
-                      value: <ExternalLink href={p.repositoryUrl} />,
-                      wide: true,
-                    },
-                    { label: "Demo", value: <ExternalLink href={p.demoUrl} />, wide: true },
-                    {
-                      label: "Production",
-                      value: <ExternalLink href={p.productionUrl} />,
-                      wide: true,
-                    },
-                  ]}
-                />
-              </Panel>
-              <ProvenancePanel provenance={p.provenance} />
-            </div>
-          </div>
+  const intel = useProjectIntelligence(id);
 
-          <RelationPicker
-            open={picker === "skills"}
-            onOpenChange={(o) => !o && setPicker(null)}
-            title="Project skills"
-            description="Select every skill this project demonstrates."
-            resource="skills"
-            path="/api/v1/skills"
-            optionLabel={(r) => String(r.name)}
-            initial={p.skills.map((s) => ({ id: s.id, label: s.name }))}
-            onSave={(items) => setSkills.mutateAsync({ skillIds: items.map((i) => i.id) })}
-          />
-          <RelationPicker
-            open={picker === "technologies"}
-            onOpenChange={(o) => !o && setPicker(null)}
-            title="Project technologies"
-            description="Select the technologies used and how they were used."
-            resource="technologies"
-            path="/api/v1/technologies"
-            optionLabel={(r) => String(r.name)}
-            initial={p.technologies.map((t) => ({
-              id: t.id,
-              label: t.name,
-              attribute: t.usageType,
-            }))}
-            attribute={{ label: "Usage", options: USAGE_TYPE_OPTIONS, defaultValue: "core" }}
-            onSave={(items: PickedItem[]) =>
-              setTechs.mutateAsync({
-                technologies: items.map((i) => ({ technologyId: i.id, usageType: i.attribute })),
-              })
-            }
-          />
-          <RelationPicker
-            open={picker === "evidence"}
-            onOpenChange={(o) => !o && setPicker(null)}
-            title="Project evidence"
-            description="Select the evidence that documents this project."
-            resource="evidence"
-            path="/api/v1/evidence"
-            optionLabel={(r) => String(r.title)}
-            initial={p.evidence.map((e) => ({ id: e.id, label: e.title }))}
-            onSave={(items) => setEvidence.mutateAsync({ evidenceIds: items.map((i) => i.id) })}
-          />
-        </>
-      )}
-    </DetailFrame>
+  return (
+    <MetricDefinitionProvider>
+      <DetailFrame query={query} backHref="/projects" backLabel="All projects">
+        {(p) => (
+          <>
+            <DetailHeader
+              title={p.name}
+              subtitle={<span className="font-mono text-caption">{p.slug}</span>}
+              badges={
+                <>
+                  <Badge>{labelOf(PROJECT_STATUS_OPTIONS, p.status)}</Badge>
+                  <Badge>Manual health: {labelOf(PROJECT_HEALTH_OPTIONS, p.healthStatus)}</Badge>
+                  {intel.data?.data.health.computed.band && (
+                    <Badge tone={BAND_TONE[intel.data.data.health.computed.band]}>
+                      Computed: {intel.data.data.health.computed.score}/100
+                    </Badge>
+                  )}
+                  <OriginBadge origin={p.origin} />
+                </>
+              }
+              actions={
+                <EditDeleteActions
+                  label="project"
+                  fields={PROJECT_FIELDS}
+                  entity={p}
+                  onSave={(payload) => update.mutateAsync(payload)}
+                  onDelete={() => remove.mutateAsync()}
+                  afterDelete="/projects"
+                />
+              }
+            />
+            <DossierNav />
+            <div className="flex flex-col gap-8">
+              <DossierSection id="overview" title="Overview">
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="flex flex-col gap-4 lg:col-span-2">
+                    <Panel title="Identity">
+                      <FieldGrid
+                        items={[
+                          { label: "Description", value: p.description, wide: true },
+                          { label: "Problem", value: p.problem, wide: true },
+                          { label: "Solution", value: p.solution, wide: true },
+                          { label: "Impact", value: p.impact, wide: true },
+                        ]}
+                      />
+                    </Panel>
+                    {intel.data ? (
+                      <LifecyclePanel intel={intel.data.data} />
+                    ) : intel.isError ? (
+                      <ErrorState error={intel.error} onRetry={() => void intel.refetch()} />
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <Panel title="Links">
+                      <FieldGrid
+                        items={[
+                          {
+                            label: "Repository",
+                            value: <ExternalLink href={p.repositoryUrl} />,
+                            wide: true,
+                          },
+                          { label: "Demo", value: <ExternalLink href={p.demoUrl} />, wide: true },
+                          {
+                            label: "Production",
+                            value: <ExternalLink href={p.productionUrl} />,
+                            wide: true,
+                          },
+                        ]}
+                      />
+                    </Panel>
+                    <ProvenancePanel provenance={p.provenance} />
+                  </div>
+                </div>
+              </DossierSection>
+
+              {intel.isPending ? (
+                <DetailSkeleton />
+              ) : intel.isError ? null : (
+                <>
+                  <DossierSection
+                    id="health"
+                    title="Health"
+                    description="Your manual assessment and the computed signal, side by side. Neither changes the other."
+                  >
+                    <HealthPanel
+                      manual={intel.data.data.health.manual}
+                      computed={intel.data.data.health.computed}
+                    />
+                  </DossierSection>
+                  <DossierSection
+                    id="delivery"
+                    title="Delivery"
+                    description="Milestones, overdue work and delivery rate (completed ÷ completed-or-overdue)."
+                  >
+                    <span id="milestones" className="sr-only" />
+                    <DeliveryPanel projectId={p.id} intel={intel.data.data} />
+                  </DossierSection>
+                </>
+              )}
+
+              <DossierSection
+                id="context"
+                title="Engineering context"
+                description="Skills demonstrated and technologies used. Usage shows where a technology was applied, not a proficiency score."
+              >
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <RelationPanel
+                    title="Technologies"
+                    items={p.technologies.map((t) => {
+                      const others =
+                        intel.data?.data.technologies.find((x) => x.id === t.id)?.otherProjects ??
+                        null;
+                      return {
+                        id: t.id,
+                        label: t.version ? `${t.name} ${t.version}` : t.name,
+                        href: `/skills/technologies/${t.id}`,
+                        meta: (
+                          <>
+                            <Badge>{labelOf(USAGE_TYPE_OPTIONS, t.usageType)}</Badge>
+                            {others !== null && (
+                              <Link
+                                href={`/projects?technologyId=${t.id}` as never}
+                                className="text-muted-foreground underline underline-offset-4"
+                              >
+                                {others === 0
+                                  ? "Only this project"
+                                  : `Also in ${others} other project${others === 1 ? "" : "s"}`}
+                              </Link>
+                            )}
+                          </>
+                        ),
+                      };
+                    })}
+                    emptyText="No technologies linked yet."
+                    onManage={() => setPicker("technologies")}
+                    manageLabel="Manage technologies"
+                  />
+                  <RelationPanel
+                    title="Skills"
+                    items={p.skills.map((s) => ({
+                      id: s.id,
+                      label: s.name,
+                      href: `/skills/${s.id}`,
+                      meta: s.category && <Badge>{s.category}</Badge>,
+                    }))}
+                    emptyText="No skills linked yet."
+                    onManage={() => setPicker("skills")}
+                    manageLabel="Manage skills"
+                  />
+                </div>
+                <p className="text-caption text-muted-foreground">
+                  Architecture decisions and AI experiments for this project arrive with
+                  Architecture Intelligence (Phase 7) and the AI Lab (Phase 6).
+                </p>
+              </DossierSection>
+
+              <DossierSection
+                id="evidence"
+                title="Evidence"
+                description="Only evidence linked to this project is counted."
+              >
+                {intel.data && <EvidencePanel projectId={p.id} intel={intel.data.data} />}
+                <RelationPanel
+                  title="Linked evidence"
+                  items={p.evidence.map(evidenceItem)}
+                  emptyText="No evidence linked yet."
+                  onManage={() => setPicker("evidence")}
+                  manageLabel="Manage evidence"
+                />
+              </DossierSection>
+
+              <DossierSection
+                id="activity"
+                title="Activity"
+                description="Your recorded changes to this project and its milestones (from the audit log)."
+              >
+                <ProjectActivity projectId={p.id} />
+              </DossierSection>
+            </div>
+
+            <RelationPicker
+              open={picker === "skills"}
+              onOpenChange={(o) => !o && setPicker(null)}
+              title="Project skills"
+              description="Select every skill this project demonstrates."
+              resource="skills"
+              path="/api/v1/skills"
+              optionLabel={(r) => String(r.name)}
+              initial={p.skills.map((s) => ({ id: s.id, label: s.name }))}
+              onSave={(items) => setSkills.mutateAsync({ skillIds: items.map((i) => i.id) })}
+            />
+            <RelationPicker
+              open={picker === "technologies"}
+              onOpenChange={(o) => !o && setPicker(null)}
+              title="Project technologies"
+              description="Select the technologies used and how they were used."
+              resource="technologies"
+              path="/api/v1/technologies"
+              optionLabel={(r) => String(r.name)}
+              initial={p.technologies.map((t) => ({
+                id: t.id,
+                label: t.name,
+                attribute: t.usageType,
+              }))}
+              attribute={{ label: "Usage", options: USAGE_TYPE_OPTIONS, defaultValue: "core" }}
+              onSave={(items: PickedItem[]) =>
+                setTechs.mutateAsync({
+                  technologies: items.map((i) => ({ technologyId: i.id, usageType: i.attribute })),
+                })
+              }
+            />
+            <RelationPicker
+              open={picker === "evidence"}
+              onOpenChange={(o) => !o && setPicker(null)}
+              title="Project evidence"
+              description="Select the evidence that documents this project."
+              resource="evidence"
+              path="/api/v1/evidence"
+              optionLabel={(r) => String(r.title)}
+              initial={p.evidence.map((e) => ({ id: e.id, label: e.title }))}
+              onSave={(items) => setEvidence.mutateAsync({ evidenceIds: items.map((i) => i.id) })}
+            />
+          </>
+        )}
+      </DetailFrame>
+    </MetricDefinitionProvider>
   );
 }
 

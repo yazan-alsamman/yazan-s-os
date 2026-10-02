@@ -28,7 +28,9 @@ export const PROJECT_FIELDS: readonly FieldDescriptor[] = [
   },
   {
     name: "healthStatus",
-    label: "Health",
+    label: "Manual health",
+    description:
+      "Your own assessment. The computed health signal is shown separately and never changes it.",
     kind: "select",
     options: PROJECT_HEALTH_OPTIONS,
     defaultValue: "not_assessed",
