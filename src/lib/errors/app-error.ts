@@ -9,6 +9,8 @@ export const errorCatalog = {
   FORBIDDEN: { status: 403, message: "You do not have access to this resource." },
   NOT_FOUND: { status: 404, message: "The requested resource does not exist." },
   CONFLICT: { status: 409, message: "The request conflicts with the current state." },
+  PAYLOAD_TOO_LARGE: { status: 413, message: "The request body is too large." },
+  UNSUPPORTED_MEDIA_TYPE: { status: 415, message: "The request content type is not supported." },
   RATE_LIMITED: { status: 429, message: "Too many requests. Try again later." },
   SERVICE_UNAVAILABLE: { status: 503, message: "A required service is unavailable." },
   INTERNAL_ERROR: { status: 500, message: "An unexpected error occurred." },

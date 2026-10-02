@@ -1,7 +1,10 @@
-// PEOS Phase 0 schema — foundation only (identity, sessions, audit).
-// Domain entities (Profile, Project, Skill, ...) arrive in Phase 1.
-// Every future user-owned table MUST carry a non-null `userId` FK to User
-// (see docs/decisions/0003-user-ownership-model.md).
+// PEOS schema.
+// Phase 0: identity, sessions, audit. Phase 1: core data platform (profile, career records,
+// skills, technologies, certifications, projects, evidence, relationships, import review queue).
+//
+// Ownership invariant (ADR 0003, ADR 0011): every user-owned table carries a non-null `userId`.
+// Join tables reference BOTH parents through composite FKs (id, user_id), so PostgreSQL itself
+// rejects relationships that cross user boundaries.
 
 generator client {
   provider = "prisma-client"
@@ -27,6 +30,17 @@ model User {
   sessions  Session[]
   accounts  Account[]
   auditLogs AuditLog[]
+
+  profile         Profile?
+  experiences     Experience[]
+  education       Education[]
+  skills          Skill[]
+  technologies    Technology[]
+  certifications  Certification[]
+  projects        Project[]
+  evidence        Evidence[]
+  importJobs      ImportJob[]
+  reviewedImports ImportRecord[]  @relation("ImportReviewer")
 
   @@map("users")
 }
@@ -103,4 +117,547 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Phase 1 — Core Data Platform
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// How a record entered PEOS. Imported records also link to the ImportRecord that produced them.
+enum RecordOrigin {
+  manual
+  import
+
+  @@map("record_origin")
+}
+
+/// Project lifecycle (01_FEATURE_CATALOG.md §3).
+enum ProjectStatus {
+  idea
+  discovery
+  architecture
+  development
+  validation
+  production
+  maintenance
+  archived
+
+  @@map("project_status")
+}
+
+/// Manually assessed health until the derived health score arrives (Phase 3, ADR 0011).
+enum ProjectHealth {
+  not_assessed
+  on_track
+  at_risk
+  blocked
+
+  @@map("project_health")
+}
+
+enum CertificationStatus {
+  planned
+  in_progress
+  earned
+  revoked
+
+  @@map("certification_status")
+}
+
+/// Evidence categories from 01_FEATURE_CATALOG.md §10.
+enum EvidenceType {
+  certificate
+  screenshot
+  architecture_diagram
+  repository
+  demo
+  production_metric
+  document
+  testimonial
+  publication
+  other
+
+  @@map("evidence_type")
+}
+
+enum TechnologyUsageType {
+  core
+  supporting
+  infrastructure
+  tooling
+  other
+
+  @@map("technology_usage_type")
+}
+
+enum EvidenceStrength {
+  weak
+  moderate
+  strong
+
+  @@map("evidence_strength")
+}
+
+/// Profile — 1:1 with User. Name, timezone and locale live on User (spec 04 User).
+model Profile {
+  id                    String       @id @default(uuid()) @db.Uuid
+  userId                String       @unique @map("user_id") @db.Uuid
+  headline              String?
+  summary               String?
+  location              String?
+  website               String?
+  professionalObjective String?      @map("professional_objective")
+  origin                RecordOrigin @default(manual)
+  importRecordId        String?      @map("import_record_id") @db.Uuid
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord? @relation("ProfileImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+
+  @@index([importRecordId])
+  @@map("profiles")
+}
+
+model Experience {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  organization   String
+  title          String
+  startDate      DateTime     @map("start_date") @db.Date
+  /// null = current position
+  endDate        DateTime?    @map("end_date") @db.Date
+  description    String?
+  achievements   String[]     @default([])
+  origin         RecordOrigin @default(manual)
+  importRecordId String?      @map("import_record_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?        @relation("ExperienceImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  evidence     ExperienceEvidence[]
+
+  @@unique([id, userId])
+  @@index([userId, startDate])
+  @@index([importRecordId])
+  @@map("experiences")
+}
+
+/// Not defined in 04_DATA_MODEL.md; required by 00 §5 and 11 (ADR 0012).
+model Education {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  institution    String
+  degree         String?
+  fieldOfStudy   String?      @map("field_of_study")
+  startDate      DateTime?    @map("start_date") @db.Date
+  endDate        DateTime?    @map("end_date") @db.Date
+  description    String?
+  achievements   String[]     @default([])
+  origin         RecordOrigin @default(manual)
+  importRecordId String?      @map("import_record_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord? @relation("EducationImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startDate])
+  @@index([importRecordId])
+  @@map("education")
+}
+
+/// A user's skill. The current level is NOT stored: it is derived from evidence (00 §2.1, ADR 0013).
+model Skill {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  name           String
+  /// Normalised name for per-user uniqueness and import duplicate detection.
+  key            String
+  category       String?
+  description    String?
+  /// Level model identifier (ADR 0013); "peos-default-v1" = levels 0–5 of 01 §6.
+  levelModel     String       @default("peos-default-v1") @map("level_model")
+  targetLevel    Int?         @map("target_level")
+  active         Boolean      @default(true)
+  origin         RecordOrigin @default(manual)
+  importRecordId String?      @map("import_record_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord   ImportRecord?        @relation("SkillImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  projects       ProjectSkill[]
+  evidence       SkillEvidence[]
+  certifications CertificationSkill[]
+
+  @@unique([id, userId])
+  @@unique([userId, key])
+  @@index([userId, category])
+  @@index([importRecordId])
+  @@map("skills")
+}
+
+model Technology {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  name           String
+  key            String
+  category       String?
+  version        String?
+  notes          String?
+  origin         RecordOrigin @default(manual)
+  importRecordId String?      @map("import_record_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?     @relation("TechnologyImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  usages       TechnologyUsage[]
+
+  @@unique([id, userId])
+  @@unique([userId, key])
+  @@index([userId, category])
+  @@index([importRecordId])
+  @@map("technologies")
+}
+
+/// Certifications contribute evidence but never automatically prove a skill (01 §7).
+model Certification {
+  id              String              @id @default(uuid()) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  name            String
+  issuer          String
+  category        String?
+  issueDate       DateTime?           @map("issue_date") @db.Date
+  expiryDate      DateTime?           @map("expiry_date") @db.Date
+  credentialId    String?             @map("credential_id")
+  verificationUrl String?             @map("verification_url")
+  status          CertificationStatus @default(earned)
+  origin          RecordOrigin        @default(manual)
+  importRecordId  String?             @map("import_record_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?           @relation("CertificationImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  skills       CertificationSkill[]
+  evidence     CertificationEvidence[]
+
+  @@unique([id, userId])
+  @@index([userId, status])
+  @@index([userId, expiryDate])
+  @@index([importRecordId])
+  @@map("certifications")
+}
+
+model Project {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  name           String
+  slug           String
+  description    String?
+  problem        String?
+  solution       String?
+  status         ProjectStatus @default(idea)
+  healthStatus   ProjectHealth @default(not_assessed) @map("health_status")
+  startDate      DateTime?     @map("start_date") @db.Date
+  targetDate     DateTime?     @map("target_date") @db.Date
+  completedAt    DateTime?     @map("completed_at") @db.Date
+  impact         String?
+  repositoryUrl  String?       @map("repository_url")
+  demoUrl        String?       @map("demo_url")
+  productionUrl  String?       @map("production_url")
+  origin         RecordOrigin  @default(manual)
+  importRecordId String?       @map("import_record_id") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?     @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  skills       ProjectSkill[]
+  technologies TechnologyUsage[]
+  evidence     ProjectEvidence[]
+
+  @@unique([id, userId])
+  @@unique([userId, slug])
+  @@index([userId, status])
+  @@index([userId, updatedAt])
+  @@index([importRecordId])
+  @@map("projects")
+}
+
+model Evidence {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  type           EvidenceType
+  title          String
+  description    String?
+  sourceUrl      String?      @map("source_url")
+  fileUrl        String?      @map("file_url")
+  date           DateTime?    @db.Date
+  verified       Boolean      @default(false)
+  verifiedAt     DateTime?    @map("verified_at") @db.Timestamptz(3)
+  origin         RecordOrigin @default(manual)
+  importRecordId String?      @map("import_record_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord   ImportRecord?           @relation("EvidenceImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  projects       ProjectEvidence[]
+  skills         SkillEvidence[]
+  certifications CertificationEvidence[]
+  experiences    ExperienceEvidence[]
+
+  @@unique([id, userId])
+  @@index([userId, type])
+  @@index([userId, date])
+  @@index([importRecordId])
+  @@map("evidence")
+}
+
+// ── Relationship tables (composite FKs enforce same-owner links) ─────────────
+
+model ProjectSkill {
+  userId    String   @map("user_id") @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  skillId   String   @map("skill_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project Project @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+  skill   Skill   @relation(fields: [skillId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([projectId, skillId])
+  @@index([skillId])
+  @@map("project_skills")
+}
+
+/// Project N:M Technology (spec 04 TechnologyUsage).
+model TechnologyUsage {
+  userId              String              @map("user_id") @db.Uuid
+  projectId           String              @map("project_id") @db.Uuid
+  technologyId        String              @map("technology_id") @db.Uuid
+  usageType           TechnologyUsageType @default(core) @map("usage_type")
+  /// How proficiency was demonstrated in this project (free text; spec 04).
+  proficiencyEvidence String?             @map("proficiency_evidence")
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project    Project    @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([projectId, technologyId])
+  @@index([technologyId])
+  @@map("technology_usages")
+}
+
+model ProjectEvidence {
+  userId     String   @map("user_id") @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  evidenceId String   @map("evidence_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project  Project  @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+  evidence Evidence @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([projectId, evidenceId])
+  @@index([evidenceId])
+  @@map("project_evidence")
+}
+
+/// Skill N:M Evidence with strength and date (spec 04 SkillEvidence).
+model SkillEvidence {
+  userId     String           @map("user_id") @db.Uuid
+  skillId    String           @map("skill_id") @db.Uuid
+  evidenceId String           @map("evidence_id") @db.Uuid
+  strength   EvidenceStrength @default(moderate)
+  date       DateTime?        @db.Date
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  skill    Skill    @relation(fields: [skillId, userId], references: [id, userId], onDelete: Cascade)
+  evidence Evidence @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([skillId, evidenceId])
+  @@index([evidenceId])
+  @@map("skill_evidence")
+}
+
+model CertificationSkill {
+  userId          String   @map("user_id") @db.Uuid
+  certificationId String   @map("certification_id") @db.Uuid
+  skillId         String   @map("skill_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  certification Certification @relation(fields: [certificationId, userId], references: [id, userId], onDelete: Cascade)
+  skill         Skill         @relation(fields: [skillId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([certificationId, skillId])
+  @@index([skillId])
+  @@map("certification_skills")
+}
+
+model CertificationEvidence {
+  userId          String   @map("user_id") @db.Uuid
+  certificationId String   @map("certification_id") @db.Uuid
+  evidenceId      String   @map("evidence_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  certification Certification @relation(fields: [certificationId, userId], references: [id, userId], onDelete: Cascade)
+  evidence      Evidence      @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([certificationId, evidenceId])
+  @@index([evidenceId])
+  @@map("certification_evidence")
+}
+
+/// Spec 04 Experience.evidenceLinks, modelled relationally.
+model ExperienceEvidence {
+  userId       String   @map("user_id") @db.Uuid
+  experienceId String   @map("experience_id") @db.Uuid
+  evidenceId   String   @map("evidence_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  experience Experience @relation(fields: [experienceId, userId], references: [id, userId], onDelete: Cascade)
+  evidence   Evidence   @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([experienceId, evidenceId])
+  @@index([evidenceId])
+  @@map("experience_evidence")
+}
+
+// ── Import review queue (00 §9, 11_DATA_IMPORT_PROFILE.md, ADR 0014) ─────────
+
+enum ImportSource {
+  peos_json
+  csv
+  linkedin_csv
+
+  @@map("import_source")
+}
+
+/// Malformed files are rejected at upload (HTTP 400) and never create a job.
+enum ImportJobStatus {
+  pending_review
+  completed
+
+  @@map("import_job_status")
+}
+
+enum ImportEntityType {
+  profile
+  experience
+  education
+  skill
+  technology
+  certification
+  project
+  evidence
+
+  @@map("import_entity_type")
+}
+
+enum ImportValidationStatus {
+  valid
+  invalid
+
+  @@map("import_validation_status")
+}
+
+enum ImportMatch {
+  new
+  duplicate
+
+  @@map("import_match")
+}
+
+enum ImportReviewStatus {
+  pending
+  accepted
+  rejected
+
+  @@map("import_review_status")
+}
+
+enum ImportDecision {
+  create
+  update
+
+  @@map("import_decision")
+}
+
+enum ImportConfidence {
+  high
+  medium
+  low
+
+  @@map("import_confidence")
+}
+
+/// One uploaded source file. Source file contents are NOT stored — only metadata and the
+/// normalised candidate records derived from it.
+model ImportJob {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @map("user_id") @db.Uuid
+  source        ImportSource
+  fileName      String            @map("file_name")
+  fileSize      Int               @map("file_size")
+  fileSha256    String            @map("file_sha256")
+  parserVersion String            @map("parser_version")
+  status        ImportJobStatus   @default(pending_review)
+  entityHint    ImportEntityType? @map("entity_hint")
+  recordCount   Int               @default(0) @map("record_count")
+  invalidCount  Int               @default(0) @map("invalid_count")
+  errorMessage  String?           @map("error_message")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt   DateTime?         @map("completed_at") @db.Timestamptz(3)
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  records ImportRecord[]
+
+  @@unique([id, userId])
+  @@index([userId, createdAt])
+  @@map("import_jobs")
+}
+
+/// A normalised candidate awaiting review. `payload` holds the normalised (never raw) candidate,
+/// re-validated against the entity schema at decision time.
+model ImportRecord {
+  id               String                 @id @default(uuid()) @db.Uuid
+  userId           String                 @map("user_id") @db.Uuid
+  jobId            String                 @map("job_id") @db.Uuid
+  entityType       ImportEntityType       @map("entity_type")
+  /// Location in the source, e.g. "row 4" or "projects[2]".
+  sourceRef        String                 @map("source_ref")
+  payload          Json
+  validationStatus ImportValidationStatus @map("validation_status")
+  validationErrors Json?                  @map("validation_errors")
+  confidence       ImportConfidence
+  match            ImportMatch            @default(new)
+  matchedEntityId  String?                @map("matched_entity_id") @db.Uuid
+  reviewStatus     ImportReviewStatus     @default(pending) @map("review_status")
+  decision         ImportDecision?
+  resultEntityId   String?                @map("result_entity_id") @db.Uuid
+  reviewedAt       DateTime?              @map("reviewed_at") @db.Timestamptz(3)
+  reviewedById     String?                @map("reviewed_by_id") @db.Uuid
+  errorMessage     String?                @map("error_message")
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  job        ImportJob @relation(fields: [jobId, userId], references: [id, userId], onDelete: Cascade)
+  reviewedBy User?     @relation("ImportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  profiles       Profile[]       @relation("ProfileImport")
+  experiences    Experience[]    @relation("ExperienceImport")
+  education      Education[]     @relation("EducationImport")
+  skills         Skill[]         @relation("SkillImport")
+  technologies   Technology[]    @relation("TechnologyImport")
+  certifications Certification[] @relation("CertificationImport")
+  projects       Project[]       @relation("ProjectImport")
+  evidence       Evidence[]      @relation("EvidenceImport")
+
+  @@unique([id, userId])
+  @@index([jobId, reviewStatus])
+  @@index([userId, reviewStatus])
+  @@map("import_records")
 }
