@@ -44,6 +44,8 @@ const EXPIRY_TONE = {
   no_expiry: "neutral",
 } as const;
 
+const yesNo = (value: string) => (value === "true" ? "yes" : "no");
+
 function OriginBadge({ origin }: { origin: string }) {
   return origin === "import" ? <Badge tone="info">Imported</Badge> : null;
 }
@@ -58,6 +60,15 @@ export function ProjectsList() {
       related={["skills", "technologies", "evidence"]}
       rowLabel={(p) => p.name}
       detailHref={(p) => `/projects/${p.id}`}
+      extraParams={[
+        {
+          name: "lifecycle",
+          label: "Lifecycle",
+          format: (v) => (v === "active" ? "active work" : "production systems"),
+        },
+        { name: "completedFrom", label: "Completed from" },
+        { name: "completedTo", label: "Completed to" },
+      ]}
       searchPlaceholder="Name, description, problem, impact…"
       filters={[
         { name: "status", label: "Status", options: PROJECT_STATUS_OPTIONS },
@@ -111,6 +122,10 @@ export function SkillsList() {
       related={["projects", "certifications", "evidence"]}
       rowLabel={(s) => s.name}
       detailHref={(s) => `/skills/${s.id}`}
+      extraParams={[
+        { name: "category", label: "Category" },
+        { name: "hasEvidence", label: "Has evidence", format: yesNo },
+      ]}
       searchPlaceholder="Name, category, description…"
       filters={[
         { name: "active", label: "Active", options: YES_NO_OPTIONS },
@@ -191,6 +206,7 @@ export function CertificationsList() {
       related={["skills", "evidence"]}
       rowLabel={(c) => c.name}
       detailHref={(c) => `/certifications/${c.id}`}
+      extraParams={[{ name: "current", label: "Excluding revoked", format: yesNo }]}
       searchPlaceholder="Name, issuer, category, credential ID…"
       filters={[
         { name: "status", label: "Status", options: CERTIFICATION_STATUS_OPTIONS },
@@ -237,6 +253,11 @@ export function EvidenceList() {
       related={["projects", "skills", "certifications", "experiences"]}
       rowLabel={(e) => e.title}
       detailHref={(e) => `/evidence/${e.id}`}
+      extraParams={[
+        { name: "dateFrom", label: "Dated from" },
+        { name: "dateTo", label: "Dated to" },
+        { name: "dated", label: "Has a date", format: yesNo },
+      ]}
       searchPlaceholder="Title, description, source URL…"
       filters={[
         { name: "type", label: "Type", options: EVIDENCE_TYPE_OPTIONS },

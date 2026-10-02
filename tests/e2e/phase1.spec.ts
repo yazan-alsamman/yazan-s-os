@@ -6,6 +6,7 @@ import {
   expectNoAxeViolations,
   newAccount,
   pickRelations,
+  readDownload,
   signUp,
 } from "./helpers";
 
@@ -204,11 +205,7 @@ test.describe("signed-in flows", () => {
     await page.getByRole("link", { name: "Download JSON" }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^peos-export-\d{4}-\d{2}-\d{2}\.json$/);
-    const text = await (
-      await download.createReadStream()
-    )
-      .toArray()
-      .then((chunks) => Buffer.concat(chunks).toString("utf8"));
+    const text = await readDownload(download);
     const exported = JSON.parse(text) as { projects: { name: string; skills: string[] }[] };
     expect(exported.projects.map((p) => p.name).sort()).toEqual([
       "E2E Data Platform",

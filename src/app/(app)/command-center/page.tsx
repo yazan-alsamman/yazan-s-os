@@ -1,8 +1,7 @@
 import { CheckCircle2, CircleDashed, XCircle } from "lucide-react";
 import type { Metadata } from "next";
 
-import { SectionUnavailable } from "@/components/layout/section-unavailable";
-import { findSection } from "@/components/shell/navigation";
+import { CommandCenter } from "@/components/command-center/command-center";
 import { runHealthChecks, type ComponentStatus } from "@/lib/health/health-service";
 import { infrastructureProbes } from "@/lib/health/infrastructure-probes";
 import { logger } from "@/lib/observability/logger";
@@ -23,26 +22,19 @@ const STATUS_PRESENTATION: Record<
 };
 
 export default async function CommandCenterPage() {
-  const section = findSection("command-center")!;
   const health = await runHealthChecks(infrastructureProbes(), {
     onFailure: (component, error) => logger.warn({ component, err: error }, "health.check_failed"),
   });
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionUnavailable section={section} />
+      <CommandCenter />
 
-      <section aria-labelledby="system-status" className="rounded-lg border bg-surface">
-        <div className="flex items-baseline justify-between border-b px-4 py-3">
-          <h2 id="system-status" className="text-h3 font-semibold">
-            System status
-          </h2>
-          <p className="text-caption text-muted-foreground">
-            Checked{" "}
-            <time dateTime={health.timestamp}>{new Date(health.timestamp).toUTCString()}</time>
-          </p>
-        </div>
-        <ul className="divide-y">
+      <details className="rounded-lg border bg-surface">
+        <summary className="cursor-pointer px-4 py-3 text-body font-medium">
+          System status <span className="text-muted-foreground">— {health.status}</span>
+        </summary>
+        <ul className="divide-y border-t">
           {Object.entries(health.checks).map(([component, status]) => {
             const { label, icon: Icon, className } = STATUS_PRESENTATION[status];
             return (
@@ -56,7 +48,7 @@ export default async function CommandCenterPage() {
             );
           })}
         </ul>
-      </section>
+      </details>
     </div>
   );
 }

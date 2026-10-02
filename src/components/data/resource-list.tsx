@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
@@ -31,6 +31,14 @@ export interface Column<T> {
   className?: string;
 }
 
+/** URL parameter honoured by the list without its own control (e.g. a Command Center drill-down). */
+export interface ExtraParam {
+  name: string;
+  label: string;
+  /** Human-readable value, e.g. "true" → "yes". */
+  format?: (value: string) => string;
+}
+
 export interface FilterDef {
   name: string;
   label: string;
@@ -49,6 +57,8 @@ export interface ResourceListProps<T extends { id: string }> {
   rowLabel: (row: T) => string;
   detailHref?: (row: T) => string;
   filters?: readonly FilterDef[];
+  /** Drill-down parameters shown as removable chips. */
+  extraParams?: readonly ExtraParam[];
   sortOptions: readonly FieldOption[];
   defaultSort: string;
   fields: readonly FieldDescriptor[];
@@ -86,6 +96,8 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
     sort: get("sort") || props.defaultSort,
   };
   for (const filter of props.filters ?? []) params[filter.name] = get(filter.name) || undefined;
+  const activeExtras = (props.extraParams ?? []).filter((p) => get(p.name));
+  for (const extra of activeExtras) params[extra.name] = get(extra.name);
   const query = useApiList<T>(props.resource, props.path, params);
 
   const create = useApiMutation<Record<string, unknown>>("POST", props.path, invalidates);
@@ -100,7 +112,8 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
     invalidates,
   );
 
-  const filtered = Boolean(urlTerm) || (props.filters ?? []).some((f) => get(f.name));
+  const filtered =
+    Boolean(urlTerm) || (props.filters ?? []).some((f) => get(f.name)) || activeExtras.length > 0;
   const rows = query.data?.data ?? [];
   const page = query.data?.page;
 
@@ -185,6 +198,24 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
         </div>
       </div>
 
+      {activeExtras.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-caption">
+          <span className="text-muted-foreground">Also filtered by:</span>
+          {activeExtras.map((p) => (
+            <Button
+              key={p.name}
+              variant="outline"
+              size="xs"
+              onClick={() => set({ [p.name]: null })}
+              aria-label={`Remove filter ${p.label}: ${p.format ? p.format(get(p.name)) : get(p.name)}`}
+            >
+              {p.label}: {p.format ? p.format(get(p.name)) : get(p.name)}
+              <X aria-hidden />
+            </Button>
+          ))}
+        </div>
+      )}
+
       <p className="sr-only" aria-live="polite">
         {page ? `${page.total} ${page.total === 1 ? props.singular : props.plural} found` : ""}
       </p>
@@ -211,6 +242,7 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
                   Object.fromEntries([
                     ["q", null],
                     ...(props.filters ?? []).map((f) => [f.name, null]),
+                    ...(props.extraParams ?? []).map((p) => [p.name, null]),
                   ]),
                 );
               }}

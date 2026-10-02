@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises";
+
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Download, type Page } from "@playwright/test";
 
 /** Throwaway test accounts on the isolated test database (reserved `.invalid` TLD). */
 export function newAccount(label: string) {
@@ -77,4 +79,22 @@ export async function pickRelations(
   }
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
+}
+
+/**
+ * Read a completed download. On Windows the browser (or an on-access virus scan) can briefly hold
+ * the freshly written file, making the first open fail with EPERM/EBUSY — retry for up to ~5 s.
+ */
+export async function readDownload(download: Download): Promise<string> {
+  const path = await download.path();
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const text = await readFile(path, "utf8");
+      if (text.length > 0 || attempt >= 25) return text;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if ((code !== "EPERM" && code !== "EBUSY") || attempt >= 25) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
 }

@@ -90,8 +90,11 @@ test("a signed-in user reaches the protected shell, which shows no fabricated da
   await signUp(page);
 
   await expect(page.getByRole("heading", { level: 1, name: "Command Center" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Not available yet" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "System status" })).toBeVisible();
+  // Phase 2: the Command Center is live; a new account sees the first-run state, not numbers.
+  await expect(
+    page.getByRole("heading", { name: "Your Command Center will populate as you add records" }),
+  ).toBeVisible();
+  await expect(page.getByText(/^System status/)).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   await expectNoAxeViolations(page);
 

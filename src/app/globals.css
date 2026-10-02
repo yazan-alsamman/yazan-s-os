@@ -37,6 +37,16 @@
   --danger: oklch(0.53 0.2 27);
   --info: oklch(0.5 0.13 235);
   --focus-ring: oklch(0.55 0.17 255);
+
+  /* Chart palette (sRGB hex: ECharts cannot parse oklch). ≥ 3:1 against the surface. */
+  --chart-brand: #2f5fd0;
+  --chart-success: #1e7a4c;
+  --chart-warning: #9a5b00;
+  --chart-danger: #c03a2b;
+  --chart-neutral: #6b7280;
+  --chart-text: #1f2430;
+  --chart-muted-text: #4f5664;
+  --chart-grid: #e3e5ea;
 }
 
 .dark {
@@ -55,6 +65,15 @@
   --danger: oklch(0.7 0.17 25);
   --info: oklch(0.74 0.12 235);
   --focus-ring: oklch(0.72 0.13 250);
+
+  --chart-brand: #7ea6ff;
+  --chart-success: #4cc48a;
+  --chart-warning: #eeb24a;
+  --chart-danger: #ff7a6b;
+  --chart-neutral: #9aa1ad;
+  --chart-text: #e7e9ee;
+  --chart-muted-text: #aab0bb;
+  --chart-grid: #30343c;
 }
 
 @theme inline {
