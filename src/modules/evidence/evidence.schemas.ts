@@ -42,6 +42,8 @@ export const listEvidenceQuerySchema = paginationQuerySchema.extend({
   origin: z.enum(RecordOrigin).optional(),
   dateFrom: isoDate.optional(),
   dateTo: isoDate.optional(),
+  /** true = has an evidence date, false = undated (Command Center drill-down). */
+  dated: booleanQuerySchema,
   sort: sortSchema(["title", "date", "type", "updatedAt", "createdAt"], "-date"),
 });
 

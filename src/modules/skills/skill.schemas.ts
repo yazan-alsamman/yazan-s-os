@@ -67,6 +67,8 @@ export const listSkillsQuerySchema = paginationQuerySchema.extend({
   category: z.string().trim().max(80).optional(),
   active: booleanQuerySchema,
   hasTarget: booleanQuerySchema,
+  /** Linked to at least one evidence item (Command Center drill-down). */
+  hasEvidence: booleanQuerySchema,
   sort: sortSchema(["name", "category", "targetLevel", "updatedAt", "createdAt"], "name"),
 });
 

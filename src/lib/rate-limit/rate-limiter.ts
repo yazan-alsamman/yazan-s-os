@@ -16,6 +16,8 @@ export const RateLimits = {
   mutation: { name: "mutation", limit: 120, windowSeconds: 60 },
   import: { name: "import", limit: 20, windowSeconds: 3600 },
   export: { name: "export", limit: 30, windowSeconds: 3600 },
+  /** Command Center reads run ~35 aggregate queries each. */
+  analytics: { name: "analytics", limit: 120, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /**

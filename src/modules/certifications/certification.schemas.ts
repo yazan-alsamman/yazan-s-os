@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 import { CertificationStatus } from "@/generated/prisma/enums";
-import { paginationQuerySchema, searchTermSchema, sortSchema } from "@/lib/http/pagination";
+import {
+  booleanQuerySchema,
+  paginationQuerySchema,
+  searchTermSchema,
+  sortSchema,
+} from "@/lib/http/pagination";
 import {
   datesOrdered,
   optionalHttpUrl,
@@ -46,6 +51,8 @@ export const listCertificationsQuerySchema = paginationQuerySchema.extend({
   status: certificationStatusSchema.optional(),
   issuer: z.string().trim().max(200).optional(),
   expiry: expiryStateSchema.optional(),
+  /** true = exclude revoked certifications (matches the Command Center expiry metrics). */
+  current: booleanQuerySchema,
   sort: sortSchema(
     ["name", "issuer", "issueDate", "expiryDate", "updatedAt", "createdAt"],
     "-issueDate",

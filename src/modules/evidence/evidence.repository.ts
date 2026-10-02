@@ -51,6 +51,9 @@ export const evidenceRepository = {
     if (query.verified !== undefined) where.verified = query.verified;
     if (query.origin) where.origin = query.origin;
     if (query.dateFrom || query.dateTo) where.date = { gte: query.dateFrom, lte: query.dateTo };
+    if (query.dated !== undefined) {
+      where.AND = [{ date: query.dated ? { not: null } : null }];
+    }
 
     const [rows, total] = await Promise.all([
       db.evidence.findMany({

@@ -4,6 +4,7 @@ import { toSkipTake } from "@/lib/http/pagination";
 import type { Tx } from "@/modules/shared/audit";
 import { provenanceInclude } from "@/modules/shared/provenance";
 
+import { LIFECYCLE_GROUPS } from "./project.lifecycle";
 import type { ListProjectsQuery } from "./project.schemas";
 
 type Db = PrismaClient | Tx;
@@ -67,6 +68,12 @@ export const projectRepository = {
       where.startDate = { gte: query.startFrom, lte: query.startTo };
     }
     if (query.imported !== undefined) where.origin = query.imported ? "import" : "manual";
+    const and: Prisma.ProjectWhereInput[] = [];
+    if (query.lifecycle) and.push({ status: { in: [...LIFECYCLE_GROUPS[query.lifecycle]] } });
+    if (query.completedFrom || query.completedTo) {
+      and.push({ completedAt: { gte: query.completedFrom, lte: query.completedTo } });
+    }
+    if (and.length) where.AND = and;
 
     const [rows, total] = await Promise.all([
       db.project.findMany({

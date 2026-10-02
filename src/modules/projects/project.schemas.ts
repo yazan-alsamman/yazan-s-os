@@ -83,6 +83,10 @@ export const listProjectsQuerySchema = paginationQuerySchema.extend({
   startFrom: isoDate.optional(),
   startTo: isoDate.optional(),
   imported: booleanQuerySchema,
+  /** Lifecycle group used by Command Center drill-down (ADR 0018). */
+  lifecycle: z.enum(["active", "production"]).optional(),
+  completedFrom: isoDate.optional(),
+  completedTo: isoDate.optional(),
   sort: sortSchema(["name", "updatedAt", "startDate", "status", "createdAt"], "-updatedAt"),
 });
 

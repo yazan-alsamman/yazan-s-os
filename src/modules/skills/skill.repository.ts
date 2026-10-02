@@ -53,6 +53,9 @@ export const skillRepository = {
     }
     if (query.category) where.category = { equals: query.category, mode: "insensitive" };
     if (query.active !== undefined) where.active = query.active;
+    if (query.hasEvidence !== undefined) {
+      where.evidence = query.hasEvidence ? { some: {} } : { none: {} };
+    }
     if (query.hasTarget !== undefined) {
       where.targetLevel = query.hasTarget ? { not: null } : null;
     }

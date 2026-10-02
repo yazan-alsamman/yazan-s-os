@@ -80,6 +80,9 @@ export const certificationRepository = {
       and.push({ issuer: { contains: escapeLike(query.issuer), mode: "insensitive" } });
     }
     if (query.expiry) and.push(expiryWhere(query.expiry));
+    if (query.current !== undefined) {
+      and.push(query.current ? { status: { not: "revoked" } } : { status: "revoked" });
+    }
     const where: Prisma.CertificationWhereInput = { AND: and };
 
     const [rows, total] = await Promise.all([
