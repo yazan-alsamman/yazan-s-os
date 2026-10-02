@@ -1,0 +1,12 @@
+node_modules
+.next
+pnpm-lock.yaml
+src/generated
+prisma/migrations
+coverage
+playwright-report
+test-results
+# Specification documents are authoritative source material; keep them byte-for-byte.
+/[0-9][0-9]_*.md
+/README.md
+docs/audits

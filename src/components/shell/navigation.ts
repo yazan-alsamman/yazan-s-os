@@ -1,0 +1,210 @@
+import {
+  Activity,
+  BarChart3,
+  Bot,
+  BookOpen,
+  Boxes,
+  BriefcaseBusiness,
+  FlaskConical,
+  FolderKanban,
+  Gauge,
+  GitBranch,
+  type LucideIcon,
+  Medal,
+  Network,
+  Settings,
+  ShieldCheck,
+  Target,
+} from "lucide-react";
+
+/**
+ * Navigation registry — the single source of truth for primary navigation, the command
+ * palette and the section routes. Order and labels follow 00_MASTER_SPEC.md §3.
+ *
+ * `availability` must be honest: a section is `available` only when it has real
+ * functionality. Planned sections render an explicit "Not available yet" state.
+ */
+export type SectionAvailability = "available" | "planned";
+
+export interface NavSection {
+  id: string;
+  label: string;
+  href: `/${string}`;
+  icon: LucideIcon;
+  /** One-sentence purpose, paraphrased from the specification. */
+  summary: string;
+  availability: SectionAvailability;
+  /** Where the section is scheduled in 08_IMPLEMENTATION_PHASES.md. */
+  plannedIn: string;
+  /** Rendered in the sidebar footer instead of the main list. */
+  placement: "main" | "footer";
+  /** Shown in the mobile bottom bar (max 4). */
+  mobilePrimary?: boolean;
+}
+
+export const NAV_SECTIONS: readonly NavSection[] = [
+  {
+    id: "command-center",
+    label: "Command Center",
+    href: "/command-center",
+    icon: Gauge,
+    summary: "What is important, blocked, changed and needs a decision — at a glance.",
+    availability: "planned",
+    plannedIn: "Phase 2 — Command Center",
+    placement: "main",
+    mobilePrimary: true,
+  },
+  {
+    id: "career",
+    label: "Career Intelligence",
+    href: "/career",
+    icon: BriefcaseBusiness,
+    summary: "Career dimensions, skill-gap analysis and career evidence.",
+    availability: "planned",
+    plannedIn: "Phase 4 — Skills & Career Intelligence",
+    placement: "main",
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    href: "/projects",
+    icon: FolderKanban,
+    summary: "Project lifecycle, health, milestones, technologies and evidence.",
+    availability: "planned",
+    plannedIn: "Phase 1 — Core Data Platform (records); Phase 3 — Project Intelligence",
+    placement: "main",
+    mobilePrimary: true,
+  },
+  {
+    id: "engineering",
+    label: "Engineering",
+    href: "/engineering",
+    icon: Activity,
+    summary: "Deployments, incidents, quality, technical debt and delivery metrics.",
+    availability: "planned",
+    plannedIn: "Phase 9 — Engineering Analytics",
+    placement: "main",
+  },
+  {
+    id: "ai-lab",
+    label: "AI Lab",
+    href: "/ai-lab",
+    icon: FlaskConical,
+    summary: "Experiment registry, evaluation metrics and run comparison.",
+    availability: "planned",
+    plannedIn: "Phase 6 — AI Lab",
+    placement: "main",
+  },
+  {
+    id: "skills",
+    label: "Skills",
+    href: "/skills",
+    icon: Target,
+    summary: "Skill registry with levels, targets and evidence.",
+    availability: "planned",
+    plannedIn: "Phase 1 — Core Data Platform (records); Phase 4 — Skills & Career Intelligence",
+    placement: "main",
+    mobilePrimary: true,
+  },
+  {
+    id: "knowledge",
+    label: "Knowledge",
+    href: "/knowledge",
+    icon: BookOpen,
+    summary: "Notes, articles, courses, papers and lessons learned.",
+    availability: "planned",
+    plannedIn: "Not yet scheduled in 08_IMPLEMENTATION_PHASES.md",
+    placement: "main",
+  },
+  {
+    id: "certifications",
+    label: "Certifications",
+    href: "/certifications",
+    icon: Medal,
+    summary: "Credentials, verification links, expiry tracking and related skills.",
+    availability: "planned",
+    plannedIn: "Phase 1 — Core Data Platform",
+    placement: "main",
+  },
+  {
+    id: "architecture",
+    label: "Architecture",
+    href: "/architecture",
+    icon: Network,
+    summary: "Architecture decision records and the interactive architecture map.",
+    availability: "planned",
+    plannedIn: "Phase 7 — Architecture Intelligence",
+    placement: "main",
+  },
+  {
+    id: "goals",
+    label: "Goals & Roadmap",
+    href: "/goals",
+    icon: GitBranch,
+    summary: "Goal hierarchy, milestones, dependencies and roadmap views.",
+    availability: "planned",
+    plannedIn: "Phase 5 — Goals & Roadmap",
+    placement: "main",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
+    summary: "Career, engineering, AI and portfolio analytics with defined metrics.",
+    availability: "planned",
+    plannedIn: "Phases 2–9 (incrementally, per domain)",
+    placement: "main",
+  },
+  {
+    id: "evidence",
+    label: "Evidence Vault",
+    href: "/evidence",
+    icon: ShieldCheck,
+    summary: "Central repository of professional evidence linked to skills and projects.",
+    availability: "planned",
+    plannedIn: "Phase 1 — Core Data Platform (records); Phase 10 — Evidence Vault",
+    placement: "main",
+  },
+  {
+    id: "opportunities",
+    label: "Opportunities",
+    href: "/opportunities",
+    icon: Boxes,
+    summary: "Professional opportunities with transparent requirement-to-evidence fit.",
+    availability: "planned",
+    plannedIn: "Phase 10 — Evidence Vault & Opportunities",
+    placement: "main",
+  },
+  {
+    id: "settings",
+    label: "Settings / Integrations",
+    href: "/settings",
+    icon: Settings,
+    summary: "Account, appearance and (later) integrations.",
+    availability: "available",
+    plannedIn: "Phase 0 — account & appearance; Phase 9 — integrations",
+    placement: "footer",
+  },
+  {
+    id: "copilot",
+    label: "AI Copilot",
+    href: "/copilot",
+    icon: Bot,
+    summary: "Evidence-grounded assistant over your structured data, with citations.",
+    availability: "planned",
+    plannedIn: "Phase 8 — AI Copilot",
+    placement: "footer",
+    mobilePrimary: true,
+  },
+];
+
+export function findSection(id: string): NavSection | undefined {
+  return NAV_SECTIONS.find((section) => section.id === id);
+}
+
+export function findSectionByPath(pathname: string): NavSection | undefined {
+  return NAV_SECTIONS.find(
+    (section) => pathname === section.href || pathname.startsWith(`${section.href}/`),
+  );
+}

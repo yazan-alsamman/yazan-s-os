@@ -1,0 +1,16 @@
+# Single-package repo; this file only holds pnpm settings.
+# Dependency build scripts are deny-by-default; allow only what is required.
+allowBuilds:
+  # Optional native msgpack accelerator used by BullMQ; the pure-JS path is sufficient.
+  msgpackr-extract: false
+  "@prisma/engines": true
+  prisma: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+# Security overrides for transitive dependencies of the Prisma CLI (see
+# docs/decisions/0005-database-and-infrastructure.md). Remove once Prisma ships patched ranges.
+overrides:
+  mysql2: ">=3.23.1 <4"
+  deepmerge-ts: ">=8.0.0 <9"

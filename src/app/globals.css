@@ -1,0 +1,157 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Class-based dark mode, driven by next-themes (light | dark | system). */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * PEOS design tokens (spec 02_UX_UI_DESIGN.md §4).
+ * Components must use these semantic tokens — never raw color values.
+ * Spec token            → CSS variable
+ *   background          → --background
+ *   surface             → --surface
+ *   elevated surface    → --surface-elevated
+ *   text                → --foreground
+ *   muted text          → --muted-foreground
+ *   border              → --border
+ *   accent              → --accent-brand
+ *   success/warning/danger/info → --success / --warning / --danger / --info
+ * shadcn/ui variable names (--card, --primary, ...) are aliases of the spec tokens.
+ * All text/background pairs below meet WCAG 2.2 AA (≥ 4.5:1 for body text).
+ */
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(0.985 0.002 260);
+  --surface: oklch(1 0 0);
+  --surface-elevated: oklch(1 0 0);
+  --surface-sunken: oklch(0.965 0.003 260);
+  --foreground: oklch(0.2 0.012 260);
+  --muted-foreground: oklch(0.46 0.014 260);
+  --border: oklch(0.9 0.005 260);
+  --border-strong: oklch(0.82 0.008 260);
+  --accent-brand: oklch(0.5 0.15 255);
+  --accent-brand-foreground: oklch(0.985 0 0);
+  --success: oklch(0.5 0.13 155);
+  --warning: oklch(0.55 0.13 70);
+  --danger: oklch(0.53 0.2 27);
+  --info: oklch(0.5 0.13 235);
+  --focus-ring: oklch(0.55 0.17 255);
+}
+
+.dark {
+  --background: oklch(0.155 0.006 260);
+  --surface: oklch(0.19 0.007 260);
+  --surface-elevated: oklch(0.225 0.008 260);
+  --surface-sunken: oklch(0.13 0.005 260);
+  --foreground: oklch(0.94 0.004 260);
+  --muted-foreground: oklch(0.7 0.012 260);
+  --border: oklch(0.29 0.008 260);
+  --border-strong: oklch(0.37 0.01 260);
+  --accent-brand: oklch(0.72 0.13 250);
+  --accent-brand-foreground: oklch(0.16 0.01 260);
+  --success: oklch(0.74 0.14 155);
+  --warning: oklch(0.8 0.14 75);
+  --danger: oklch(0.7 0.17 25);
+  --info: oklch(0.74 0.12 235);
+  --focus-ring: oklch(0.72 0.13 250);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Spec semantic tokens */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-foreground: var(--foreground);
+  --color-border-strong: var(--border-strong);
+  --color-brand: var(--accent-brand);
+  --color-brand-foreground: var(--accent-brand-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  /* shadcn/ui aliases → spec tokens */
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface-elevated);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--accent-brand);
+  --color-primary-foreground: var(--accent-brand-foreground);
+  --color-secondary: var(--surface-sunken);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--surface-sunken);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--surface-sunken);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--danger);
+  --color-border: var(--border);
+  --color-input: var(--border-strong);
+  --color-ring: var(--focus-ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Type scale (spec §3: Display, H1, H2, H3, Body, Caption, Metric) */
+  --text-display: 2rem;
+  --text-display--line-height: 2.5rem;
+  --text-h1: 1.5rem;
+  --text-h1--line-height: 2rem;
+  --text-h2: 1.125rem;
+  --text-h2--line-height: 1.625rem;
+  --text-h3: 0.9375rem;
+  --text-h3--line-height: 1.375rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-metric: 1.75rem;
+  --text-metric--line-height: 2rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-body text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Visible focus for keyboard users (WCAG 2.4.7 / 2.4.11). */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect reduced-motion preferences (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
