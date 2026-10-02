@@ -1,4 +1,4 @@
-# PEOS HTTP API (`/api/v1`) — Phase 1
+# PEOS HTTP API (`/api/v1`) — Phases 1–2
 
 Conventions: ADR 0015.
 
@@ -40,6 +40,29 @@ Conventions: ADR 0015.
 | POST                 | `/imports/:id/records/:recordId/decision` | `{action:"accept", mode?:"create"\|"update"}` or `{action:"reject"}`                                                                         | `decisionSchema`                                                     |
 | POST                 | `/imports/:id/resolve`                    | `{action:"accept_new"\|"reject_pending"}`                                                                                                    | `resolveSchema`                                                      |
 | GET                  | `/export`                                 | `format=json` (everything) or `format=csv&entity=…` — attachment, rate-limited                                                               | `exportQuerySchema`                                                  |
+
+### Phase 2 — analytics (ADRs 0019–0021)
+
+All analytics endpoints are `GET`, owner-scoped through the session, and rate-limited per user
+(`analytics`, 120/min). None of them accepts an identifier: unknown query keys such as `userId`
+are stripped. Values are computed live, and every response includes the period it describes.
+
+| Method | Path                           | Purpose                                                                                                                                                                                       | Validation (schema)      |
+| ------ | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| GET    | `/analytics/metrics`           | Metric catalogue: 28 definitions, 19 available and 9 unavailable with reasons                                                                                                                 | —                        |
+| GET    | `/analytics/dashboard`         | Command Center KPIs and sections (`range`=30d\|90d\|365d\|all\|custom, `from`, `to`, `projectStatus`, `projectHealth`, `evidenceType`, `evidenceVerified`, `evidenceOrigin`, `skillCategory`) | `dashboardFiltersSchema` |
+| GET    | `/analytics/activity`          | The caller's audit log as safe DTOs, excluding `auth.*` (`range`/`from`/`to`, `page`, `pageSize` ≤ 50)                                                                                        | `activityQuerySchema`    |
+| GET    | `/analytics/evidence-timeline` | Dated evidence by evidence date, plus `undatedCount` (range, evidence filters, `page`, `pageSize` ≤ 50)                                                                                       | `timelineQuerySchema`    |
+
+**List filters added in Phase 2 for drill-down (ADR 0020).** All are optional and backwards-compatible.
+
+| Endpoint          | Parameter                      | Meaning                                                      |
+| ----------------- | ------------------------------ | ------------------------------------------------------------ |
+| `/projects`       | `lifecycle=active\|production` | Status in the lifecycle group (ADR 0018)                     |
+| `/projects`       | `completedFrom`, `completedTo` | `completedAt` within the dates, inclusive                    |
+| `/evidence`       | `dated=true\|false`            | Has, or lacks, an evidence date                              |
+| `/skills`         | `hasEvidence=true\|false`      | Has, or lacks, at least one linked evidence item             |
+| `/certifications` | `current=true\|false`          | Excludes (true) or keeps only (false) revoked certifications |
 
 **Error codes:**
 

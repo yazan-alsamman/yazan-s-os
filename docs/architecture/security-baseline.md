@@ -1,4 +1,4 @@
-# PEOS Security Baseline (Phase 0)
+# PEOS Security Baseline (Phases 0–2)
 
 Scope: controls that exist now. Threat model source: `07_SECURITY_PRIVACY.md`.
 
@@ -112,6 +112,26 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
 - **Audit:** every create, update, delete, relationship change, import upload, accept/reject and
   export is written **in the same transaction** as the change, with before/after domain snapshots
   and the request id.
+
+## Phase 2 controls (Command Center)
+
+- **Identity:** analytics derives `userId` only from the session. Filter schemas have no
+  identity field, and Zod strips unknown keys (`userId`, `ownerId`, `user_id`). Every query —
+  counts, groupBy, the monthly raw SQL, activity existence lookups and timeline relations — is
+  scoped by `user_id`. Tested over HTTP with two users (`tests/integration/analytics-authz.int.test.ts`).
+- **Raw SQL:** a single `$queryRaw` (monthly evidence series) is built with the `Prisma.sql`
+  tagged template and `Prisma.join`, so every value is a bound parameter. No `$queryRawUnsafe`.
+- **Audit log exposure:** the activity feed never returns before/after snapshots. Labels come
+  from a whitelist of name/title fields, `auth.*` events (IP addresses, user agents) are excluded,
+  and a record is linked only if it still exists and belongs to the caller (ADR 0021).
+- **Rate limits:** all four analytics endpoints use the `analytics` policy (120/min per user).
+- **Bounded work:** page sizes are at most 50. The monthly series is capped at 120 months, with
+  category and attention lists capped. Custom ranges span at most 20 years. Invalid filters
+  return 400 `VALIDATION_FAILED`.
+- **CSV download:** chart data tables download client-side through the shared formula-injection
+  guard (`escapeCsvCell`).
+- **Charts:** ECharts uses the SVG renderer. Tooltips use ECharts' default formatter, which HTML-encodes
+  names, including user-entered skill categories. No custom HTML formatter is used.
 
 ## Not yet implemented (tracked)
 

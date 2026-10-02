@@ -103,3 +103,19 @@ HTTP 503 only when the database (critical) is unavailable.
   import it through Settings → Import, where every record goes through the review queue.
 - Never apply schema changes with `prisma db push`. Never run `prisma migrate dev` non-interactively
   when it would prompt for a migration name: use `--name … --create-only`, then `pnpm db:deploy`.
+
+## Phase 2 notes
+
+- **Command Center:** `/command-center`. Metric definitions: `/command-center/metrics`. Every
+  number comes from `src/modules/analytics/*`, and the catalogue in `metric-catalogue.ts` is the
+  source of truth. `docs/architecture/metric-catalogue.md` is generated from it.
+- **Adding a metric:**
+  1. Add the catalogue entry.
+  2. Add the calculator in `dashboard.service.ts`.
+  3. Add the drill-down mapping in `src/components/command-center/drilldown.ts`.
+  4. Add tests: governance and unit tests in `analytics.test.ts`, and a KPI-equals-list-total
+     assertion in `tests/integration/analytics.int.test.ts`.
+- **Charts:** use `EChart` and `ChartCard` (`src/components/charts`) only. Each chart needs a
+  one-sentence `ariaLabel` and a data table. Colours come from the `--chart-*` tokens in
+  `globals.css` (light and dark).
+- **Phase 2 has no schema changes**, so no migration is required.
