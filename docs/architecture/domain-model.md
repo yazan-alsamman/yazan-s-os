@@ -85,3 +85,8 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 - All reads and writes filter by `user_id` from the server session (ADR 0003, 0011).
 - Provenance comes from `origin` + `import_record → import_job`. It covers source, file, sha256,
   parser version, importedAt, confidence, reviewedAt and reviewedBy, as `11` requires.
+
+## Phase 3 additions
+
+- **Milestone** (ADR 0022): `id`, `userId`, `projectId` (composite FK with the owner, cascade on project delete), `title`, `dueDate?`, `completedAt?`, `status` (planned · in_progress · blocked · completed · cancelled), timestamps. Check constraints: completed ⇔ completedAt; title not blank and at most 200 characters.
+- **Computed project health** is derived on request and not stored (ADR 0023/0024). `Project.healthStatus` remains the manual assessment.

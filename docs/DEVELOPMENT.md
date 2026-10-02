@@ -119,3 +119,10 @@ HTTP 503 only when the database (critical) is unavailable.
   one-sentence `ariaLabel` and a data table. Colours come from the `--chart-*` tokens in
   `globals.css` (light and dark).
 - **Phase 2 has no schema changes**, so no migration is required.
+
+## Phase 3 notes
+
+- **Migration:** run `pnpm db:deploy` on both databases after pulling. It adds the `milestones` table and the `milestone_status` enum.
+- **Project dossier:** `/projects/:id`. Portfolio: `/projects/portfolio`. Milestones: `/projects/milestones`. Computed health: `/projects/health`.
+- **Dates:** every "today" rule goes through `src/modules/shared/calendar.ts` (UTC calendar day). Services take an injectable clock — pass a fixed `now` in tests.
+- **Computed health:** `src/modules/projects/project-health.ts` is pure and versioned (`project-health-v1`). Change it only together with a new ADR and the catalogue entries `projects.health_score` and `projects.health_component.*`.

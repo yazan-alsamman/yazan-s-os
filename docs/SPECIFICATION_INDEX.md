@@ -46,17 +46,17 @@ resolution or an explicit deferral; none was resolved by inventing requirements.
 
 ## 3. Resolution status after Phase 1
 
-| #   | Status                                                                                                                                                                                       | Where                        |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| C1  | **Resolved.** `user_id` on every user-data table; composite FKs on joins                                                                                                                     | ADR 0003, ADR 0011           |
-| C2  | **Resolved.** ECharts 6 installed (tree-shaken, SVG) in Phase 2                                                                                                                              | ADR 0007                     |
-| C3  | Resolved for Phase 0–1                                                                                                                                                                       | ADR 0004                     |
-| C4  | **Open.** Knowledge remains unscheduled; LearningItem deferred with it                                                                                                                       | ADR 0017                     |
-| C5  | **Partly resolved.** Education designed and built; import review queue built. Opportunity, Notification, domain events, metric definitions and tool-call log remain deferred to their phases | ADR 0012, ADR 0014, ADR 0017 |
-| C6  | **Partly resolved.** Certification `category` added. Technology↔Skill and Goal↔Skill deferred (Phases 4/5)                                                                                   | ADR 0011, ADR 0017           |
-| C7  | **Resolved for available metrics.** Metric catalogue (28 metrics, 19 available) with full governance; 9 KPIs are catalogued as unavailable with their phase                                  | ADR 0019                     |
-| C8  | Resolved                                                                                                                                                                                     | —                            |
-| C9  | Resolved                                                                                                                                                                                     | ADR 0002                     |
+| #   | Status                                                                                                                                                                                                    | Where                        |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| C1  | **Resolved.** `user_id` on every user-data table; composite FKs on joins                                                                                                                                  | ADR 0003, ADR 0011           |
+| C2  | **Resolved.** ECharts 6 installed (tree-shaken, SVG) in Phase 2                                                                                                                                           | ADR 0007                     |
+| C3  | Resolved for Phase 0–1                                                                                                                                                                                    | ADR 0004                     |
+| C4  | **Open.** Knowledge remains unscheduled; LearningItem deferred with it                                                                                                                                    | ADR 0017                     |
+| C5  | **Partly resolved.** Education designed and built; import review queue built. Opportunity, Notification, domain events, metric definitions and tool-call log remain deferred to their phases              | ADR 0012, ADR 0014, ADR 0017 |
+| C6  | **Partly resolved.** Certification `category` added. Technology↔Skill and Goal↔Skill deferred (Phases 4/5)                                                                                                | ADR 0011, ADR 0017           |
+| C7  | **Resolved for available metrics** (Phase 3: 52 metrics, 39 available; ADR 0024). Metric catalogue (28 metrics, 19 available) with full governance; 9 KPIs are catalogued as unavailable with their phase | ADR 0019                     |
+| C8  | Resolved                                                                                                                                                                                                  | —                            |
+| C9  | Resolved                                                                                                                                                                                                  | ADR 0002                     |
 
 New ambiguities found and decided in Phase 1:
 
@@ -68,3 +68,16 @@ New ambiguities found and decided in Phase 1:
 | C13 | `11` conflict resolution and formats not specified                                                          | ADR 0014                                                 |
 | C14 | Phase 1 pages (Profile, Experience, Education, Technologies, Import, Export) absent from `00` §3 navigation | ADR 0016                                                 |
 | C15 | `11` lists Languages/Links/Publications, but `04` has no such entities                                      | ADR 0017 (publications → evidence type `publication`)    |
+
+## Phase 3 specification gaps (ADR 0022–0025)
+
+| Gap  | Detail                                                                                                           | Handling                                                   |
+| ---- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| P3-1 | `01` §3 project record lists Users, Business value, Risks, Owner and Architecture; `04` Project has none of them | Not added. `impact` is shown; the spec owner should decide |
+| P3-2 | Health weights, thresholds, missing-input rules and "planned milestones" are undefined                           | ADR 0024 (model v1)                                        |
+| P3-3 | Scope stability needs a committed-scope baseline, which no spec defines                                          | Unavailable component                                      |
+| P3-4 | Issue severity needs an issue domain or integration                                                              | Unavailable (Phase 9)                                      |
+| P3-5 | Blocked time and lifecycle durations need status history, which is not recorded                                  | Unavailable; never reconstructed                           |
+| P3-6 | Portfolio matrix needs numeric impact, complexity and effort                                                     | Unavailable                                                |
+| P3-7 | Technology heatmap needs dated usage                                                                             | Unavailable                                                |
+| P3-8 | `04` Milestone.goalId — Goals are Phase 5                                                                        | Deferred (ADR 0022)                                        |

@@ -83,3 +83,28 @@ The queries use existing indexes: `(user_id, status)`, `(user_id, date)`,
 
 ECharts is loaded lazily as its own chunk (about 549 KB raw, about 185 KB gzip), so the KPIs render
 before the charts.
+
+## Phase 3 — project intelligence
+
+- **Milestones** (`src/modules/milestones`): the rules are pure (`milestone.rules.ts`). `overdueWhere` mirrors `isOverdue` for SQL.
+- **Computed health** (`src/modules/projects/project-health.ts`): pure, versioned and explained per component (ADR 0024). `computeHealthForProjects` loads inputs for any number of projects with three queries: milestone status counts, overdue counts and recent activity.
+- **Dossier intelligence** (`project-intelligence.ts`): about 10 parallel owner-scoped aggregates plus two lookups. The timeline and related skills are capped.
+- **Portfolio** (`src/modules/analytics/portfolio.service.ts`): distributions use `groupBy`; the trends use two parameterised monthly series. Computed health is evaluated for every project and is not stored.
+- **Drill-down:** all mappings live in `src/components/command-center/drilldown.ts` (ADR 0020 and ADR 0025). The unit test requires a mapping for every available metric; integration tests assert that each value equals its list total.
+
+### Phase 3 performance
+
+Measured on PostgreSQL 17.10 against a local Docker database. One user held 1,000 projects, 20,000 milestones, 10,000 evidence items (each linked to a project), 500 technologies (5,000 usages) and 50,000 audit rows. Each call ran once as an excluded warm-up and then 10 timed times, through the service layer. The benchmark was run twice.
+
+| Call                                             | Median, run 1 (ms) | Max, run 1 (ms) | Median, run 2 (ms) | Max, run 2 (ms) |
+| ------------------------------------------------ | ------------------ | --------------- | ------------------ | --------------- |
+| Project detail (record and relationships)        | 35.4               | 48.0            | 38.3               | 48.6            |
+| Project intelligence (dossier, including health) | 45.5               | 55.1            | 54.2               | 59.9            |
+| Project milestones, page of 50                   | 9.0                | 10.0            | 15.8               | 18.5            |
+| Milestones across projects, overdue              | 17.2               | 1711.1¹         | 13.7               | 20.0            |
+| Project activity, page 1                         | 43.4               | 54.9            | 46.1               | 52.5            |
+| Portfolio, 365 days                              | 79.0               | 84.3            | 78.4               | 96.7            |
+| Portfolio, all time                              | 76.1               | 87.1            | 74.0               | 80.8            |
+| Computed health list (all projects)              | 63.0               | 67.7            | 58.8               | 77.3            |
+
+¹ A single outlier right after the bulk insert, most likely autovacuum or statistics collection. It did not recur on run 2.

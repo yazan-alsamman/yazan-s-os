@@ -1,4 +1,4 @@
-# PEOS HTTP API (`/api/v1`) — Phases 1–2
+# PEOS HTTP API (`/api/v1`) — Phases 1–3
 
 Conventions: ADR 0015.
 
@@ -63,6 +63,22 @@ are stripped. Values are computed live, and every response includes the period i
 | `/evidence`       | `dated=true\|false`            | Has, or lacks, an evidence date                              |
 | `/skills`         | `hasEvidence=true\|false`      | Has, or lacks, at least one linked evidence item             |
 | `/certifications` | `current=true\|false`          | Excludes (true) or keeps only (false) revoked certifications |
+
+### Phase 3 — project intelligence (ADRs 0022–0025)
+
+All endpoints require a session and are owner-scoped. Read endpoints use the `analytics` rate limit (120/min); mutations use the `mutation` limit (120/min) plus the same-origin check. A foreign or missing project or milestone id returns 404, and a malformed path id also returns 404. No endpoint accepts `userId`, `ownerId` or `projectId` in a body: unknown keys are stripped, and the project comes from the path.
+
+| Method               | Path                         | Purpose                                                                                                                                                    | Validation (schema)                                          |
+| -------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| GET · POST           | `/projects/:id/milestones`   | The project's milestones (paginated, filters as below) · create a milestone under the project                                                              | `listProjectMilestonesQuerySchema` · `createMilestoneSchema` |
+| GET                  | `/milestones`                | Milestones across projects: `projectId`, `status`, `open`, `overdue`, `dated`, `dueFrom/To`, `completedFrom/To`, `q`, `sort`, `page` (≤ 100)               | `listMilestonesQuerySchema`                                  |
+| GET · PATCH · DELETE | `/milestones/:id`            | Read · update (title, dueDate, status, completedAt — complete or reopen via `status`) · delete                                                             | `updateMilestoneSchema`                                      |
+| GET                  | `/projects/:id/intelligence` | Dossier analytics: lifecycle position, schedule, manual and computed health with components, milestone delivery, evidence intelligence, technology mapping | —                                                            |
+| GET                  | `/projects/:id/activity`     | Safe activity DTOs for the project and its milestones (paginated)                                                                                          | `paginationQuerySchema`                                      |
+| GET                  | `/analytics/portfolio`       | Portfolio analytics (`range`, `from`, `to`; default 365 days)                                                                                              | `portfolioFiltersSchema`                                     |
+| GET                  | `/analytics/project-health`  | Computed health per project (`computed`=bucket, `manual`=status, `page`) — the source list for the computed-health charts                                  | `healthListQuerySchema`                                      |
+
+**List filters added in Phase 3** (optional and backwards-compatible): `/projects?hasEvidence=true|false` and `/evidence?projectId=<uuid>`.
 
 **Error codes:**
 

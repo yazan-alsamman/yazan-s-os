@@ -1,4 +1,4 @@
-# PEOS Security Baseline (Phases 0–2)
+# PEOS Security Baseline (Phases 0–3)
 
 Scope: controls that exist now. Threat model source: `07_SECURITY_PRIVACY.md`.
 
@@ -132,6 +132,34 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
   guard (`escapeCsvCell`).
 - **Charts:** ECharts uses the SVG renderer. Tooltips use ECharts' default formatter, which HTML-encodes
   names, including user-entered skill categories. No custom HTML formatter is used.
+
+## Phase 3 controls (project intelligence)
+
+- **Ownership in the database.** Milestones reference `(project_id, user_id) → projects(id, user_id)`, so a milestone can never belong to another owner's project, even if the service layer is bypassed. Every query includes `user_id`.
+- **IDOR.** `tests/integration/project-intelligence-authz.int.test.ts` covers the following over HTTP with two users:
+  - project read, update and delete;
+  - milestone list, create under, read, update and delete;
+  - moving a milestone to a foreign project (body `projectId` and `userId` are ignored);
+  - linking foreign evidence or technology;
+  - foreign dossier intelligence and activity;
+  - list filters with foreign ids;
+  - portfolio and computed-health isolation.
+- **Mass assignment.** Milestone schemas accept only `title`, `dueDate`, `status` and `completedAt`. The project comes from the path and the owner from the session.
+- **Integrity.** The check constraints `milestones_completion_chk` (completed ⇔ completion date) and `milestones_title_not_blank_chk` apply. Future completion dates are rejected.
+- **Raw SQL.** Two parameterised `$queryRaw` queries were added, using `Prisma.sql` and `Prisma.empty`:
+  - the recent-activity count;
+  - the monthly completion series. Its table name comes from a fixed two-value literal, never from input.
+
+  No `$queryRawUnsafe` was added.
+
+- **Resource bounds.**
+  - At most 500 milestones per project.
+  - Milestone and activity pages hold at most 100 rows.
+  - Dossier timeline (10) and related skills (10) are capped, as is the portfolio's technology list (15 + summary).
+  - Custom ranges are limited to 20 years.
+  - Computed health uses a fixed number of queries for any portfolio size.
+- **Audit.** Milestone created, updated, completed, reopened and deleted are audited in the same transaction. Project activity reuses the Phase 2 safe DTO, so snapshots never leave the server.
+- **XSS and CSV.** All content renders through React. Chart tables export through the shared formula-injection guard.
 
 ## Not yet implemented (tracked)
 
