@@ -23,6 +23,7 @@ describe("field validators", () => {
     expect(schema.safeParse("   ").success).toBe(false);
     expect(schema.safeParse("toolong").success).toBe(false);
     expect(schema.safeParse("a\u0007b").success).toBe(false);
+    expect(schema.safeParse(undefined).error?.issues[0]?.message).toBe("Required");
   });
 
   it("optional fields distinguish omitted (undefined) from cleared (null)", () => {

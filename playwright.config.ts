@@ -33,6 +33,8 @@ export default defineConfig({
       DATABASE_URL: testDatabaseUrl,
       APP_URL: baseURL,
       AUTH_ALLOW_SIGNUP: "true",
+      // Many accounts sign up/in from 127.0.0.1 within a minute; allowed only on loopback (env.ts).
+      AUTH_RATE_LIMIT_DISABLED: "true",
       LOG_LEVEL: "warn",
     },
   },

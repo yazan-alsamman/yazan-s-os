@@ -1,0 +1,13 @@
+{
+  "$schema": "./peos-exchange.schema.json",
+  "format": "peos.exchange",
+  "version": 1,
+  "profile": null,
+  "experiences": [],
+  "education": [],
+  "skills": [],
+  "technologies": [],
+  "certifications": [],
+  "projects": [],
+  "evidence": []
+}

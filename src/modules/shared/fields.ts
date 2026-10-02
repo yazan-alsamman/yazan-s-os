@@ -19,7 +19,7 @@ function noControlChars(value: string) {
 /** Required single-line text. */
 export function requiredText(max: number) {
   return z
-    .string()
+    .string({ error: (issue) => (issue.input === undefined ? "Required" : "Must be text") })
     .trim()
     .min(1, "Required")
     .max(max, `At most ${max} characters`)

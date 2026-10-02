@@ -60,7 +60,7 @@ function buildAuth() {
     },
 
     rateLimit: {
-      enabled: env.NODE_ENV !== "test",
+      enabled: env.NODE_ENV !== "test" && !env.AUTH_RATE_LIMIT_DISABLED,
       window: 60,
       max: 100,
       customRules: {

@@ -89,3 +89,17 @@ HTTP 503 only when the database (critical) is unavailable.
 - No `utils.ts`/`helpers.ts` dumping grounds: helpers live with the concern they serve.
 - UI code may not import the database layer (enforced by ESLint `no-restricted-imports`).
 - Never hard-code personal data. The app must work with an empty database.
+
+## Phase 1 notes
+
+- After pulling a new migration, apply it to **both** databases: `pnpm db:deploy`, and the same
+  command with `DATABASE_URL` set to `TEST_DATABASE_URL`.
+- E2E runs set `AUTH_RATE_LIMIT_DISABLED=true` (see `playwright.config.ts`), because many test
+  accounts sign in from 127.0.0.1. Env validation accepts this only for a loopback `APP_URL`.
+- Exchange-format JSON Schema: `data/peos-exchange.schema.json` is generated from the validators.
+  After changing a domain schema, regenerate it with
+  `PEOS_UPDATE_SCHEMA=1 pnpm exec vitest run --project unit src/modules/imports/exchange-json-schema.test.ts`.
+- `data/profile.seed.json` is an empty exchange-document template. Fill it with your own data and
+  import it through Settings → Import, where every record goes through the review queue.
+- Never apply schema changes with `prisma db push`. Never run `prisma migrate dev` non-interactively
+  when it would prompt for a migration name: use `--name … --create-only`, then `pnpm db:deploy`.

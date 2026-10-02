@@ -11,7 +11,7 @@ import {
 } from "@/modules/shared/fields";
 
 /** Education (ADR 0012). Dates are optional: sources such as LinkedIn often omit them. */
-const educationFields = {
+export const educationFields = {
   institution: requiredText(200),
   degree: optionalText(200),
   fieldOfStudy: optionalText(200),

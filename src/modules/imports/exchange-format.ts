@@ -15,6 +15,8 @@ const recordArray = z.array(z.record(z.string(), z.unknown())).max(2_000);
 
 export const exchangeDocumentSchema = z
   .object({
+    /** Optional editor hint pointing at data/peos-exchange.schema.json. */
+    $schema: z.string().max(500).optional(),
     format: z.literal(EXCHANGE_FORMAT),
     version: z.literal(EXCHANGE_VERSION),
     exportedAt: z.string().optional(),

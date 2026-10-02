@@ -3,7 +3,7 @@ import { z } from "zod";
 import { paginationQuerySchema, searchTermSchema, sortSchema } from "@/lib/http/pagination";
 import { optionalLongText, optionalText, requiredText } from "@/modules/shared/fields";
 
-const technologyFields = {
+export const technologyFields = {
   name: requiredText(120),
   category: optionalText(80),
   version: optionalText(40),

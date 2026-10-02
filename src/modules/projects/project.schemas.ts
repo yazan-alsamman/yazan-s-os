@@ -43,7 +43,7 @@ export const technologyLinksSchema = z
     "Each technology may appear only once",
   );
 
-const projectFields = {
+export const projectFields = {
   name: requiredText(200),
   slug: projectSlugSchema.optional(),
   description: optionalLongText(),

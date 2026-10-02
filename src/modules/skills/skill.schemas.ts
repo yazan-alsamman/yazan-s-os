@@ -17,7 +17,7 @@ import {
 
 import { DEFAULT_LEVEL_MODEL_ID, getLevelModel, isValidLevel } from "./level-models";
 
-const skillFields = {
+export const skillFields = {
   name: requiredText(120),
   category: optionalText(80),
   description: optionalLongText(4_000),

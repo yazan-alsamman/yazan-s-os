@@ -10,7 +10,9 @@ describe("PostgreSQL + Prisma foundation", () => {
 
   it("connects to the isolated test database", async () => {
     const [row] = await getDb().$queryRaw<{ db: string }[]>`SELECT current_database() AS db`;
-    expect(row?.db).toBe("peos_test");
+    // The database named by TEST_DATABASE_URL (peos_test locally), never the dev database.
+    expect(row?.db).toBe(new URL(process.env.DATABASE_URL!).pathname.slice(1));
+    expect(row?.db).not.toBe("peos");
   });
 
   it("has every migration applied", async () => {

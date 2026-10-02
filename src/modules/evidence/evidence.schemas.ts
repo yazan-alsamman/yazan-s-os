@@ -17,7 +17,7 @@ import {
 
 export const evidenceTypeSchema = z.enum(EvidenceType);
 
-const evidenceFields = {
+export const evidenceFields = {
   type: evidenceTypeSchema,
   title: requiredText(300),
   description: optionalLongText(),

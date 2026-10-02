@@ -43,3 +43,28 @@ resolution or an explicit deferral; none was resolved by inventing requirements.
 | C7  | Metrics in `00` §4 (e.g. _Technical Debt Trend_, _Production Systems_) and most of `05` lack the formula/source/frequency/owner that `05` "Metric Governance" requires.                                                                                 | `00` §4, `05`                          | Phase 2 must complete a metric catalogue before any KPI is displayed. Phase 0 displays **no** metrics.                                                                                                            |
 | C8  | Process naming: the earlier repository audit was labelled "Phase 0", but `08` defines Phase 0 as _Product Foundation_.                                                                                                                                  | `08` vs audit prompt                   | `08` numbering is authoritative. The audit is a pre-phase baseline (`docs/audits/PHASE_00_REPOSITORY_AUDIT.md`).                                                                                                  |
 | C9  | The audit prompt referenced **NestJS**; `03` specifies a modular **Next.js** backend.                                                                                                                                                                   | `03` §1 vs prompt                      | **ADR 0002**: Next.js modular monolith; no NestJS.                                                                                                                                                                |
+
+## 3. Resolution status after Phase 1
+
+| #   | Status                                                                                                                                                                                       | Where                        |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| C1  | **Resolved.** `user_id` on every user-data table; composite FKs on joins                                                                                                                     | ADR 0003, ADR 0011           |
+| C2  | Decided (ECharts), not yet installed                                                                                                                                                         | ADR 0007                     |
+| C3  | Resolved for Phase 0–1                                                                                                                                                                       | ADR 0004                     |
+| C4  | **Open.** Knowledge remains unscheduled; LearningItem deferred with it                                                                                                                       | ADR 0017                     |
+| C5  | **Partly resolved.** Education designed and built; import review queue built. Opportunity, Notification, domain events, metric definitions and tool-call log remain deferred to their phases | ADR 0012, ADR 0014, ADR 0017 |
+| C6  | **Partly resolved.** Certification `category` added. Technology↔Skill and Goal↔Skill deferred (Phases 4/5)                                                                                   | ADR 0011, ADR 0017           |
+| C7  | Open — Phase 2 prerequisite                                                                                                                                                                  | —                            |
+| C8  | Resolved                                                                                                                                                                                     | —                            |
+| C9  | Resolved                                                                                                                                                                                     | ADR 0002                     |
+
+New ambiguities found and decided in Phase 1:
+
+| #   | Ambiguity                                                                                                   | Decision                                                 |
+| --- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| C10 | `04` names `TechnologyUsage.usageType`/`proficiencyEvidence` and `SkillEvidence.strength` without values    | ADR 0011                                                 |
+| C11 | `04` `Experience.profileId` vs ownership by user                                                            | ADR 0011 (owned via `user_id`; Profile is 1:1 with User) |
+| C12 | `01` §6 "levels must be customizable" vs `08` placing skill levels in Phase 4                               | ADR 0013                                                 |
+| C13 | `11` conflict resolution and formats not specified                                                          | ADR 0014                                                 |
+| C14 | Phase 1 pages (Profile, Experience, Education, Technologies, Import, Export) absent from `00` §3 navigation | ADR 0016                                                 |
+| C15 | `11` lists Languages/Links/Publications, but `04` has no such entities                                      | ADR 0017 (publications → evidence type `publication`)    |

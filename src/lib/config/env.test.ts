@@ -86,6 +86,19 @@ describe("parseServerEnv", () => {
     ).toEqual([]);
   });
 
+  it("allows disabling auth rate limits only on a loopback APP_URL", () => {
+    expect(
+      parseServerEnv({ ...valid, AUTH_RATE_LIMIT_DISABLED: "true" }).AUTH_RATE_LIMIT_DISABLED,
+    ).toBe(true);
+    expect(
+      issuesFor({
+        ...valid,
+        APP_URL: "https://peos.example.com",
+        AUTH_RATE_LIMIT_DISABLED: "true",
+      }).join(),
+    ).toContain("AUTH_RATE_LIMIT_DISABLED");
+  });
+
   it("parses boolean flags strictly", () => {
     expect(parseServerEnv({ ...valid, AUTH_ALLOW_SIGNUP: "true" }).AUTH_ALLOW_SIGNUP).toBe(true);
     expect(issuesFor({ ...valid, AUTH_ALLOW_SIGNUP: "yes" }).join()).toContain("AUTH_ALLOW_SIGNUP");

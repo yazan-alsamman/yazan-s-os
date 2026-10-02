@@ -98,9 +98,9 @@ test("a signed-in user reaches the protected shell, which shows no fabricated da
   // Planned sections render the honest unavailable state.
   await page
     .getByRole("navigation", { name: "Primary" })
-    .getByRole("link", { name: /Projects/ })
+    .getByRole("link", { name: /AI Lab/ })
     .click();
-  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page).toHaveURL(/\/ai-lab$/);
   await expect(page.getByRole("heading", { name: "Not available yet" })).toBeVisible();
 
   expect(errors).toEqual([]);
@@ -117,11 +117,8 @@ test("command palette, settings, theme and sign-out work end to end", async ({ p
   await page.keyboard.press("Control+k");
   const palette = page.getByRole("dialog");
   await expect(palette).toBeVisible();
-  await expect(palette.getByRole("option", { name: /Search/ })).toHaveAttribute(
-    "aria-disabled",
-    "true",
-  );
-  await palette.getByRole("combobox").fill("Settings");
+  // Record search through the palette is covered in phase1.spec.ts.
+  await palette.getByRole("combobox").fill("Go to Settings");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/settings$/);
 

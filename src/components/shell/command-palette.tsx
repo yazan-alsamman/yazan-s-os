@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Download, FileText, LogOut, Search, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   CommandDialog,
@@ -15,6 +16,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
+import { fetchJson, withQuery } from "@/lib/http/fetch-json";
 
 import { NAV_SECTIONS } from "./navigation";
 import { THEME_OPTIONS } from "./theme-menu";
@@ -34,9 +36,41 @@ export function useCommandPaletteShortcut(toggle: () => void) {
   }, [toggle]);
 }
 
+/** Phase 1 pages that are not primary navigation items. */
+const EXTRA_DESTINATIONS = [
+  { label: "Profile", href: "/career/profile", icon: FileText },
+  { label: "Experience", href: "/career/experience", icon: FileText },
+  { label: "Education", href: "/career/education", icon: FileText },
+  { label: "Technologies", href: "/skills/technologies", icon: FileText },
+  { label: "Import data", href: "/settings/import", icon: Upload },
+  { label: "Export data", href: "/settings/export", icon: Download },
+] as const;
+
+interface SearchHit {
+  type: string;
+  id: string;
+  title: string;
+  subtitle: string | null;
+  href: string;
+}
+
+interface GroupedSearch {
+  mode: "grouped";
+  data: { type: string; total: number; hits: SearchHit[] }[];
+}
+
+function useDebounced(value: string, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handle = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handle);
+  }, [value, delay]);
+  return debounced;
+}
+
 /**
- * Command palette foundation. Every enabled command performs a real action; commands
- * whose capability does not exist yet are shown disabled with their planned phase.
+ * Command palette. Every enabled command performs a real action. Typing two or more characters
+ * runs the user-scoped server search (01 §14) across Phase 1 records.
  */
 export function CommandPalette({
   open,
@@ -48,22 +82,61 @@ export function CommandPalette({
   const router = useRouter();
   const { setTheme } = useTheme();
   const { signOut } = useSignOut();
+  const [input, setInput] = useState("");
+  const term = useDebounced(input.trim(), 200);
+  const search = useQuery({
+    queryKey: ["search", term],
+    queryFn: () => fetchJson<GroupedSearch>(withQuery("/api/v1/search", { q: term, limit: 5 })),
+    enabled: open && term.length >= 2,
+  });
 
   const run = (action: () => void) => {
     onOpenChange(false);
+    setInput("");
     action();
   };
+
+  const hits = search.data?.data.flatMap((group) => group.hits) ?? [];
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (!next) setInput("");
+        onOpenChange(next);
+      }}
       title="Command palette"
-      description="Search for a command to run"
+      description="Search your records or run a command"
     >
-      <CommandInput placeholder="Type a command…" />
+      <CommandInput
+        placeholder="Search records or type a command…"
+        value={input}
+        onValueChange={setInput}
+      />
       <CommandList>
-        <CommandEmpty>No matching command.</CommandEmpty>
+        <CommandEmpty>
+          {search.isFetching ? "Searching…" : "No matching command or record."}
+        </CommandEmpty>
+
+        {term.length >= 2 && hits.length > 0 && (
+          <>
+            <CommandGroup heading="Records">
+              {hits.map((hit) => (
+                <CommandItem
+                  key={`${hit.type}-${hit.id}`}
+                  value={`record-${hit.type}-${hit.id}`}
+                  keywords={[hit.title, hit.subtitle ?? "", input]}
+                  onSelect={() => run(() => router.push(hit.href as never))}
+                >
+                  <Search aria-hidden />
+                  <span className="truncate">{hit.title}</span>
+                  <CommandShortcut>{hit.type}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
 
         <CommandGroup heading="Navigate">
           {NAV_SECTIONS.map((section) => {
@@ -82,15 +155,16 @@ export function CommandPalette({
               </CommandItem>
             );
           })}
-        </CommandGroup>
-
-        <CommandSeparator />
-        <CommandGroup heading="Actions">
-          <CommandItem value="Search" disabled>
-            <Search aria-hidden />
-            <span>Search</span>
-            <CommandShortcut>planned — Phase 1</CommandShortcut>
-          </CommandItem>
+          {EXTRA_DESTINATIONS.map(({ label, href, icon: Icon }) => (
+            <CommandItem
+              key={href}
+              value={`Go to ${label}`}
+              onSelect={() => run(() => router.push(href))}
+            >
+              <Icon aria-hidden />
+              <span>Go to {label}</span>
+            </CommandItem>
+          ))}
         </CommandGroup>
 
         <CommandSeparator />

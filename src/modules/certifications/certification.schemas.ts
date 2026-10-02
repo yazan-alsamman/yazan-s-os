@@ -18,7 +18,7 @@ export const EXPIRING_WINDOW_DAYS = 90;
 export const expiryStateSchema = z.enum(["valid", "expiring", "expired", "no_expiry"]);
 export type ExpiryState = z.infer<typeof expiryStateSchema>;
 
-const certificationFields = {
+export const certificationFields = {
   name: requiredText(200),
   issuer: requiredText(200),
   category: optionalText(80),

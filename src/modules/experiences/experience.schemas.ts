@@ -15,7 +15,7 @@ import {
   requiredText,
 } from "@/modules/shared/fields";
 
-const experienceFields = {
+export const experienceFields = {
   organization: requiredText(200),
   title: requiredText(200),
   startDate: isoDate,

@@ -1,28 +1,28 @@
 # PEOS Phase 1 — Implementation Plan (Core Data Platform)
 
 Written before implementation, after re-reading the specification, the Phase 0 code, ADRs 0001–0010
-and the tests. Scope source: `08_IMPLEMENTATION_PHASES.md` Phase 1 — *profile, experiences, skills,
-technologies, certifications, projects, evidence; CRUD, search, relationships, import/export*.
+and the tests. Scope source: `08_IMPLEMENTATION_PHASES.md` Phase 1 — _profile, experiences, skills,
+technologies, certifications, projects, evidence; CRUD, search, relationships, import/export_.
 Education is added because `00` §5 and `11` require it as a profile category (gap C5).
 
 ## 1. Reconciled domain model
 
-| Entity | Spec source | Phase 1 fields (beyond id/userId/timestamps) | Notes |
-|---|---|---|---|
-| Profile | `04` Profile | headline, summary, location, website, professionalObjective | 1:1 with User; name/timezone/locale stay on User (`04` User) |
-| Experience | `04` Experience | organization, title, startDate, endDate, description, achievements[] | `evidenceLinks` → ExperienceEvidence join |
-| Education | `00` §5, `11` (not in `04`) | institution, degree, fieldOfStudy, startDate, endDate, description, achievements[] | ADR 0012 |
-| Skill | `04` Skill, `01` §6 | name, category, description, levelModel, targetLevel, active | no stored "current level" (`00` §2.1); ADR 0013 |
-| Technology | `04` Technology | name, category, version, notes | |
-| TechnologyUsage | `04` TechnologyUsage | projectId, technologyId, usageType, proficiencyEvidence | Project N:M Technology |
-| Certification | `04` + `01` §7 | name, issuer, **category**, issueDate, expiryDate, credentialId, verificationUrl, status | category added per `01` (C6) |
-| Project | `04` Project | name, slug, description, problem, solution, status, healthStatus, startDate, targetDate, completedAt, impact, repositoryUrl, demoUrl, productionUrl | lifecycle enum from `01` §3 |
-| Evidence | `04` Evidence, `01` §10 | type, title, description, sourceUrl, fileUrl, date, verified | provenance structured (below) |
-| ProjectSkill, ProjectEvidence, SkillEvidence(strength, date), CertificationSkill, CertificationEvidence, ExperienceEvidence | `04` Relationships, `01` §10 | — | explicit join tables |
-| ImportJob, ImportRecord | `00` §9, `11` | review queue | ADR 0014 |
+| Entity                                                                                                                      | Spec source                  | Phase 1 fields (beyond id/userId/timestamps)                                                                                                        | Notes                                                        |
+| --------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Profile                                                                                                                     | `04` Profile                 | headline, summary, location, website, professionalObjective                                                                                         | 1:1 with User; name/timezone/locale stay on User (`04` User) |
+| Experience                                                                                                                  | `04` Experience              | organization, title, startDate, endDate, description, achievements[]                                                                                | `evidenceLinks` → ExperienceEvidence join                    |
+| Education                                                                                                                   | `00` §5, `11` (not in `04`)  | institution, degree, fieldOfStudy, startDate, endDate, description, achievements[]                                                                  | ADR 0012                                                     |
+| Skill                                                                                                                       | `04` Skill, `01` §6          | name, category, description, levelModel, targetLevel, active                                                                                        | no stored "current level" (`00` §2.1); ADR 0013              |
+| Technology                                                                                                                  | `04` Technology              | name, category, version, notes                                                                                                                      |                                                              |
+| TechnologyUsage                                                                                                             | `04` TechnologyUsage         | projectId, technologyId, usageType, proficiencyEvidence                                                                                             | Project N:M Technology                                       |
+| Certification                                                                                                               | `04` + `01` §7               | name, issuer, **category**, issueDate, expiryDate, credentialId, verificationUrl, status                                                            | category added per `01` (C6)                                 |
+| Project                                                                                                                     | `04` Project                 | name, slug, description, problem, solution, status, healthStatus, startDate, targetDate, completedAt, impact, repositoryUrl, demoUrl, productionUrl | lifecycle enum from `01` §3                                  |
+| Evidence                                                                                                                    | `04` Evidence, `01` §10      | type, title, description, sourceUrl, fileUrl, date, verified                                                                                        | provenance structured (below)                                |
+| ProjectSkill, ProjectEvidence, SkillEvidence(strength, date), CertificationSkill, CertificationEvidence, ExperienceEvidence | `04` Relationships, `01` §10 | —                                                                                                                                                   | explicit join tables                                         |
+| ImportJob, ImportRecord                                                                                                     | `00` §9, `11`                | review queue                                                                                                                                        | ADR 0014                                                     |
 
 Deferred (ADR 0017): LearningItem, Goal, Milestone, Task, Opportunity, Technology↔Skill,
-Goal↔Skill, import categories *Languages* and *Links* (no data model in `04`).
+Goal↔Skill, import categories _Languages_ and _Links_ (no data model in `04`).
 
 ## 2. Cross-cutting design
 

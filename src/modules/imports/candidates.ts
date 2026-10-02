@@ -162,6 +162,6 @@ export function candidateLabel(entityType: ImportEntityType, payload: CandidateP
     case "evidence":
       return s("title") || "Evidence";
     default:
-      return s("name") || entityType;
+      return s("name") || `Unnamed ${entityType}`;
   }
 }

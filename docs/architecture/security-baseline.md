@@ -76,8 +76,45 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
   overrides for two transitive Prisma CLI dependencies (`mysql2`, `deepmerge-ts`; see ADR 0005).
 - Dependency install scripts are deny-by-default (`pnpm-workspace.yaml#allowBuilds`).
 
+## Phase 1 controls (core data platform)
+
+- **IDOR:** every owned query is scoped by the session user. Foreign ids behave like missing ids:
+  404 for items, 400 for relationship targets. The **composite FKs `(parent_id, user_id)`** on
+  every join table make cross-user links impossible even if the service layer is bypassed (ADR
+  0011). This is covered by the HTTP-level IDOR matrix (`tests/integration/idor.int.test.ts`):
+  GET/PATCH/DELETE on 7 entity types, 7 relationship endpoints, join-record injection, lists,
+  search, profile and export.
+- **CSRF:** mutations with a foreign `Origin`, or with `Sec-Fetch-Site: cross-site`, return 403
+  (`assertSameOrigin`).
+- **Rate limits:** per user in Redis — mutations 120/min, imports 20/hour, exports 30/hour.
+  The limiter fails open if Redis is down. Better Auth limits can be disabled only when
+  `APP_URL` is a loopback host (E2E).
+- **Input:**
+  - JSON bodies are capped at 256 KiB and must be `application/json`.
+  - Path ids must be UUIDs.
+  - Every field is length-bounded; control characters are rejected in single-line fields.
+  - URLs must be absolute http(s); `javascript:`, `data:`, `file:` and others are rejected.
+  - Rendered links use `rel="noopener noreferrer nofollow"` and re-check the scheme.
+- **SQL:** all queries go through Prisma (parameterised). Search terms escape the LIKE
+  wildcards `%`, `_` and the backslash, because Prisma does not. Raw SQL appears only in test fixtures.
+- **Imports:**
+  - 2 MiB cap, enforced before buffering.
+  - Extension and MIME allow-list; strict UTF-8; NUL bytes rejected.
+  - At most 2,000 records; CSV column and cell limits.
+  - Content is parsed, never executed or fetched, and the original file is not stored (SHA-256
+    only).
+  - Every record is re-validated with the domain schemas, and nothing persists without review.
+- **SSRF:** PEOS never fetches user-supplied URLs server-side in Phase 1. Website import is
+  deferred until an SSRF-hardened fetcher exists.
+- **XSS:** React escaping; import payloads render as text only; no `dangerouslySetInnerHTML`.
+- **Exports:** owner-scoped, attachment + `no-store`, never stored, CSV formula-injection guard,
+  audited.
+- **Audit:** every create, update, delete, relationship change, import upload, accept/reject and
+  export is written **in the same transaction** as the change, with before/after domain snapshots
+  and the request id.
+
 ## Not yet implemented (tracked)
 
-MFA, session/device management UI, email verification, application-level rate limiting for
-`/api/v1`, secret scanning and SAST in CI, upload controls (no uploads exist), privacy export/delete.
+MFA, session/device management UI, email verification/password reset, secret scanning and SAST in
+CI, file-upload controls (no uploads exist), account/data deletion (export exists since Phase 1).
 See the Phase 0 report §16–17.

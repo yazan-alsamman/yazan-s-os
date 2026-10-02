@@ -64,8 +64,24 @@ is only an optimistic redirect for UX.
 - Repositories for user-owned entities expose **no unscoped lookups**; every query includes the owner.
 - UI (`src/app`, `src/components`) never imports `@/lib/db` or `@/generated/prisma` (ESLint-enforced).
 
-Phase 0 modules: `account` (own-account read) and `audit` (append-only audit log). Domain modules
-from `03` §3 (profile, projects, skills, …) are created when their phase starts — no empty folders.
+Modules:
+
+- Phase 0: `account` (own-account read), `audit` (append-only audit log)
+- Phase 1: `profile`, `experiences`, `education`, `skills`, `technologies`, `certifications`,
+  `projects`, `evidence`, `search`, `imports`, `exports`, and `shared` (field validators,
+  in-transaction audit, provenance, ownership checks)
+
+Remaining domain modules from `03` §3 (goals, architecture, ai-lab, analytics, opportunities,
+notifications) are created when their phase starts, so there are no empty folders.
+
+Phase 1 details:
+
+- `domain-model.md`: tables, relationships, constraints
+- `api.md`: endpoints
+- `import-export.md`: formats and pipeline
+
+UI building blocks live in `src/components/data` (list, detail, relationship picker, states),
+`src/components/forms/entity-form.tsx` and `src/components/records` (per-entity configuration).
 
 ## UI shell
 

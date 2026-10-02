@@ -35,8 +35,13 @@ describe("navigation registry", () => {
     expect(NAV_SECTIONS.filter((s) => s.mobilePrimary).length).toBeLessThanOrEqual(4);
   });
 
-  it("only marks Settings as available in Phase 0", () => {
+  it("marks exactly the Phase 0–1 sections as available", () => {
     expect(NAV_SECTIONS.filter((s) => s.availability === "available").map((s) => s.id)).toEqual([
+      "career",
+      "projects",
+      "skills",
+      "certifications",
+      "evidence",
       "settings",
     ]);
   });

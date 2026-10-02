@@ -29,6 +29,11 @@ export const serverEnvSchema = z
       .string()
       .min(32, "BETTER_AUTH_SECRET must be at least 32 characters of random data"),
     AUTH_ALLOW_SIGNUP: booleanString.default(false),
+    /**
+     * Disables Better Auth rate limiting. Only accepted when APP_URL is a loopback host
+     * (local E2E runs); rejected for any reachable deployment.
+     */
+    AUTH_RATE_LIMIT_DISABLED: booleanString.default(false),
     AUTH_GITHUB_CLIENT_ID: optionalString,
     AUTH_GITHUB_CLIENT_SECRET: optionalString,
 
@@ -60,6 +65,17 @@ export const serverEnvSchema = z
         message:
           "Object storage is partially configured: set S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY together, or none of them",
       });
+    }
+
+    if (env.AUTH_RATE_LIMIT_DISABLED) {
+      const host = new URL(env.APP_URL).hostname;
+      if (!["localhost", "127.0.0.1", "[::1]"].includes(host)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["AUTH_RATE_LIMIT_DISABLED"],
+          message: "Rate limiting can only be disabled when APP_URL is a loopback host",
+        });
+      }
     }
 
     if (env.NODE_ENV === "production" && !env.APP_URL.startsWith("https://")) {
