@@ -1,3 +1,4 @@
+import { DAY_MS as DAY, utcDay } from "@/modules/shared/calendar";
 import { toDateOnly } from "@/modules/shared/fields";
 
 import type { RangePreset } from "./dashboard.schemas";
@@ -24,12 +25,7 @@ export interface PeriodDto {
   label: string;
 }
 
-const DAY = 86_400_000;
 const PRESET_DAYS: Record<"30d" | "90d" | "365d", number> = { "30d": 30, "90d": 90, "365d": 365 };
-
-function utcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
 
 export function resolvePeriod(
   input: { range: RangePreset; from?: Date; to?: Date },

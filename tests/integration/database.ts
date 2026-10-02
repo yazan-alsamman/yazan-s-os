@@ -8,6 +8,7 @@ const TABLES = [
   "project_skills",
   "technology_usages",
   "project_evidence",
+  "milestones",
   "skill_evidence",
   "certification_skills",
   "certification_evidence",

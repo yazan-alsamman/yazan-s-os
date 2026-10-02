@@ -38,6 +38,7 @@ model User {
   technologies    Technology[]
   certifications  Certification[]
   projects        Project[]
+  milestones      Milestone[]
   evidence        Evidence[]
   importJobs      ImportJob[]
   reviewedImports ImportRecord[]  @relation("ImportReviewer")
@@ -145,7 +146,7 @@ enum ProjectStatus {
   @@map("project_status")
 }
 
-/// Manually assessed health until the derived health score arrives (Phase 3, ADR 0011).
+/// The user's manual health assessment. Kept independent of the computed health signal (ADR 0023).
 enum ProjectHealth {
   not_assessed
   on_track
@@ -153,6 +154,17 @@ enum ProjectHealth {
   blocked
 
   @@map("project_health")
+}
+
+/// Milestone lifecycle (ADR 0022). completed ⇔ completed_at IS NOT NULL (check constraint).
+enum MilestoneStatus {
+  planned
+  in_progress
+  blocked
+  completed
+  cancelled
+
+  @@map("milestone_status")
 }
 
 enum CertificationStatus {
@@ -379,6 +391,7 @@ model Project {
   skills       ProjectSkill[]
   technologies TechnologyUsage[]
   evidence     ProjectEvidence[]
+  milestones   Milestone[]
 
   @@unique([id, userId])
   @@unique([userId, slug])
@@ -435,6 +448,30 @@ model ProjectSkill {
 }
 
 /// Project N:M Technology (spec 04 TechnologyUsage).
+/// A project milestone (spec 04 Milestone; ADR 0022). goalId is deferred to Goals (Phase 5).
+/// Every milestone belongs to exactly one project of the same owner (composite FK).
+model Milestone {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @map("user_id") @db.Uuid
+  projectId   String          @map("project_id") @db.Uuid
+  title       String
+  /// Planned date (spec "dueDate"). Optional: undated milestones are never overdue.
+  dueDate     DateTime?       @map("due_date") @db.Date
+  completedAt DateTime?       @map("completed_at") @db.Date
+  status      MilestoneStatus @default(planned)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@unique([id, userId])
+  @@index([projectId, dueDate])
+  @@index([userId, status, dueDate])
+  @@index([userId, completedAt])
+  @@map("milestones")
+}
+
 model TechnologyUsage {
   userId              String              @map("user_id") @db.Uuid
   projectId           String              @map("project_id") @db.Uuid
