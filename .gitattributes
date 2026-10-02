@@ -1,0 +1,5 @@
+# Normalise line endings: LF in the repository and working tree on every OS
+# (Prettier and CI expect LF; the owner's global core.autocrlf would otherwise produce CRLF).
+* text=auto eol=lf
+*.png binary
+*.ico binary
