@@ -51,9 +51,10 @@ export const evidenceRepository = {
     if (query.verified !== undefined) where.verified = query.verified;
     if (query.origin) where.origin = query.origin;
     if (query.dateFrom || query.dateTo) where.date = { gte: query.dateFrom, lte: query.dateTo };
-    if (query.dated !== undefined) {
-      where.AND = [{ date: query.dated ? { not: null } : null }];
-    }
+    const and: Prisma.EvidenceWhereInput[] = [];
+    if (query.dated !== undefined) and.push({ date: query.dated ? { not: null } : null });
+    if (query.projectId) and.push({ projects: { some: { projectId: query.projectId } } });
+    if (and.length) where.AND = and;
 
     const [rows, total] = await Promise.all([
       db.evidence.findMany({

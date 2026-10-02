@@ -73,6 +73,9 @@ export const projectRepository = {
     if (query.completedFrom || query.completedTo) {
       and.push({ completedAt: { gte: query.completedFrom, lte: query.completedTo } });
     }
+    if (query.hasEvidence !== undefined) {
+      and.push({ evidence: query.hasEvidence ? { some: {} } : { none: {} } });
+    }
     if (and.length) where.AND = and;
 
     const [rows, total] = await Promise.all([

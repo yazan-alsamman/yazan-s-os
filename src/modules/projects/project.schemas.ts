@@ -87,6 +87,8 @@ export const listProjectsQuerySchema = paginationQuerySchema.extend({
   lifecycle: z.enum(["active", "production"]).optional(),
   completedFrom: isoDate.optional(),
   completedTo: isoDate.optional(),
+  /** Projects with (true) / without (false) linked evidence — portfolio drill-down (ADR 0025). */
+  hasEvidence: booleanQuerySchema,
   sort: sortSchema(["name", "updatedAt", "startDate", "status", "createdAt"], "-updatedAt"),
 });
 

@@ -1,6 +1,7 @@
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import type { ProjectHealth, ProjectStatus } from "@/generated/prisma/enums";
 import { expiryWhere } from "@/modules/certifications/certification.repository";
+import { overdueWhere } from "@/modules/milestones/milestone.repository";
 import { ACTIVE_STATUSES, PRODUCTION_STATUSES } from "@/modules/projects/project.lifecycle";
 import { projectStatusSchema } from "@/modules/projects/project.schemas";
 import { toDateOnly } from "@/modules/shared/fields";
@@ -523,6 +524,18 @@ export function createDashboardService(db: PrismaClient) {
         experiences,
         education,
       };
+      // 00 §4 Critical panel: overdue milestones (Phase 3), same rule as the milestones list.
+      const overdueMilestones = await db.milestone.findMany({
+        where: { AND: [{ userId: ctx.userId }, overdueWhere(now)] },
+        orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+        take: ATTENTION_LIMIT,
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          project: { select: { id: true, name: true } },
+        },
+      });
       const kpis: MetricResult[] = [
         projects.metrics.active,
         projects.metrics.completed,
@@ -539,7 +552,14 @@ export function createDashboardService(db: PrismaClient) {
         recordCounts,
         hasAnyData: Object.values(recordCounts).some((n) => n > 0),
         kpis,
-        projects: { ...projects.metrics, attention: projects.attention },
+        projects: {
+          ...projects.metrics,
+          attention: projects.attention,
+          overdueMilestones: overdueMilestones.map((m) => ({
+            ...m,
+            dueDate: toDateOnly(m.dueDate),
+          })),
+        },
         evidence: { ...evidence.metrics, monthly: evidence.monthly },
         skills: { ...skills.metrics, top: skills.top },
         certifications: { ...certifications.metrics, attention: certifications.attention },

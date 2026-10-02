@@ -26,3 +26,15 @@ export const LIFECYCLE_GROUPS = {
 } as const;
 
 export type LifecycleGroup = keyof typeof LIFECYCLE_GROUPS;
+
+/** The canonical `01` §3 lifecycle, in order (used for stage position and stable chart order). */
+export const LIFECYCLE_ORDER = [
+  "idea",
+  "discovery",
+  "architecture",
+  "development",
+  "validation",
+  "production",
+  "maintenance",
+  "archived",
+] as const satisfies readonly ProjectStatus[];

@@ -38,8 +38,8 @@ describe("metric catalogue governance (05 Metric Governance)", () => {
         expect(metric.availability.plannedPhase.length).toBeGreaterThan(0);
       }
     }
-    expect(availableMetrics()).toHaveLength(19);
-    expect(METRIC_CATALOGUE).toHaveLength(28);
+    expect(availableMetrics()).toHaveLength(39);
+    expect(METRIC_CATALOGUE).toHaveLength(52);
   });
 
   it("covers every 00 §4 KPI strip item, available or explicitly unavailable", () => {

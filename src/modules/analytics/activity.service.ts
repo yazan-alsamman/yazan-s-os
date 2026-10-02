@@ -1,5 +1,6 @@
-import type { AuditLog, PrismaClient } from "@/generated/prisma/client";
+import type { AuditLog, Prisma, PrismaClient } from "@/generated/prisma/client";
 import { paginated } from "@/lib/http/pagination";
+import { requireFound } from "@/modules/shared/ownership-checks";
 import type { ServiceContext } from "@/modules/shared/service-context";
 
 import { resolvePeriod, timestampWhere, toPeriodDto } from "./period";
@@ -22,6 +23,7 @@ export type ActivityEntity =
   | "technology"
   | "certification"
   | "project"
+  | "milestone"
   | "evidence"
   | "import_job"
   | "import_record"
@@ -46,6 +48,7 @@ const ENTITY_NOUNS: Record<ActivityEntity, string> = {
   technology: "technology",
   certification: "certification",
   project: "project",
+  milestone: "milestone",
   evidence: "evidence",
   import_job: "import",
   import_record: "import record",
@@ -57,6 +60,8 @@ const VERB_TEXT: Record<string, string> = {
   updated: "Updated",
   deleted: "Deleted",
   relations_updated: "Changed links of",
+  completed: "Completed",
+  reopened: "Reopened",
   uploaded: "Uploaded",
   accepted: "Accepted",
   rejected: "Rejected",
@@ -71,6 +76,7 @@ const LABEL_FIELDS: Partial<Record<ActivityEntity, readonly string[]>> = {
   technology: ["name"],
   certification: ["name"],
   project: ["name"],
+  milestone: ["title"],
   evidence: ["title"],
   import_job: ["fileName"],
   import_record: ["entityType"],
@@ -136,6 +142,14 @@ export function toActivityItem(
       href = jobId && exists("import_job", jobId) ? `/settings/import/${jobId}` : null;
       break;
     }
+    case "milestone": {
+      // A milestone never moves between projects, so the snapshot projectId is authoritative.
+      const projectId = snapshot?.projectId;
+      if (id && exists("milestone", id) && typeof projectId === "string") {
+        href = `/projects/${projectId}#milestones`;
+      } else deleted = Boolean(id);
+      break;
+    }
     case "other":
       break;
     default: {
@@ -166,7 +180,126 @@ export function toActivityItem(
   };
 }
 
+const AUDIT_SELECT = {
+  id: true,
+  action: true,
+  entityType: true,
+  entityId: true,
+  before: true,
+  after: true,
+  createdAt: true,
+} as const;
+
+type AuditRow = Pick<
+  AuditLog,
+  "id" | "action" | "entityType" | "entityId" | "before" | "after" | "createdAt"
+>;
+
+/**
+ * Turn audit rows into safe DTOs: existence checks and current labels are batched per entity type
+ * and owner-scoped (one query per type present on the page). Snapshots never leave this function.
+ */
+async function present(db: PrismaClient, userId: string, rows: AuditRow[]) {
+  const idsOf = (type: string) => [
+    ...new Set(rows.filter((r) => r.entityType === type && r.entityId).map((r) => r.entityId!)),
+  ];
+  const jobIds = [
+    ...new Set([
+      ...idsOf("import_job"),
+      ...rows
+        .filter((r) => r.entityType === "import_record")
+        .map((r) => asRecord(r.after)?.jobId)
+        .filter((v): v is string => typeof v === "string"),
+    ]),
+  ];
+  const lookups = await Promise.all([
+    db.experience.findMany({
+      where: { userId, id: { in: idsOf("experience") } },
+      select: { id: true, title: true },
+    }),
+    db.education.findMany({
+      where: { userId, id: { in: idsOf("education") } },
+      select: { id: true },
+    }),
+    db.skill.findMany({
+      where: { userId, id: { in: idsOf("skill") } },
+      select: { id: true, name: true },
+    }),
+    db.technology.findMany({
+      where: { userId, id: { in: idsOf("technology") } },
+      select: { id: true, name: true },
+    }),
+    db.certification.findMany({
+      where: { userId, id: { in: idsOf("certification") } },
+      select: { id: true, name: true },
+    }),
+    db.project.findMany({
+      where: { userId, id: { in: idsOf("project") } },
+      select: { id: true, name: true },
+    }),
+    db.evidence.findMany({
+      where: { userId, id: { in: idsOf("evidence") } },
+      select: { id: true, title: true },
+    }),
+    db.milestone.findMany({
+      where: { userId, id: { in: idsOf("milestone") } },
+      select: { id: true, title: true },
+    }),
+    db.importJob.findMany({ where: { userId, id: { in: jobIds } }, select: { id: true } }),
+  ]);
+  const found = lookups.flat() as { id: string; name?: string; title?: string }[];
+  const existing = new Set(found.map((r) => r.id));
+  const names = new Map(found.map((r) => [r.id, r.name ?? r.title ?? null]));
+  return rows.map((row) =>
+    toActivityItem(
+      row,
+      (_entity, id) => existing.has(id),
+      undefined,
+      (id) => names.get(id) ?? null,
+    ),
+  );
+}
+
+/**
+ * Audit filter for one project: events on the project itself and on its milestones, matched by
+ * the milestone snapshot projectId (so deleted milestones still appear). Same definition as the
+ * recent-activity health component (ADR 0024).
+ */
+export function projectActivityWhere(userId: string, projectId: string): Prisma.AuditLogWhereInput {
+  return {
+    actorId: userId,
+    OR: [
+      { entityType: "project", entityId: projectId },
+      {
+        entityType: "milestone",
+        OR: [
+          { after: { path: ["projectId"], equals: projectId } },
+          { before: { path: ["projectId"], equals: projectId } },
+        ],
+      },
+    ],
+  };
+}
+
 export function createActivityService(db: PrismaClient) {
+  async function page(
+    userId: string,
+    where: Prisma.AuditLogWhereInput,
+    query: { page: number; pageSize: number },
+  ) {
+    const [rows, total] = await Promise.all([
+      db.auditLog.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: AUDIT_SELECT,
+      }),
+      db.auditLog.count({ where }),
+    ]);
+    return paginated(await present(db, userId, rows), total, query);
+  }
+
   return {
     async list(
       ctx: ServiceContext,
@@ -180,87 +313,27 @@ export function createActivityService(db: PrismaClient) {
       now: Date = new Date(),
     ) {
       const period = resolvePeriod(query, now);
-      const where = {
+      const where: Prisma.AuditLogWhereInput = {
         actorId: ctx.userId,
         NOT: { action: { startsWith: "auth." } },
         ...(timestampWhere(period) ? { createdAt: timestampWhere(period) } : {}),
       };
-      const [rows, total] = await Promise.all([
-        db.auditLog.findMany({
-          where,
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          skip: (query.page - 1) * query.pageSize,
-          take: query.pageSize,
-          select: {
-            id: true,
-            action: true,
-            entityType: true,
-            entityId: true,
-            before: true,
-            after: true,
-            createdAt: true,
-          },
-        }),
-        db.auditLog.count({ where }),
-      ]);
+      return { ...(await page(ctx.userId, where, query)), period: toPeriodDto(period) };
+    },
 
-      // Existence check, batched per entity type and owner-scoped (one query per type present).
-      const idsOf = (type: string) => [
-        ...new Set(rows.filter((r) => r.entityType === type && r.entityId).map((r) => r.entityId!)),
-      ];
-      const jobIds = [
-        ...new Set([
-          ...idsOf("import_job"),
-          ...rows
-            .filter((r) => r.entityType === "import_record")
-            .map((r) => asRecord(r.after)?.jobId)
-            .filter((v): v is string => typeof v === "string"),
-        ]),
-      ];
-      const userId = ctx.userId;
-      const lookups = await Promise.all([
-        db.experience.findMany({
-          where: { userId, id: { in: idsOf("experience") } },
-          select: { id: true, title: true },
-        }),
-        db.education.findMany({
-          where: { userId, id: { in: idsOf("education") } },
+    /** Project-relevant activity for the dossier; 404 when the project is not the caller's. */
+    async listForProject(
+      ctx: ServiceContext,
+      projectId: string,
+      query: { page: number; pageSize: number },
+    ) {
+      requireFound(
+        await db.project.findFirst({
+          where: { id: projectId, userId: ctx.userId },
           select: { id: true },
         }),
-        db.skill.findMany({
-          where: { userId, id: { in: idsOf("skill") } },
-          select: { id: true, name: true },
-        }),
-        db.technology.findMany({
-          where: { userId, id: { in: idsOf("technology") } },
-          select: { id: true, name: true },
-        }),
-        db.certification.findMany({
-          where: { userId, id: { in: idsOf("certification") } },
-          select: { id: true, name: true },
-        }),
-        db.project.findMany({
-          where: { userId, id: { in: idsOf("project") } },
-          select: { id: true, name: true },
-        }),
-        db.evidence.findMany({
-          where: { userId, id: { in: idsOf("evidence") } },
-          select: { id: true, title: true },
-        }),
-        db.importJob.findMany({ where: { userId, id: { in: jobIds } }, select: { id: true } }),
-      ]);
-      const found = lookups.flat() as { id: string; name?: string; title?: string }[];
-      const existing = new Set(found.map((r) => r.id));
-      const names = new Map(found.map((r) => [r.id, r.name ?? r.title ?? null]));
-      const data = rows.map((row) =>
-        toActivityItem(
-          row,
-          (_entity, id) => existing.has(id),
-          undefined,
-          (id) => names.get(id) ?? null,
-        ),
       );
-      return { ...paginated(data, total, query), period: toPeriodDto(period) };
+      return page(ctx.userId, projectActivityWhere(ctx.userId, projectId), query);
     },
   };
 }

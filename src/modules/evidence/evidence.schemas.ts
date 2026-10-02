@@ -13,6 +13,7 @@ import {
   optionalIsoDate,
   optionalLongText,
   requiredText,
+  uuidSchema,
 } from "@/modules/shared/fields";
 
 export const evidenceTypeSchema = z.enum(EvidenceType);
@@ -44,6 +45,8 @@ export const listEvidenceQuerySchema = paginationQuerySchema.extend({
   dateTo: isoDate.optional(),
   /** true = has an evidence date, false = undated (Command Center drill-down). */
   dated: booleanQuerySchema,
+  /** Evidence linked to one project — project dossier drill-down (Phase 3). */
+  projectId: uuidSchema.optional(),
   sort: sortSchema(["title", "date", "type", "updatedAt", "createdAt"], "-date"),
 });
 
