@@ -35,7 +35,7 @@ describe("navigation registry", () => {
     expect(NAV_SECTIONS.filter((s) => s.mobilePrimary).length).toBeLessThanOrEqual(4);
   });
 
-  it("marks exactly the sections built so far (Phases 0–8) as available", () => {
+  it("marks exactly the sections built so far (Phases 0–9) as available", () => {
     expect(NAV_SECTIONS.filter((s) => s.availability === "available").map((s) => s.id)).toEqual([
       "command-center",
       "career",
@@ -45,6 +45,7 @@ describe("navigation registry", () => {
       "certifications",
       "architecture",
       "goals",
+      "analytics",
       "evidence",
       "settings",
       "copilot",

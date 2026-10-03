@@ -83,7 +83,10 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     icon: Activity,
     summary: "Deployments, incidents, quality, technical debt and delivery metrics.",
     availability: "planned",
-    plannedIn: "Phase 9 — Engineering Analytics",
+    // Phase 9 delivered cross-domain Engineering Analytics under “Analytics”; these DORA/integration
+    // metrics need a GitHub/CI/CD/issue-tracker integration PEOS does not have (05: never fabricated).
+    plannedIn:
+      "Future — requires engineering integrations (GitHub/CI/CD, issue tracker, deployments)",
     placement: "main",
   },
   {
@@ -153,7 +156,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: "/analytics",
     icon: BarChart3,
     summary: "Career, engineering, AI and portfolio analytics with defined metrics.",
-    availability: "planned",
+    availability: "available",
     plannedIn: "Phases 2–9 (incrementally, per domain)",
     placement: "main",
   },
