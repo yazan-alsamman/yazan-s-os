@@ -8,6 +8,7 @@ import { toDateOnly } from "@/modules/shared/fields";
 import type { ServiceContext } from "@/modules/shared/service-context";
 
 import type { DashboardFilters } from "./dashboard.schemas";
+import { createGoalsAnalyticsService } from "./goals-analytics.service";
 import {
   comparisonFor,
   metricResult,
@@ -515,6 +516,7 @@ export function createDashboardService(db: PrismaClient) {
         experiences,
         education,
         skillIntel,
+        goals,
       ] = await Promise.all([
         projectSection(ctx, filters, period),
         evidenceSection(ctx, filters, period),
@@ -527,6 +529,8 @@ export function createDashboardService(db: PrismaClient) {
         createSkillsAnalyticsService(db, () => now).summary(ctx, {
           category: filters.skillCategory,
         }),
+        // Phase 5: the same goal analytics as the Goals pages (ADR 0034).
+        createGoalsAnalyticsService(db, () => now).summary(ctx),
       ]);
       const recordCounts = {
         projects: projects.base,
@@ -558,6 +562,7 @@ export function createDashboardService(db: PrismaClient) {
         skills.metrics.withEvidence,
         skillIntel.coverage,
         skillIntel.criticalGaps,
+        goals.active,
         certifications.metrics.expiring,
       ];
       return {
@@ -584,6 +589,7 @@ export function createDashboardService(db: PrismaClient) {
           gapAttention: skillIntel.attention,
         },
         certifications: { ...certifications.metrics, attention: certifications.attention },
+        goals: { active: goals.active, atRisk: goals.atRisk, attention: goals.attention },
       };
     },
   };

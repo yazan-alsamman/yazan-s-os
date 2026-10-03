@@ -179,7 +179,9 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
   const projects = dashboard.projects.attention;
   const certs = dashboard.certifications.attention;
   const overdue = dashboard.projects.overdueMilestones;
-  const empty = projects.length === 0 && certs.length === 0 && overdue.length === 0;
+  const goals = dashboard.goals.attention;
+  const empty =
+    projects.length === 0 && certs.length === 0 && overdue.length === 0 && goals.length === 0;
   return (
     <section aria-labelledby="attention-title" className="rounded-lg border bg-surface">
       <header className="border-b px-4 py-3">
@@ -187,8 +189,8 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
           Needs attention
         </h2>
         <p className="mt-1 text-caption text-muted-foreground">
-          Blocked or at-risk projects (not archived), overdue milestones, and certifications expired
-          or expiring within 90 days. Up to 10 each.
+          Blocked or at-risk projects (not archived), overdue milestones, goals at risk, and
+          certifications expired or expiring within 90 days. Up to 10 each.
         </p>
       </header>
       {empty ? (
@@ -223,6 +225,20 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
                 <span className="font-normal text-muted-foreground"> · {m.project.name}</span>
               </Link>
               <Badge tone="danger">Overdue since {formatDate(m.dueDate)}</Badge>
+            </li>
+          ))}
+          {goals.map((g) => (
+            <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+              <Link
+                href={`/goals/${g.id}` as never}
+                className="min-w-0 font-medium hover:underline"
+              >
+                {g.title}
+                <span className="block text-caption font-normal text-muted-foreground">
+                  {g.signals.join("; ")}
+                </span>
+              </Link>
+              <Badge tone="warning">Goal at risk</Badge>
             </li>
           ))}
           {certs.map((c) => {

@@ -25,6 +25,8 @@ export type ActivityEntity =
   | "project"
   | "milestone"
   | "skill_level_model"
+  | "goal"
+  | "goal_measurement"
   | "evidence"
   | "import_job"
   | "import_record"
@@ -51,6 +53,8 @@ const ENTITY_NOUNS: Record<ActivityEntity, string> = {
   project: "project",
   milestone: "milestone",
   skill_level_model: "skill level model",
+  goal: "goal",
+  goal_measurement: "goal measurement",
   evidence: "evidence",
   import_job: "import",
   import_record: "import record",
@@ -80,6 +84,8 @@ const LABEL_FIELDS: Partial<Record<ActivityEntity, readonly string[]>> = {
   project: ["name"],
   milestone: ["title"],
   skill_level_model: ["name"],
+  goal: ["title"],
+  goal_measurement: ["date"],
   evidence: ["title"],
   import_job: ["fileName"],
   import_record: ["entityType"],
@@ -153,6 +159,16 @@ export function toActivityItem(
       } else deleted = Boolean(id);
       break;
     }
+    case "goal_measurement": {
+      // A measurement never moves between goals, so the snapshot goalId is authoritative.
+      const goalId = snapshot?.goalId;
+      href =
+        typeof goalId === "string" && exists("goal", goalId)
+          ? `/goals/${goalId}#measurements`
+          : null;
+      deleted = Boolean(id) && !href;
+      break;
+    }
     case "skill_level_model":
       href = id && exists("skill_level_model", id) ? "/skills/level-models" : null;
       deleted = Boolean(id) && !href;
@@ -167,6 +183,7 @@ export function toActivityItem(
         certification: "/certifications/",
         project: "/projects/",
         evidence: "/evidence/",
+        goal: "/goals/",
       };
       if (id && exists(entity, id)) href = `${paths[entity]}${id}`;
       else deleted = Boolean(id);
@@ -250,6 +267,23 @@ async function present(db: PrismaClient, userId: string, rows: AuditRow[]) {
     }),
     db.milestone.findMany({
       where: { userId, id: { in: idsOf("milestone") } },
+      select: { id: true, title: true },
+    }),
+    db.goal.findMany({
+      where: {
+        userId,
+        id: {
+          in: [
+            ...new Set([
+              ...idsOf("goal"),
+              ...rows
+                .filter((r) => r.entityType === "goal_measurement")
+                .map((r) => asRecord(r.after ?? r.before)?.goalId)
+                .filter((v): v is string => typeof v === "string"),
+            ]),
+          ],
+        },
+      },
       select: { id: true, title: true },
     }),
     db.skillLevelModel.findMany({

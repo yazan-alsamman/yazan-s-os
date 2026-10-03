@@ -158,8 +158,8 @@ export function CommandCenter() {
               ))}
             </div>
             <p className="mt-2 text-caption text-muted-foreground">
-              Goals, AI experiments, architecture decisions and technical debt are specified KPIs
-              that cannot be computed yet —{" "}
+              AI experiments, architecture decisions and technical debt are specified KPIs that
+              cannot be computed yet —{" "}
               <Link href="/command-center/metrics" className="underline underline-offset-4">
                 see why
               </Link>

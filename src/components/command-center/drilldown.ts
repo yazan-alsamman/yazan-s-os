@@ -14,6 +14,8 @@ export interface DrillFilters {
   projectId?: string;
   /** Phase 4: a single skill's metrics drill into that skill's dossier. */
   skillId?: string;
+  /** Phase 5: a single goal's measures drill into that goal's dossier. */
+  goalId?: string;
 }
 
 export interface DrillPeriod {
@@ -41,6 +43,9 @@ const evidenceBase = (f: DrillFilters) => ({
   origin: f.evidenceOrigin,
 });
 const skillBase = (f: DrillFilters) => ({ category: f.skillCategory });
+/** Phase 5 source list: the goals list. */
+const goalsList = (params: Record<string, string | undefined | null>) => href("/goals", params);
+
 /** Phase 4 source list: active skills, keeping the dashboard's skill category filter. */
 const skillIntel = (f: DrillFilters, params: Record<string, string | undefined | null>) =>
   href("/skills/intelligence", { category: f.skillCategory, active: "true", ...params });
@@ -125,6 +130,33 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
       // Scores are explained by their component breakdown, not by a list (documented exception).
       return f.projectId ? `/projects/${f.projectId}#health` : "/projects/health";
     // ── Phase 4 (ADR 0029) ──
+    // ── Phase 5 (ADR 0034) ──
+    case "goals.total":
+      return goalsList({});
+    case "goals.active":
+      return goalsList({ status: "active" });
+    case "goals.overdue":
+      return goalsList({ overdue: "true" });
+    case "goals.completion_rate": // numerator; the denominator adds overdue=true
+      return goalsList({ status: "completed" });
+    case "goals.at_risk":
+      return goalsList({ risk: "at_risk", sort: "risk" });
+    case "goals.on_track":
+      return goalsList({ risk: "on_track" });
+    case "goals.target_attainment": // numerator
+      return goalsList({ committed: "true", attainment: "attained" });
+    case "goals.without_deadline":
+      return goalsList({ open: "true", hasDeadline: "false" });
+    case "goals.without_projects":
+      return goalsList({ open: "true", hasProjects: "false" });
+    case "goals.without_skills":
+      return goalsList({ open: "true", hasSkills: "false" });
+    case "goals.with_skill_gaps":
+      return goalsList({ open: "true", skillGap: "true" });
+    case "goals.milestone_progress":
+    case "goals.burndown":
+      // Per-goal measures are explained in the goal dossier (documented exception).
+      return f.goalId ? `/goals/${f.goalId}` : goalsList({});
     case "skills.coverage": // numerator list; the denominator drops freshness=fresh
       return skillIntel(f, { hasTarget: "true", freshness: "fresh" });
     case "skills.critical_gaps":
@@ -159,6 +191,26 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
     case "certifications.expiry_distribution":
       return href("/certifications", { expiry: bucket, current: "true", sort: "expiryDate" });
     // ── Phase 3 (ADR 0025) ──
+    case "goals.risk_distribution":
+      return goalsList({ risk: bucket });
+    case "goals.status_distribution":
+      return goalsList({ status: bucket });
+    case "goals.attainment_distribution":
+      return goalsList({ committed: "true", attainment: bucket });
+    case "goals.deadline_load": {
+      if (bucket === "overdue") return goalsList({ open: "true", overdue: "true" });
+      if (bucket === "none") return goalsList({ open: "true", hasDeadline: "false" });
+      const after = /^after:(\d{4}-\d{2}-\d{2})$/.exec(bucket);
+      if (after) return goalsList({ open: "true", overdue: "false", deadlineFrom: after[1] });
+      const quarter = /^(\d{4})-Q([1-4])$/.exec(bucket);
+      if (!quarter) return null;
+      const y = Number(quarter[1]);
+      const q = Number(quarter[2]);
+      const from = `${y}-${String((q - 1) * 3 + 1).padStart(2, "0")}-01`;
+      const last = new Date(Date.UTC(y, q * 3, 0)).getUTCDate();
+      const to = `${y}-${String(q * 3).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+      return goalsList({ open: "true", overdue: "false", deadlineFrom: from, deadlineTo: to });
+    }
     case "skills.freshness":
       return skillIntel(f, { freshness: bucket });
     case "skills.level_distribution":
