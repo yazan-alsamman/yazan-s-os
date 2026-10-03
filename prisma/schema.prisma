@@ -59,6 +59,9 @@ model User {
   componentDependencies        ComponentDependency[]
   decisionComponents           DecisionComponent[]
   decisionProjects             DecisionProject[]
+  copilotConversations         CopilotConversation[]
+  copilotMessages              CopilotMessage[]
+  copilotToolCalls             CopilotToolCall[]
   componentTechnologies        ComponentTechnology[]
   importJobs                   ImportJob[]
   reviewedImports              ImportRecord[]                 @relation("ImportReviewer")
@@ -1132,6 +1135,101 @@ model DecisionComponent {
   @@id([decisionId, componentId])
   @@index([componentId])
   @@map("decision_components")
+}
+
+// ── AI Copilot (06_AI_COPILOT.md, 08 Phase 8; ADRs 0046–0050) ───────────────
+
+enum CopilotRole {
+  user
+  assistant
+
+  @@map("copilot_role")
+}
+
+/// How an assistant answer was produced (ADR 0047): synthesized by the configured model and
+/// validated, or assembled deterministically from tool results when no model is available.
+enum CopilotAnswerMode {
+  synthesis
+  retrieval_only
+
+  @@map("copilot_answer_mode")
+}
+
+enum CopilotToolStatus {
+  ok
+  rejected
+  failed
+
+  @@map("copilot_tool_status")
+}
+
+/// A Copilot conversation (06 "follow-up questions"; ADR 0049). Owner-scoped; deleting it deletes
+/// its messages and tool-call log.
+model CopilotConversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages CopilotMessage[]
+
+  @@unique([id, userId])
+  @@index([userId, updatedAt])
+  @@map("copilot_conversations")
+}
+
+/// One turn. User messages store the question text; assistant messages store the validated
+/// structured answer (statements + citations) — never the system prompt or raw provider output.
+model CopilotMessage {
+  id             String             @id @default(uuid()) @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  conversationId String             @map("conversation_id") @db.Uuid
+  role           CopilotRole
+  /// User question (role = user).
+  content        String?
+  /// Validated structured answer (role = assistant), ADR 0048.
+  answer         Json?
+  mode           CopilotAnswerMode?
+  /// Provider metadata — recorded only when the provider returned it; null = not reported (never 0).
+  provider       String?
+  model          String?
+  inputTokens    Int?               @map("input_tokens")
+  outputTokens   Int?               @map("output_tokens")
+  latencyMs      Int?               @map("latency_ms")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation CopilotConversation @relation(fields: [conversationId, userId], references: [id, userId], onDelete: Cascade)
+  toolCalls    CopilotToolCall[]
+
+  @@unique([id, userId])
+  @@index([conversationId, createdAt])
+  @@map("copilot_messages")
+}
+
+/// Audit trail of tool calls (06 "log AI tool calls"; 10 "Audit trail for tool calls"; ADR 0046).
+/// Inputs are the validated, owner-free arguments; results are summarized (count, sources), not
+/// stored in full.
+model CopilotToolCall {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  messageId   String            @map("message_id") @db.Uuid
+  tool        String
+  input       Json
+  status      CopilotToolStatus
+  resultCount Int?              @map("result_count")
+  durationMs  Int               @map("duration_ms")
+  error       String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message CopilotMessage @relation(fields: [messageId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([userId, createdAt])
+  @@map("copilot_tool_calls")
 }
 
 // ── Import review queue (00 §9, 11_DATA_IMPORT_PROFILE.md, ADR 0014) ─────────

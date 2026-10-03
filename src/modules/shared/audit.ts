@@ -25,7 +25,8 @@ export type AuditEntity =
   | "architecture_component"
   | "import_job"
   | "import_record"
-  | "export";
+  | "export"
+  | "copilot_conversation";
 
 export type AuditVerb =
   | "created"

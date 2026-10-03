@@ -18,6 +18,8 @@ export const RateLimits = {
   export: { name: "export", limit: 30, windowSeconds: 3600 },
   /** Command Center reads run ~35 aggregate queries each. */
   analytics: { name: "analytics", limit: 120, windowSeconds: 60 },
+  /** AI Copilot questions (06 "rate-limit expensive operations"; ADR 0050): each may call a model. */
+  copilot: { name: "copilot", limit: 30, windowSeconds: 600 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /**

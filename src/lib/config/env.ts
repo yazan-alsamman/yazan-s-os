@@ -46,6 +46,17 @@ export const serverEnvSchema = z
 
     OTEL_SERVICE_NAME: z.string().default("peos"),
     OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,
+
+    /**
+     * AI Copilot model provider (Phase 8, ADR 0047). "none" (default) = retrieval-only mode: the
+     * Copilot answers with cited records and never synthesizes. Server-only; never sent to the
+     * browser.
+     */
+    AI_PROVIDER: z.enum(["none", "openai_compatible"]).default("none"),
+    AI_BASE_URL: optionalUrl,
+    AI_MODEL: optionalString,
+    AI_API_KEY: optionalString,
+    AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
   })
   .superRefine((env, ctx) => {
     const github = [env.AUTH_GITHUB_CLIENT_ID, env.AUTH_GITHUB_CLIENT_SECRET];
@@ -76,6 +87,14 @@ export const serverEnvSchema = z
           message: "Rate limiting can only be disabled when APP_URL is a loopback host",
         });
       }
+    }
+
+    if (env.AI_PROVIDER === "openai_compatible" && (!env.AI_BASE_URL || !env.AI_MODEL)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["AI_PROVIDER"],
+        message: "AI_PROVIDER=openai_compatible needs AI_BASE_URL and AI_MODEL",
+      });
     }
 
     if (env.NODE_ENV === "production" && !env.APP_URL.startsWith("https://")) {
