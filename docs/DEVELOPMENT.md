@@ -178,3 +178,25 @@ HTTP 503 only when the database (critical) is unavailable.
   `componentWhere` **and** `matchesDecisionQuery` / `matchesComponentQuery`.
 - **Prisma `_count` on paginated lists** can regress badly with stale statistics; prefer a grouped
   count scoped to the page's ids (see the Phase 7 benchmark).
+
+## Phase 8 notes (AI Copilot)
+
+- **Migration:** `pnpm db:deploy` adds three copilot tables (additive):
+  `copilot_conversations`, `copilot_messages`, `copilot_tool_calls`.
+- **AI provider (optional).** `.env` variables: `AI_PROVIDER` (`none` default, or
+  `openai_compatible`), and when a provider is set, `AI_BASE_URL` + `AI_MODEL` (required),
+  `AI_API_KEY` (optional), `AI_TIMEOUT_MS` (default 30000). With `AI_PROVIDER=none` the Copilot runs
+  in deterministic **retrieval-only** mode — no network — which is how CI and the E2E suite run. The
+  key is read only in `src/lib/ai/index.ts` and never persisted or logged.
+- **Page:** `/copilot` (conversation list, transcript, composer, suggested prompts). Nav flips to
+  available.
+- **Architecture:** server-deterministic. `copilot.router.ts` picks tools; `copilot.tools.ts` wraps
+  authoritative services (the twelve tools — no new metrics); `copilot.grounding.ts` holds the answer
+  contract, context builder and the citation/number validators; `copilot.service.ts` orchestrates and
+  persists; `src/lib/ai` is the provider abstraction. The model only synthesises JSON; it never routes,
+  never sees the DB, and never decides identity.
+- **Testing the model path** without a network: construct `createCopilotService(db, stubProvider)`
+  with a provider whose `generate` returns a fixed JSON contract (see `tests/integration/copilot.int.test.ts`),
+  and unit-test the adapter with an injected `fetchImpl`.
+- **Adding a tool** requires a new entry in `TOOLS` (strict Zod input, wrap an authoritative service,
+  map to provenance-tagged `Source`s) and a new ADR — the model cannot gain capabilities otherwise.

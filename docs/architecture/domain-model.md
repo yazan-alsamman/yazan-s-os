@@ -142,3 +142,22 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 - All link tables use composite FKs with the owner and cascade only the link when either side is
   deleted — decisions survive project and technology deletion.
 - **Computed, never stored:** revisit due, stale critical, documentation gaps, coverage, the map.
+
+## Phase 8 additions (AI Copilot)
+
+- **CopilotConversation** (ADR 0050): `id`, `userId`, `title` (CHECK: not blank), timestamps.
+  `@@unique([id, userId])`, indexed by `(userId, updatedAt)`.
+- **CopilotMessage**: `id`, `userId`, `conversationId` (composite FK to the conversation), `role`
+  (user · assistant), `content?` (the question), `answer?` (the validated structured answer, JSON),
+  `mode?` (synthesis · retrieval_only), and provider usage `provider?`, `model?`, `inputTokens?`,
+  `outputTokens?`, `latencyMs?`. A role-payload CHECK enforces user ⇒ `content` and no
+  `answer`/`mode`; assistant ⇒ `answer` and `mode`. Usage columns are non-negative or null — a
+  missing count is never stored as 0 (ADR 0047).
+- **CopilotToolCall**: `id`, `userId`, `messageId` (composite FK to the assistant message), `tool`,
+  `input` (JSON), `status` (ok · rejected · failed), `resultCount?`, `durationMs`, `error?`. This is
+  the persisted log of every AI tool call (ADR 0047).
+- All three tables carry `user_id` and cascade-delete from the owner; messages and tool calls cascade
+  from their conversation/message via composite FKs. A foreign id can never be read or written.
+- **Computed, never stored:** routing, retrieval, grounding validation, citations and retrieval-only
+  answers (derived at request time from authoritative services; ADRs 0046–0049). PEOS never fabricates
+  Copilot data; the model never writes domain records.

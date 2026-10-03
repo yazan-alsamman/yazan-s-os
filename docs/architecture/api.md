@@ -170,6 +170,27 @@ targets (project, evidence, technology, component, superseding decision) → 400
   `architecture: { decisions, staleCritical, revisitDue, attention }`.
 - Decision, alternative and component mutations appear in `/analytics/activity`.
 
+### Phase 8 — AI Copilot (ADRs 0046–0050)
+
+All endpoints require a session and are owner-scoped; identity is always from the session, never the
+body. Malformed ids → 404; a conversation owned by another user → 404 on every verb. The model never
+receives a DB handle or identity. A question is routed server-side to the controlled tools; answers
+are validated and cite only retrieved records.
+
+| Method               | Path                             | Purpose                                                                                                    | Validation                 |
+| -------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------- |
+| GET · POST           | `/copilot/conversations`         | List the user's conversations (newest first) · create one (optional `title`)                               | `createConversationSchema` |
+| GET · PATCH · DELETE | `/copilot/conversations/:id`     | Read with messages and tool activity · rename · delete (cascades to messages and tool calls)               | `renameConversationSchema` |
+| POST                 | `/copilot/conversations/:id/ask` | Ask within the conversation; returns the persisted assistant message with citations. Rate limit: `copilot` | `askSchema`                |
+| GET                  | `/copilot/status`                | Non-secret model status `{ available, provider, model }` (never the API key or base URL)                   | —                          |
+
+- `askSchema` accepts only `{ question (≤ 1000 chars), task: answer|recommend|portfolio, focus?:
+{type: project|skill, id}, portfolioKind? }`; a `portfolio` task requires a project focus.
+- The `ask` endpoint is limited to **30 requests / 600 s** per user (`RateLimits.copilot`), because
+  it is expensive and may call an external model.
+- When no provider is configured (`AI_PROVIDER=none`), `ask` returns a deterministic, fully cited
+  **retrieval-only** answer (`mode: "retrieval_only"`, `provider`/`model`/usage all `null`).
+
 **Error codes:**
 
 | Code                                                                | HTTP status |

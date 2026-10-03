@@ -250,6 +250,43 @@ deleted/relations_updated`, `architecture_alternative.created/updated/deleted`,
   can reach it within one window (see the Phase 7 report); the limit was not relaxed.
 - **Dependency audit (2026-10-03):** unchanged — dev-only `braces <=3.0.3`; `pnpm audit --prod` clean.
 
+## Phase 8 additions (AI Copilot)
+
+- **Evidence first, AI second.** The model only synthesises over already-retrieved records; it has no
+  DB handle, no SQL, no network tools and cannot trigger retrieval. Server code routes questions to
+  twelve controlled tools (ADR 0046); `executeTool` rejects unknown tools and invalid input before any
+  DB access and runs every tool as the session user.
+- **Identity.** `userId` is always `ctx.userId` from the session. The `ask` body is a closed schema
+  (`question`, `task` enum, `focus` UUID, `portfolioKind` enum); no `userId`/`ownerId` is accepted,
+  and the deterministic router never emits a user/owner argument (so an injected one cannot reach a
+  tool).
+- **Prompt injection.** All retrieved content is untrusted. It is redacted, bounded, and placed in a
+  delimited `<DATA>` block in the user turn; the system turn holds the rules and marks `DATA`
+  untrusted (ADR 0049). Defences are structural, not prompt-trust: deterministic routing, session-scoped
+  composite-FK queries, and output validation that drops any claim/citation/number not backed by a
+  retrieved record (ADR 0048). Verified by `copilot.int.test.ts` (injected "ignore instructions / userId=admin"
+  in evidence text causes no cross-user access and no routing change).
+- **No fabrication.** Fabricated citations and unsupported numbers are removed before storage/display,
+  with the removal disclosed as a grounding notice. Missing data is reported, never coerced to zero. A
+  certification is never treated as proof of expertise; no career/quality score is produced.
+- **Secrets.** `AI_API_KEY` is read server-side and passed only to the adapter — never persisted,
+  logged or returned; `/copilot/status` exposes only `{ available, provider, model }`. Retrieved text
+  and answers pass through pattern-based redaction (private keys, token shapes, `key=value`, credentialed
+  DB URLs). Best-effort, not a guarantee.
+- **Database ownership.** `copilot_conversations`, `copilot_messages`, `copilot_tool_calls` all carry
+  `user_id` with composite FKs and cascade delete from the owner. Cross-owner access is impossible in
+  the database.
+- **IDOR.** `tests/integration/copilot-authz.int.test.ts` (HTTP, two users): anonymous → 401; a foreign
+  conversation → 404 on read, ask, rename and delete; `/copilot/status` leaks no secret. Reinforced by
+  service-level IDOR assertions in `copilot.int.test.ts`.
+- **Logging & rate limiting.** Every tool call is persisted (tool, input, status, count, duration,
+  error). The `ask` endpoint is limited to 30 requests / 600 s per user (expensive, may call a model);
+  conversation CRUD uses the mutation limiter. Tool output is bounded (≤ 10 items, truncated text).
+- **Audit.** `copilot_conversation.created/deleted`, in-transaction, id only.
+- **Read-only.** The Copilot performs no autonomous actions and writes only its own conversation
+  history.
+- **Dependency audit (2026-10-03):** `pnpm audit --prod` — no known vulnerabilities.
+
 ## Not yet implemented (tracked)
 
 MFA, session/device management UI, email verification/password reset, secret scanning and SAST in
