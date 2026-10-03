@@ -1,4 +1,4 @@
-# PEOS Security Baseline (Phases 0–5)
+# PEOS Security Baseline (Phases 0–6)
 
 Scope: controls that exist now. Threat model source: `07_SECURITY_PRIVACY.md`.
 
@@ -205,6 +205,28 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
 - **Raw SQL.** Four parameterised `$queryRaw` aggregates (`Prisma.sql`, `Prisma.join`, `Prisma.empty`); every join repeats the owner (`p.user_id = m.user_id`, …). No `$queryRawUnsafe`.
 - **Audit.** In the same transaction: `goal.created`, `goal.updated`, `goal.completed`, `goal.reopened`, `goal.deleted`, `goal.relations_updated` (sorted id lists only) and `goal_measurement.created` / `.deleted`. Computed analytics are not audited.
 - **Dependency audit (2026-10-03):** unchanged from Phase 4 — `braces <=3.0.3` (dev-only lint tooling) remains open and accepted; `pnpm audit --prod` reports no known vulnerabilities.
+
+## Phase 6 controls (AI Lab)
+
+- **No execution, no secrets (ADR 0040).** PEOS does not call any model/provider. Experiment and
+  run records hold model names, versions, dataset names, code refs and notes — never API keys,
+  tokens or credentials. There is no credential field.
+- **Recorded facts only.** Cost, latency, tokens and evaluation metrics are user-entered; nothing
+  is computed or estimated. Missing values stay null ("not recorded"), never zero.
+- **Database ownership.** `ai_experiments`, `experiment_runs`, `experiment_metrics` and
+  `experiment_evidence` carry `user_id` with composite FKs to every parent; the project link is a
+  composite FK too. Cross-owner links are impossible in the database.
+- **IDOR.** `tests/integration/experiments-authz.int.test.ts` (HTTP, two real users) covers reading,
+  updating, deleting and analysing a foreign experiment, run and metric (404); linking foreign
+  evidence or a foreign project (400); injected `userId`/`ownerId` (ignored); and that lists and
+  analytics never leak across users. Malformed ids 404; invalid input 400.
+- **Raw SQL.** Two parameterised `$queryRaw` aggregates per analysis (owner repeated on every
+  predicate); no `$queryRawUnsafe`.
+- **Audit.** `ai_experiment.created/updated/completed/reopened/abandoned/deleted`,
+  `ai_experiment.relations_updated` (evidence id lists), `experiment_run.created/updated/deleted`
+  and `experiment_metric.created/deleted`, all in-transaction. Analytics are not audited.
+- **Dependency audit (2026-10-03):** unchanged — `braces <=3.0.3` (dev-only lint tooling) remains
+  open and accepted; `pnpm audit --prod` reports no known vulnerabilities.
 
 ## Not yet implemented (tracked)
 

@@ -151,3 +151,17 @@ HTTP 503 only when the database (critical) is unavailable.
 - **Reconciliation:** a new goal filter must be added to `goalWhere` (SQL) **and** `matchesGoalQuery` (analytics), or list totals and metrics drift; the integration tests compare them for every metric.
 - **Forms:** `FieldDescriptor.kind = "number"` sends a number or null; `ResourceList` accepts `editFields` when the edit form differs from the create form.
 - **Scroll regions:** make horizontally scrolling table wrappers `relative`, or absolutely positioned `sr-only` cells escape the clip and widen the page on phones.
+
+## Phase 6 notes
+
+- **Migration:** run `pnpm db:deploy` on both databases. It adds `ai_experiments`,
+  `experiment_runs`, `experiment_metrics`, `experiment_evidence` (additive).
+- **Pages:** `/ai-lab` (experiments list), `/ai-lab/:id` (dossier: lifecycle, runs, metrics,
+  comparison, evidence), `/ai-lab/analytics`.
+- **Rules:** `src/modules/experiments/experiment.rules.ts` is pure and versioned
+  (`experiment-lifecycle-v1`, `reproducibility-v1`, `comparison-v1`). Change them only with a new
+  ADR and catalogue entries.
+- **Reconciliation:** a new experiment filter must be added to `experimentWhere` **and**
+  `matchesExperimentQuery`, or list totals and metrics drift; the integration tests compare them.
+- **No execution/secrets:** never add a model-execution call or a credential field to experiments
+  (ADR 0040); measurements are user-recorded and may be null (not zero).

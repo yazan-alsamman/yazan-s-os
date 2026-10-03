@@ -1,4 +1,4 @@
-# PEOS HTTP API (`/api/v1`) — Phases 1–5
+# PEOS HTTP API (`/api/v1`) — Phases 1–6
 
 Conventions: ADR 0015.
 
@@ -118,6 +118,30 @@ All endpoints require a session and are owner-scoped. Reads use the `analytics` 
 
 - The Command Center dashboard (`/analytics/dashboard`) adds the `goals.active` KPI and `goals: { active, atRisk, attention }`.
 - Goal and measurement mutations appear in `/analytics/activity`.
+
+### Phase 6 — AI Lab & experimentation (ADRs 0036–0040)
+
+All endpoints require a session and are owner-scoped. Reads use the `analytics` rate limit;
+mutations use `mutation` plus the same-origin check. Malformed ids → 404; foreign relationship
+targets (project, evidence) → 400. No endpoint accepts `userId`/`ownerId`. PEOS records
+experiments; it never executes models (ADR 0040).
+
+| Method               | Path                                             | Purpose                                                                                                                                                                                                                                                                                                                                             | Validation                   |
+| -------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| GET                  | `/experiments`                                   | Source list for every AI Lab metric: row with status, decision, run counts, evaluated-run count, reproducibility, latest run. Filters: `q`, `status`, `decision`, `category`, `projectId`, `open`, `hasRuns`, `hasEvaluation`, `hasEvidence`, `reproducibility`, `createdFrom/To`; `sort` (updatedAt, createdAt, title, status, runs); `page` ≤ 100 | `listExperimentsQuerySchema` |
+| POST                 | `/experiments`                                   | Create (title, projectId?, hypothesis, objective, category, status, decision, result, reproducibilityNote, startedAt, completedAt). ≤ 2,000 per user                                                                                                                                                                                                | `createExperimentSchema`     |
+| GET · PATCH · DELETE | `/experiments/:id`                               | Read · update (lifecycle transitions) · delete (cascades runs, metrics, evidence links)                                                                                                                                                                                                                                                             | `updateExperimentSchema`     |
+| GET                  | `/experiments/:id/intelligence`                  | Dossier: signals, reproducibility, project, runs (with metrics and per-run reproducibility), evidence                                                                                                                                                                                                                                               | —                            |
+| GET                  | `/experiments/:id/compare?a=&b=`                 | Diff two runs (config, cost/latency/token deltas, metric deltas); no winner                                                                                                                                                                                                                                                                         | `compareQuerySchema`         |
+| POST                 | `/experiments/:id/runs`                          | Append a run (never overwrites); ≤ 500 per experiment                                                                                                                                                                                                                                                                                               | `createRunSchema`            |
+| PATCH · DELETE       | `/experiments/:id/runs/:runId`                   | Update · delete a run                                                                                                                                                                                                                                                                                                                               | `updateRunSchema`            |
+| POST                 | `/experiments/:id/runs/:runId/metrics`           | Record one evaluation metric (name, value, unit, direction); ≤ 100 per run                                                                                                                                                                                                                                                                          | `createMetricSchema`         |
+| DELETE               | `/experiments/:id/runs/:runId/metrics/:metricId` | Delete a metric                                                                                                                                                                                                                                                                                                                                     | —                            |
+| PUT                  | `/experiments/:id/evidence`                      | Replace the experiment's evidence links (reuses the Evidence domain)                                                                                                                                                                                                                                                                                | `experimentEvidenceSchema`   |
+| GET                  | `/analytics/experiments`                         | AI Lab analytics (status, decision, category, reproducibility, coverage, gaps, per-month, recorded-measurement summaries)                                                                                                                                                                                                                           | —                            |
+
+- The Command Center dashboard adds the `ai.active_experiments` KPI and `experiments: { total, active, reproducibility }`.
+- Experiment, run and metric mutations appear in `/analytics/activity`.
 
 **Error codes:**
 

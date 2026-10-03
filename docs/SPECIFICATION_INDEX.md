@@ -111,3 +111,17 @@ New ambiguities found and decided in Phase 1:
 | P5-10 | `confidence` semantics are undefined                                              | Manual self-assessment, shown as entered, never used in a calculation (ADR 0033)      |
 | P5-11 | Completion rate denominator is undefined                                          | completed ÷ (completed + overdue), mirroring the Phase 3 delivery rate (ADR 0034)     |
 | P5-12 | Priority is not in `04`                                                           | Not added                                                                             |
+
+## Phase 6 specification gaps (ADRs 0036–0040)
+
+| Gap  | Detail                                                                    | Handling                                                                          |
+| ---- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| P6-1 | `04` AIExperiment has no run entity, but `01`/`08` require run comparison | `ExperimentRun` added as first-class, append-only (ADR 0037)                      |
+| P6-2 | Experiment `status` values undefined                                      | planned · active · completed · abandoned; completion ≠ success (ADR 0037)         |
+| P6-3 | "successful experiment rate" undefined; success is subjective             | Owner decision (adopt/reject/inconclusive); adoption rate over decided (ADR 0038) |
+| P6-4 | "evaluation score" / "quality" could be an opaque composite               | Per-criterion metrics with units; no composite score (ADR 0038)                   |
+| P6-5 | "reproducibility rate" undefined; PEOS cannot re-run                      | Recorded-metadata completeness, labelled as such (ADR 0039)                       |
+| P6-6 | No model-execution infrastructure                                         | Registry/tracking only; measurements user-recorded (ADR 0040)                     |
+| P6-7 | AI Experiment Scatter Y axis = "quality" is undefined                     | Deferred (no invented composite)                                                  |
+| P6-8 | AIExperiment ↔ Skill/Technology not in `04`                               | Deferred; reached through the project link                                        |
+| P6-9 | `12_IMPLEMENTATION_GUIDE.md` absent                                       | Recorded, not fabricated; used `00`,`01`,`04`,`05`,`08` + conventions             |

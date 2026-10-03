@@ -105,3 +105,22 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 - **GoalMeasurement**: `id`, `userId`, `goalId`, `date`, `value` (finite), `note?`, `createdAt`. Only recorded values; nothing is interpolated.
 - **Milestone.goalId?** (ADR 0032): the goal a project milestone counts toward (Goal 1:N Milestone, `04`). Composite FK with the owner, `NO ACTION`; set only through `PUT /goals/:id/milestones`. Deleting a goal unlinks its milestones.
 - **Computed, never stored:** overdue, target attainment (`goal-attainment-v1`), risk with its signals (`goal-risk-v1`), milestone progress, skill readiness (from Phase 4 skill intelligence).
+
+## Phase 6 additions (AI Lab)
+
+- **AIExperiment** (ADR 0036): `id`, `userId`, `projectId?` (optional composite FK, cascade),
+  `title`, `hypothesis?`, `objective?`, `category?` (free text), `status` (planned · active ·
+  completed · abandoned, default planned), `decision?` (adopt · reject · inconclusive; null =
+  undecided), `result?`, `reproducibilityNote?`, `startedAt?`, `completedAt?`, timestamps. Checks:
+  title not blank; `completedAt ≥ startedAt`.
+- **ExperimentRun** (ADR 0037): `id`, `userId`, `experimentId`, `runNumber` (unique per
+  experiment), `label?`, `status` (completed · failed · aborted), recorded config (`model`,
+  `modelVersion`, `provider`, `promptVersion`, `datasetName`, `datasetVersion`, `codeRef`,
+  `environment`), `runAt?`, and measured `costUsd?`, `latencyMs?`, `tokensInput?`,
+  `tokensOutput?` (checks: runNumber ≥ 1; non-negative). Append-only history.
+- **ExperimentMetric** (ADR 0038): `id`, `userId`, `runId`, `name`, `value` (finite), `unit?`,
+  `higherIsBetter?` (null = no direction), `note?`. A recorded evaluation result.
+- **ExperimentEvidence** (ADR 0038): `(experimentId, evidenceId)` with `userId`; reuses Evidence.
+- Relationship **Project 1:N AIExperiment** (04). Composite FKs make cross-owner links impossible.
+- **Computed, never stored:** reproducibility state (ADR 0039), run comparison and all analytics.
+  PEOS never executes a model; measurements are user-recorded (ADR 0040).

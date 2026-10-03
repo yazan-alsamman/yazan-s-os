@@ -1,11 +1,11 @@
-# PEOS Metric Catalogue (Phases 2–5)
+# PEOS Metric Catalogue (Phases 2–6)
 
 Generated from `src/modules/analytics/metric-catalogue.ts`, which is the source of truth (ADR 0019).
 The catalogue is validated by a strict Zod schema when it is loaded, served read-only at
 `GET /api/v1/analytics/metrics`, and shown in the app at `/command-center/metrics` and in each
 metric's definition drawer.
 
-- **76 metrics**: 66 available, 10 unavailable (each with its reason and the phase or decision
+- **89 metrics**: 80 available, 9 unavailable (each with its reason and the phase or decision
   that unlocks it).
 - Phase 3 adds milestone, delivery, computed-health, portfolio, technology and project-evidence
   metrics (ADRs 0022–0025). `projects.delivery_rate` is now available (version 2).
@@ -16,6 +16,10 @@ metric's definition drawer.
   coverage, deadline load, milestone progress, burndown; `goal-lifecycle-v1`,
   `goal-attainment-v1`, `goal-risk-v1`) and makes `goals.active` available (version 2; ADRs
   0031–0035). No composite goal progress score exists.
+- Phase 6 adds 13 AI Lab metrics (status, decision, category, reproducibility, adoption rate,
+  evaluation coverage, missing-evaluation/provenance, runs, per-month) and makes `ai.experiments`
+  available (version 2; ADRs 0036–0040). No opaque "AI score"; cost/latency/token summaries are
+  descriptive, not governed KPIs.
 - Every metric counts only records owned by the signed-in user.
 - Frequency: computed live on request. Nothing is cached, pre-aggregated or estimated.
 - Periods are whole UTC calendar days, inclusive. "Today" is the UTC calendar day.
@@ -101,7 +105,20 @@ metric's definition drawer.
 | skills.radar                              | Skill radar                            | available                           | Skill dossier per axis; skill intelligence list                                                    |
 | skills.learning_velocity                  | Learning velocity                      | Specification decision required     | —                                                                                                  |
 | evidence.production_ratio                 | Production evidence ratio              | Specification decision required     | —                                                                                                  |
-| ai.experiments                            | AI experiments                         | Phase 6 — AI Lab                    | —                                                                                                  |
+| ai.experiments                            | AI experiments                         | available                           | Experiments list with the same filters                                                             |
+| ai.active_experiments                     | Active experiments                     | available                           | Experiments list filtered to open=true                                                             |
+| ai.completed_experiments                  | Completed experiments                  | available                           | Experiments list filtered to status=completed                                                      |
+| ai.abandoned_experiments                  | Abandoned experiments                  | available                           | Experiments list filtered to status=abandoned                                                      |
+| ai.runs_total                             | Experiment runs                        | available                           | Experiments list filtered to those with recorded runs                                              |
+| ai.experiments_by_status                  | Experiments by status                  | available                           | Experiments list filtered to the status                                                            |
+| ai.experiments_by_decision                | Experiments by decision                | available                           | Experiments list filtered to the decision (undecided has no list filter)                           |
+| ai.experiments_by_category                | Experiments by category                | available                           | Experiments list filtered to the category (uncategorised has no list filter)                       |
+| ai.reproducibility_distribution           | Reproducibility (recorded metadata)    | available                           | Experiments list filtered to the reproducibility state                                             |
+| ai.adoption_rate                          | Adoption rate                          | available                           | Experiments list filtered to decision=adopt (numerator)                                            |
+| ai.evaluation_coverage                    | Evaluation coverage                    | available                           | Experiments list filtered to hasEvaluation=true (numerator)                                        |
+| ai.experiments_missing_evaluation         | Experiments missing evaluation         | available                           | Experiments list filtered to hasRuns=true&hasEvaluation=false                                      |
+| ai.experiments_missing_provenance         | Experiments missing evidence           | available                           | Experiments list filtered to hasEvidence=false                                                     |
+| ai.experiments_per_month                  | Experiments per month                  | available                           | Experiments list filtered to the month the experiment was created (createdFrom/To)                 |
 | architecture.decisions                    | Architecture decisions                 | Phase 7 — Architecture Intelligence | —                                                                                                  |
 | engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics     | —                                                                                                  |
 
@@ -1496,22 +1513,269 @@ metric's definition drawer.
 
 #### `ai.experiments` — AI experiments
 
+| Field                 | Value                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.experiments`                                                                                                       |
+| Name                  | AI experiments                                                                                                         |
+| Category              | ai                                                                                                                     |
+| Definition            | Number of AI experiments recorded (04 AIExperiment).                                                                   |
+| Formula               | `COUNT(ai_experiments)`                                                                                                |
+| Source                | AIExperiment                                                                                                           |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                            |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                           |
+| Caveats               | Only records owned by the signed-in user are counted. • PEOS records experiments; it does not execute them (ADR 0040). |
+| Value type / temporal | count / point_in_time                                                                                                  |
+| Availability          | Available                                                                                                              |
+| Drill-down target     | Experiments list with the same filters                                                                                 |
+| Spec reference        | 00 §4 KPI strip — AI Experiments; 01 §4; ADR 0036                                                                      |
+| Version               | v2 (introduced 2026-10-03, revised 2026-10-03)                                                                         |
+
+#### `ai.active_experiments` — Active experiments
+
+| Field                 | Value                                                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.active_experiments`                                                                                                                  |
+| Name                  | Active experiments                                                                                                                       |
+| Category              | ai                                                                                                                                       |
+| Definition            | Experiments that are planned or active (not yet completed or abandoned).                                                                 |
+| Formula               | `COUNT(status IN (planned, active))`                                                                                                     |
+| Source                | AIExperiment.status                                                                                                                      |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                              |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                             |
+| Caveats               | Only records owned by the signed-in user are counted. • Completion is a lifecycle decision and is never equated with success (ADR 0037). |
+| Value type / temporal | count / point_in_time                                                                                                                    |
+| Availability          | Available                                                                                                                                |
+| Drill-down target     | Experiments list filtered to open=true                                                                                                   |
+| Spec reference        | 08 Phase 6; ADR 0037                                                                                                                     |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                           |
+
+#### `ai.completed_experiments` — Completed experiments
+
+| Field                 | Value                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `ai.completed_experiments`                                                                                                           |
+| Name                  | Completed experiments                                                                                                                |
+| Category              | ai                                                                                                                                   |
+| Definition            | Experiments whose lifecycle status is completed (regardless of their decision).                                                      |
+| Formula               | `COUNT(status = completed)`                                                                                                          |
+| Source                | AIExperiment.status                                                                                                                  |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                          |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                         |
+| Caveats               | Only records owned by the signed-in user are counted. • Completed ≠ successful; the owner's decision is a separate field (ADR 0037). |
+| Value type / temporal | count / point_in_time                                                                                                                |
+| Availability          | Available                                                                                                                            |
+| Drill-down target     | Experiments list filtered to status=completed                                                                                        |
+| Spec reference        | 08 Phase 6; ADR 0037                                                                                                                 |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                       |
+
+#### `ai.abandoned_experiments` — Abandoned experiments
+
 | Field                 | Value                                                                       |
 | --------------------- | --------------------------------------------------------------------------- |
-| Key                   | `ai.experiments`                                                            |
-| Name                  | AI experiments                                                              |
+| Key                   | `ai.abandoned_experiments`                                                  |
+| Name                  | Abandoned experiments                                                       |
 | Category              | ai                                                                          |
-| Definition            | Number of AI experiments recorded.                                          |
-| Formula               | `COUNT(ai_experiments)`                                                     |
-| Source                | AIExperiment (not yet modelled)                                             |
+| Definition            | Experiments stopped without a conclusion.                                   |
+| Formula               | `COUNT(status = abandoned)`                                                 |
+| Source                | AIExperiment.status                                                         |
 | Frequency             | On request — computed live from the database when the Command Center loads. |
-| Owner                 | PEOS AI Lab domain (Phase 6)                                                |
-| Caveats               | AI experiments do not exist yet.                                            |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
 | Value type / temporal | count / point_in_time                                                       |
-| Availability          | **Unavailable** — Phase 6 — AI Lab: The AI Lab is not built yet.            |
-| Drill-down target     | None                                                                        |
-| Spec reference        | 00 §4 KPI strip — AI Experiments                                            |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                              |
+| Availability          | Available                                                                   |
+| Drill-down target     | Experiments list filtered to status=abandoned                               |
+| Spec reference        | 08 Phase 6; ADR 0037                                                        |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `ai.runs_total` — Experiment runs
+
+| Field                 | Value                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.runs_total`                                                                                                     |
+| Name                  | Experiment runs                                                                                                     |
+| Category              | ai                                                                                                                  |
+| Definition            | Total recorded runs/iterations across all experiments.                                                              |
+| Formula               | `COUNT(experiment_runs)`                                                                                            |
+| Source                | ExperimentRun                                                                                                       |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                         |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                        |
+| Caveats               | Only records owned by the signed-in user are counted. • Runs are append-only; deleting a run is audited (ADR 0037). |
+| Value type / temporal | count / point_in_time                                                                                               |
+| Availability          | Available                                                                                                           |
+| Drill-down target     | Experiments list filtered to those with recorded runs                                                               |
+| Spec reference        | 01 §4; ADR 0037                                                                                                     |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                      |
+
+#### `ai.experiments_by_status` — Experiments by status
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `ai.experiments_by_status`                                                  |
+| Name                  | Experiments by status                                                       |
+| Category              | ai                                                                          |
+| Definition            | Experiment counts per lifecycle status.                                     |
+| Formula               | `COUNT(ai_experiments) GROUP BY status`                                     |
+| Source                | AIExperiment.status                                                         |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | distribution / point_in_time                                                |
+| Availability          | Available                                                                   |
+| Drill-down target     | Experiments list filtered to the status                                     |
+| Spec reference        | 05 AI Metrics; ADR 0037                                                     |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `ai.experiments_by_decision` — Experiments by decision
+
+| Field                 | Value                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.experiments_by_decision`                                                                                                |
+| Name                  | Experiments by decision                                                                                                     |
+| Category              | ai                                                                                                                          |
+| Definition            | Experiment counts per owner decision (adopt, reject, inconclusive) plus undecided.                                          |
+| Formula               | `COUNT(ai_experiments) GROUP BY decision (NULL → undecided)`                                                                |
+| Source                | AIExperiment.decision                                                                                                       |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                 |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                |
+| Caveats               | Only records owned by the signed-in user are counted. • Decision is the owner's interpretation, entered by hand (ADR 0037). |
+| Value type / temporal | distribution / point_in_time                                                                                                |
+| Availability          | Available                                                                                                                   |
+| Drill-down target     | Experiments list filtered to the decision (undecided has no list filter)                                                    |
+| Spec reference        | 04 AIExperiment.decision; ADR 0037                                                                                          |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                              |
+
+#### `ai.experiments_by_category` — Experiments by category
+
+| Field                 | Value                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.experiments_by_category`                                                                                           |
+| Name                  | Experiments by category                                                                                                |
+| Category              | ai                                                                                                                     |
+| Definition            | Experiment counts per free-text category, plus an uncategorised bucket.                                                |
+| Formula               | `COUNT(ai_experiments) GROUP BY category (NULL → uncategorised)`                                                       |
+| Source                | AIExperiment.category                                                                                                  |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                            |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                           |
+| Caveats               | Only records owned by the signed-in user are counted. • Category is free text; there is no closed taxonomy (ADR 0036). |
+| Value type / temporal | distribution / point_in_time                                                                                           |
+| Availability          | Available                                                                                                              |
+| Drill-down target     | Experiments list filtered to the category (uncategorised has no list filter)                                           |
+| Spec reference        | 01 §4; ADR 0036                                                                                                        |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                         |
+
+#### `ai.reproducibility_distribution` — Reproducibility (recorded metadata)
+
+| Field                 | Value                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `ai.reproducibility_distribution`                                                                                                                                                    |
+| Name                  | Reproducibility (recorded metadata)                                                                                                                                                  |
+| Category              | ai                                                                                                                                                                                   |
+| Definition            | Experiments by how completely their runs record reproduction metadata (reproducible / partial / not recorded / unknown).                                                             |
+| Formula               | `classify each experiment from its runs' recorded model, modelVersion, promptVersion, datasetName and codeRef`                                                                       |
+| Source                | ExperimentRun                                                                                                                                                                        |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                          |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                                                                         |
+| Caveats               | Only records owned by the signed-in user are counted. • Measures recorded metadata completeness, NOT a verified reproduction (ADR 0039). • Unknown = the experiment has no runs yet. |
+| Value type / temporal | distribution / point_in_time                                                                                                                                                         |
+| Availability          | Available                                                                                                                                                                            |
+| Drill-down target     | Experiments list filtered to the reproducibility state                                                                                                                               |
+| Spec reference        | 05 AI Metrics — reproducibility rate; ADR 0039                                                                                                                                       |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                       |
+
+#### `ai.adoption_rate` — Adoption rate
+
+| Field                 | Value                                                                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.adoption_rate`                                                                                                                                                                                                                                                   |
+| Name                  | Adoption rate                                                                                                                                                                                                                                                        |
+| Category              | ai                                                                                                                                                                                                                                                                   |
+| Definition            | Experiments decided to adopt among experiments with any recorded decision.                                                                                                                                                                                           |
+| Formula               | `COUNT(decision = adopt) / COUNT(decision IS NOT NULL)`                                                                                                                                                                                                              |
+| Source                | AIExperiment.decision                                                                                                                                                                                                                                                |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                          |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                                                                                                                                                         |
+| Caveats               | Only records owned by the signed-in user are counted. • Denominator is experiments with a recorded decision; undecided experiments are excluded. Empty → insufficient data, never 0 %. • This is the owner's decision rate, not a measured success score (ADR 0037). |
+| Value type / temporal | ratio / point_in_time                                                                                                                                                                                                                                                |
+| Availability          | Available                                                                                                                                                                                                                                                            |
+| Drill-down target     | Experiments list filtered to decision=adopt (numerator)                                                                                                                                                                                                              |
+| Spec reference        | 05 AI Metrics — successful experiment rate; ADR 0037                                                                                                                                                                                                                 |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                       |
+
+#### `ai.evaluation_coverage` — Evaluation coverage
+
+| Field                 | Value                                                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.evaluation_coverage`                                                                                                                                    |
+| Name                  | Evaluation coverage                                                                                                                                         |
+| Category              | ai                                                                                                                                                          |
+| Definition            | Experiments with at least one evaluated run among experiments that have any run.                                                                            |
+| Formula               | `COUNT(experiments with an evaluated run) / COUNT(experiments with >=1 run)`                                                                                |
+| Source                | ExperimentRun, ExperimentMetric                                                                                                                             |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                 |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                                                |
+| Caveats               | Only records owned by the signed-in user are counted. • An evaluated run has at least one recorded ExperimentMetric. Empty denominator → insufficient data. |
+| Value type / temporal | ratio / point_in_time                                                                                                                                       |
+| Availability          | Available                                                                                                                                                   |
+| Drill-down target     | Experiments list filtered to hasEvaluation=true (numerator)                                                                                                 |
+| Spec reference        | 01 §4 AI Evaluation; ADR 0038                                                                                                                               |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                              |
+
+#### `ai.experiments_missing_evaluation` — Experiments missing evaluation
+
+| Field                 | Value                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.experiments_missing_evaluation`                                                                                         |
+| Name                  | Experiments missing evaluation                                                                                              |
+| Category              | ai                                                                                                                          |
+| Definition            | Experiments that have runs but no recorded evaluation metric on any run.                                                    |
+| Formula               | `COUNT(experiments with >=1 run AND 0 evaluated runs)`                                                                      |
+| Source                | ExperimentRun, ExperimentMetric                                                                                             |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                 |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                                |
+| Caveats               | Only records owned by the signed-in user are counted. • Experiments with no runs are not counted (nothing to evaluate yet). |
+| Value type / temporal | count / point_in_time                                                                                                       |
+| Availability          | Available                                                                                                                   |
+| Drill-down target     | Experiments list filtered to hasRuns=true&hasEvaluation=false                                                               |
+| Spec reference        | 01 §4; ADR 0038                                                                                                             |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                              |
+
+#### `ai.experiments_missing_provenance` — Experiments missing evidence
+
+| Field                 | Value                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.experiments_missing_provenance`                                                                              |
+| Name                  | Experiments missing evidence                                                                                     |
+| Category              | ai                                                                                                               |
+| Definition            | Experiments with no linked evidence.                                                                             |
+| Formula               | `COUNT(experiments with 0 evidence links)`                                                                       |
+| Source                | ExperimentEvidence                                                                                               |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                      |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                     |
+| Caveats               | Only records owned by the signed-in user are counted. • Evidence reuses the existing Evidence domain (ADR 0038). |
+| Value type / temporal | count / point_in_time                                                                                            |
+| Availability          | Available                                                                                                        |
+| Drill-down target     | Experiments list filtered to hasEvidence=false                                                                   |
+| Spec reference        | 00 §5 evidence-first; ADR 0038                                                                                   |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                   |
+
+#### `ai.experiments_per_month` — Experiments per month
+
+| Field                 | Value                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Key                   | `ai.experiments_per_month`                                                                                      |
+| Name                  | Experiments per month                                                                                           |
+| Category              | ai                                                                                                              |
+| Definition            | Experiments created per UTC calendar month.                                                                     |
+| Formula               | `COUNT(ai_experiments) GROUP BY to_char(created_at, 'YYYY-MM')`                                                 |
+| Source                | AIExperiment.createdAt                                                                                          |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                     |
+| Owner                 | PEOS AI Lab domain (src/modules/experiments)                                                                    |
+| Caveats               | Only records owned by the signed-in user are counted. • By record creation date, not experiment execution date. |
+| Value type / temporal | distribution / point_in_time                                                                                    |
+| Availability          | Available                                                                                                       |
+| Drill-down target     | Experiments list filtered to the month the experiment was created (createdFrom/To)                              |
+| Spec reference        | 05 AI Metrics — experiments per month                                                                           |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                  |
 
 #### `architecture.decisions` — Architecture decisions
 

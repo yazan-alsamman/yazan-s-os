@@ -1,4 +1,4 @@
-# PEOS Analytics & Command Center Architecture (Phases 2–5)
+# PEOS Analytics & Command Center Architecture (Phases 2–6)
 
 Decisions: ADR 0018 (lifecycle groups), ADR 0019 (catalogue and result contract), ADR 0020
 (filters and drill-down), ADR 0021 (activity and timeline). The metric list is in
@@ -189,3 +189,44 @@ Each call ran once as an excluded warm-up, then 10 timed times, through the serv
 **Planner statistics (verified).** Before the final code, a run without `ANALYZE` measured the dossier at 1,373.6 ms. A per-query breakdown in the same stale-statistics state showed the cause: listing a goal's projects through a projects-side semi-join (`project.goals.some`) took 1,318.6 ms, while the same rows read from `goal_projects` by its primary key took 9.2 ms. The dossier now reads from the link table; runs b and c above are without `ANALYZE`. Earlier no-`ANALYZE` runs also measured the unfiltered goal list at 163–184 ms (before the owner-scoped aggregate change); they did not recur in the final runs. Statistics still matter for other relation filters (`goalWhere` uses `some` for `projectId`, `skillId`, `hasProjects` and `hasSkills`), so bulk benchmarks must `ANALYZE` after loading.
 
 **Caching:** none. Phase 5 adds the indexes of the new tables only: `goals(user_id, status, deadline)`, `goals(parent_id)`, `goal_projects(project_id)`, `goal_skills(skill_id)`, `goal_dependencies(depends_on_goal_id)`, `goal_measurements(goal_id, date)` and `milestones(goal_id)`.
+
+## Phase 6 — AI Lab & experimentation
+
+- **Signals** (`src/modules/experiments/experiment-intelligence.ts`): `analyseExperiments` loads the
+  experiments, then two owner-scoped raw aggregates over `experiment_runs` (run counts by status,
+  reproducibility-field completeness, evaluated-run count, measured-value counts) and a
+  `DISTINCT ON` latest-run query, plus an evidence `groupBy`. Unfiltered calls scope by owner.
+- **Source list:** `/api/v1/experiments`. Structural filters run in SQL (`experimentWhere`);
+  derived filters (`hasEvaluation`, `reproducibility`) on the analysed set. The analytics service
+  evaluates every metric with `matchesExperimentQuery` (mirrors `experimentWhere` + `matchesDerived`),
+  so each count equals its drill-down total (integration-tested).
+- **Comparison** (`comparison-v1`, ADR 0038): pure diff of two runs; no overall winner.
+- **Reproducibility** (`reproducibility-v1`, ADR 0039): recorded-metadata completeness only.
+- **Descriptive measurements:** cost/latency/token sums and averages over runs that recorded a
+  value — not governed KPIs, never zero-filled.
+
+### Phase 6 performance
+
+Dataset (one user): 1,000 experiments, 2,500 runs, 3,332 recorded evaluation metrics, 50 projects.
+PostgreSQL 17.10, service layer, 1 warm-up + 10 timed runs; median = mean of runs 5 and 6. Cells
+are median / max ms.
+
+| Call                                   | Run a (`ANALYZE`) | Run b (no `ANALYZE`) | Run c (no `ANALYZE`) |
+| -------------------------------------- | ----------------- | -------------------- | -------------------- |
+| Experiment list (page 1, recent)       | 32.3 / 47.2       | 36.9 / 53.9          | 40.0 / 49.7          |
+| Experiment list (reproducibility)      | 30.5 / 40.8       | 35.2 / 38.6          | 36.9 / 49.4          |
+| Experiment dossier                     | 11.2 / 12.1       | 12.0 / 12.6          | 14.2 / 23.3          |
+| Run comparison                         | 8.3 / 9.5         | 7.3 / 9.5            | 9.7 / 12.1           |
+| AI Lab analytics                       | 40.4 / 45.4       | 46.1 / 56.7          | 53.7 / 60.3          |
+| Command Center dashboard (incl. AI Lab)| 68.9 / 86.2       | 85.9 / 99.8          | 83.6 / 96.1          |
+
+The AI Lab aggregates are small (two grouped run queries + one latest-run query + one evidence
+aggregate), so unlike the Phase 4/5 bulk loads there was **no stale-statistics outlier** — the
+no-`ANALYZE` runs track the `ANALYZE` run. Statistics still matter after very large imports, so
+bulk benchmarks should `ANALYZE` after loading.
+
+
+**Query strategy:** one experiment query + two run aggregates + one latest-run query + one evidence
+aggregate for any number of experiments (no N+1); the dossier adds bounded run/metric/evidence
+reads; comparison loads exactly two runs. Lists are paginated (≤ 100); runs ≤ 500 and metrics ≤ 100
+per parent. No caching; only the new tables' indexes were added.
