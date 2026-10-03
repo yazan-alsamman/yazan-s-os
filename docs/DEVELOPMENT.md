@@ -126,3 +126,15 @@ HTTP 503 only when the database (critical) is unavailable.
 - **Project dossier:** `/projects/:id`. Portfolio: `/projects/portfolio`. Milestones: `/projects/milestones`. Computed health: `/projects/health`.
 - **Dates:** every "today" rule goes through `src/modules/shared/calendar.ts` (UTC calendar day). Services take an injectable clock — pass a fixed `now` in tests.
 - **Computed health:** `src/modules/projects/project-health.ts` is pure and versioned (`project-health-v1`). Change it only together with a new ADR and the catalogue entries `projects.health_score` and `projects.health_component.*`.
+
+## Phase 4 notes
+
+- **Migration:** run `pnpm db:deploy` on both databases. It adds `skill_level_models` and `technology_skills`, and `skills.level_model_id` with its check.
+- **Pages:**
+  - `/skills/intelligence` — KPIs, radar, distributions and the heatmap (source list)
+  - `/skills/graph` — the career graph
+  - `/skills/level-models`
+  - `/skills/:id` — the skill dossier
+- **Algorithms:** `src/modules/skills/skill-intelligence.ts` is pure and versioned (`skill-level-v1`, `freshness-v1`, `skill-trend-v1`, `gap-analysis-v1`). Change them only together with a new ADR and the catalogue entries.
+- **Dialogs:** wrap controlled Radix dialogs with `useReturnFocus()` (`src/lib/ui/return-focus.ts`) so focus returns to the opener.
+- **Benchmarks** after bulk inserts need `ANALYZE`, or the planner may use stale statistics (see `analytics.md`).

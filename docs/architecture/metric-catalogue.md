@@ -1,14 +1,17 @@
-# PEOS Metric Catalogue (Phases 2–3)
+# PEOS Metric Catalogue (Phases 2–4)
 
 Generated from `src/modules/analytics/metric-catalogue.ts`, which is the source of truth (ADR 0019).
 The catalogue is validated by a strict Zod schema when it is loaded, served read-only at
 `GET /api/v1/analytics/metrics`, and shown in the app at `/command-center/metrics` and in each
 metric's definition drawer.
 
-- **52 metrics**: 39 available, 13 unavailable (each with its reason and the phase or decision
+- **60 metrics**: 49 available, 11 unavailable (each with its reason and the phase or decision
   that unlocks it).
 - Phase 3 adds milestone, delivery, computed-health, portfolio, technology and project-evidence
   metrics (ADRs 0022–0025). `projects.delivery_rate` is now available (version 2).
+- Phase 4 adds evidence-derived skill metrics (`skill-level-v1`, `freshness-v1`, `skill-trend-v1`,
+  `gap-analysis-v1`) and makes skill coverage, critical gaps and freshness available (version 2;
+  ADRs 0026–0030). Learning velocity stays unavailable.
 - Every metric counts only records owned by the signed-in user.
 - Frequency: computed live on request. Nothing is cached, pre-aggregated or estimated.
 - Periods are whole UTC calendar days, inclusive. "Today" is the UTC calendar day.
@@ -19,60 +22,68 @@ metric's definition drawer.
 
 ## Summary
 
-| Key                                       | Name                                   | Availability                           | Drill-down                                                               |
-| ----------------------------------------- | -------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------ |
-| projects.total                            | Projects                               | available                              | Projects list with the same filters                                      |
-| projects.active                           | Active projects                        | available                              | Projects list filtered to the active lifecycle group                     |
-| projects.production                       | Production systems                     | available                              | Projects list filtered to the production lifecycle group                 |
-| projects.completed_in_period              | Projects completed                     | available                              | Projects list filtered to completion dates in the period                 |
-| projects.health_distribution              | Project health                         | available                              | Projects list filtered to the selected health state                      |
-| projects.lifecycle_distribution           | Projects by lifecycle status           | available                              | Projects list filtered to the selected status                            |
-| projects.delivery_rate                    | Delivery rate                          | available                              | Milestones list: completed (status=completed) and overdue (overdue=true) |
-| projects.milestones_total                 | Milestones                             | available                              | Milestones list (per project: projectId filter)                          |
-| projects.milestones_completed             | Completed milestones                   | available                              | Milestones list filtered to status=completed                             |
-| projects.milestones_completed_in_period   | Milestones completed                   | available                              | Milestones list filtered to completedFrom/completedTo                    |
-| projects.milestones_overdue               | Overdue milestones                     | available                              | Milestones list filtered to overdue=true                                 |
-| projects.milestones_blocked               | Blocked milestones                     | available                              | Milestones list filtered to status=blocked                               |
-| projects.milestone_completion_trend       | Milestone completions over time        | available                              | Milestones list filtered to the month's completion dates                 |
-| projects.delivery_trend                   | Project delivery trend                 | available                              | Projects list filtered to the month's completion dates                   |
-| projects.health_score                     | Computed project health                | available                              | Project dossier, Health section (component breakdown)                    |
-| projects.health_component.schedule        | Health component: schedule             | available                              | Project dossier, Health section                                          |
-| projects.health_component.milestones      | Health component: milestone completion | available                              | Project dossier, Delivery section                                        |
-| projects.health_component.blockers        | Health component: blockers             | available                              | Milestones list filtered to the project and status=blocked               |
-| projects.health_component.recent_activity | Health component: recent activity      | available                              | Project dossier, Activity section                                        |
-| projects.health_component.scope_stability | Health component: scope stability      | Specification decision required        | —                                                                        |
-| projects.health_component.issue_severity  | Health component: issue severity       | Phase 9 — Engineering Analytics        | —                                                                        |
-| projects.computed_health_distribution     | Projects by computed health            | available                              | Computed health list filtered to the band                                |
-| projects.health_comparison                | Manual vs computed health              | available                              | Computed health list filtered to manual status and band                  |
-| projects.technology_usage                 | Technology usage across projects       | available                              | Projects list filtered to the technology (technologyId)                  |
-| projects.evidence_coverage                | Project evidence coverage              | available                              | Projects list filtered to hasEvidence=true / false                       |
-| projects.evidence_linked                  | Project evidence                       | available                              | Evidence list filtered to the project (projectId)                        |
-| projects.evidence_verified                | Verified project evidence              | available                              | Evidence list filtered to the project and verified=true                  |
-| projects.evidence_by_type                 | Project evidence by type               | available                              | Evidence list filtered to the project and type                           |
-| projects.blocked_time                     | Blocked time                           | Specification decision required        | —                                                                        |
-| projects.portfolio_matrix                 | Project portfolio matrix               | Specification decision required        | —                                                                        |
-| projects.technology_heatmap               | Technology heatmap                     | Specification decision required        | —                                                                        |
-| evidence.total                            | Evidence items                         | available                              | Evidence list with the same filters                                      |
-| evidence.verified                         | Verified evidence                      | available                              | Evidence list filtered to verified                                       |
-| evidence.velocity                         | Evidence velocity                      | available                              | Evidence list filtered to verified items dated in the period             |
-| evidence.undated                          | Undated evidence                       | available                              | Evidence list filtered to undated items                                  |
-| skills.total                              | Skills                                 | available                              | Skills list                                                              |
-| skills.active                             | Active skills                          | available                              | Skills list filtered to active                                           |
-| skills.with_target                        | Skills with a target level             | available                              | Skills list filtered to skills with a target                             |
-| skills.with_evidence                      | Skills with evidence                   | available                              | Skills list filtered to skills with evidence                             |
-| skills.without_evidence                   | Active skills without evidence         | available                              | Skills list filtered to active skills without evidence                   |
-| skills.by_category                        | Skills by category                     | available                              | Skills list filtered to the selected category                            |
-| certifications.total                      | Certifications                         | available                              | Certifications list                                                      |
-| certifications.expiry_distribution        | Certification expiry                   | available                              | Certifications list filtered to the selected expiry state                |
-| certifications.expiring                   | Certifications expiring                | available                              | Certifications list filtered to expiring                                 |
-| goals.active                              | Active goals                           | Phase 5 — Goals & Roadmap              | —                                                                        |
-| skills.coverage                           | Skill coverage                         | Phase 4 — Skills & Career Intelligence | —                                                                        |
-| skills.critical_gaps                      | Critical skill gaps                    | Phase 4 — Skills & Career Intelligence | —                                                                        |
-| skills.freshness                          | Skill freshness                        | Phase 4 — Skills & Career Intelligence | —                                                                        |
-| evidence.production_ratio                 | Production evidence ratio              | Specification decision required        | —                                                                        |
-| ai.experiments                            | AI experiments                         | Phase 6 — AI Lab                       | —                                                                        |
-| architecture.decisions                    | Architecture decisions                 | Phase 7 — Architecture Intelligence    | —                                                                        |
-| engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics        | —                                                                        |
+| Key                                       | Name                                   | Availability                        | Drill-down                                                                  |
+| ----------------------------------------- | -------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| projects.total                            | Projects                               | available                           | Projects list with the same filters                                         |
+| projects.active                           | Active projects                        | available                           | Projects list filtered to the active lifecycle group                        |
+| projects.production                       | Production systems                     | available                           | Projects list filtered to the production lifecycle group                    |
+| projects.completed_in_period              | Projects completed                     | available                           | Projects list filtered to completion dates in the period                    |
+| projects.health_distribution              | Project health                         | available                           | Projects list filtered to the selected health state                         |
+| projects.lifecycle_distribution           | Projects by lifecycle status           | available                           | Projects list filtered to the selected status                               |
+| projects.delivery_rate                    | Delivery rate                          | available                           | Milestones list: completed (status=completed) and overdue (overdue=true)    |
+| projects.milestones_total                 | Milestones                             | available                           | Milestones list (per project: projectId filter)                             |
+| projects.milestones_completed             | Completed milestones                   | available                           | Milestones list filtered to status=completed                                |
+| projects.milestones_completed_in_period   | Milestones completed                   | available                           | Milestones list filtered to completedFrom/completedTo                       |
+| projects.milestones_overdue               | Overdue milestones                     | available                           | Milestones list filtered to overdue=true                                    |
+| projects.milestones_blocked               | Blocked milestones                     | available                           | Milestones list filtered to status=blocked                                  |
+| projects.milestone_completion_trend       | Milestone completions over time        | available                           | Milestones list filtered to the month's completion dates                    |
+| projects.delivery_trend                   | Project delivery trend                 | available                           | Projects list filtered to the month's completion dates                      |
+| projects.health_score                     | Computed project health                | available                           | Project dossier, Health section (component breakdown)                       |
+| projects.health_component.schedule        | Health component: schedule             | available                           | Project dossier, Health section                                             |
+| projects.health_component.milestones      | Health component: milestone completion | available                           | Project dossier, Delivery section                                           |
+| projects.health_component.blockers        | Health component: blockers             | available                           | Milestones list filtered to the project and status=blocked                  |
+| projects.health_component.recent_activity | Health component: recent activity      | available                           | Project dossier, Activity section                                           |
+| projects.health_component.scope_stability | Health component: scope stability      | Specification decision required     | —                                                                           |
+| projects.health_component.issue_severity  | Health component: issue severity       | Phase 9 — Engineering Analytics     | —                                                                           |
+| projects.computed_health_distribution     | Projects by computed health            | available                           | Computed health list filtered to the band                                   |
+| projects.health_comparison                | Manual vs computed health              | available                           | Computed health list filtered to manual status and band                     |
+| projects.technology_usage                 | Technology usage across projects       | available                           | Projects list filtered to the technology (technologyId)                     |
+| projects.evidence_coverage                | Project evidence coverage              | available                           | Projects list filtered to hasEvidence=true / false                          |
+| projects.evidence_linked                  | Project evidence                       | available                           | Evidence list filtered to the project (projectId)                           |
+| projects.evidence_verified                | Verified project evidence              | available                           | Evidence list filtered to the project and verified=true                     |
+| projects.evidence_by_type                 | Project evidence by type               | available                           | Evidence list filtered to the project and type                              |
+| projects.blocked_time                     | Blocked time                           | Specification decision required     | —                                                                           |
+| projects.portfolio_matrix                 | Project portfolio matrix               | Specification decision required     | —                                                                           |
+| projects.technology_heatmap               | Technology heatmap                     | Specification decision required     | —                                                                           |
+| evidence.total                            | Evidence items                         | available                           | Evidence list with the same filters                                         |
+| evidence.verified                         | Verified evidence                      | available                           | Evidence list filtered to verified                                          |
+| evidence.velocity                         | Evidence velocity                      | available                           | Evidence list filtered to verified items dated in the period                |
+| evidence.undated                          | Undated evidence                       | available                           | Evidence list filtered to undated items                                     |
+| skills.total                              | Skills                                 | available                           | Skills list                                                                 |
+| skills.active                             | Active skills                          | available                           | Skills list filtered to active                                              |
+| skills.with_target                        | Skills with a target level             | available                           | Skills list filtered to skills with a target                                |
+| skills.with_evidence                      | Skills with evidence                   | available                           | Skills list filtered to skills with evidence                                |
+| skills.without_evidence                   | Active skills without evidence         | available                           | Skills list filtered to active skills without evidence                      |
+| skills.by_category                        | Skills by category                     | available                           | Skills list filtered to the selected category                               |
+| certifications.total                      | Certifications                         | available                           | Certifications list                                                         |
+| certifications.expiry_distribution        | Certification expiry                   | available                           | Certifications list filtered to the selected expiry state                   |
+| certifications.expiring                   | Certifications expiring                | available                           | Certifications list filtered to expiring                                    |
+| goals.active                              | Active goals                           | Phase 5 — Goals & Roadmap           | —                                                                           |
+| skills.coverage                           | Skill coverage                         | available                           | Skill intelligence list: active, with target, freshness = fresh (numerator) |
+| skills.critical_gaps                      | Critical skill gaps                    | available                           | Skill intelligence list filtered to critical=true                           |
+| skills.freshness                          | Skill freshness                        | available                           | Skill intelligence list filtered to the freshness state                     |
+| skills.current_level                      | Evidence-derived skill level           | available                           | Skill dossier (rule-by-rule breakdown)                                      |
+| skills.level_distribution                 | Skills by derived level                | available                           | Skill intelligence list filtered to the level                               |
+| skills.gap_distribution                   | Skills by gap state                    | available                           | Skill intelligence list filtered to the gap state                           |
+| skills.targets_without_evidence           | Targets without evidence               | available                           | Skill intelligence list filtered to targetWithoutEvidence=true              |
+| skills.growth                             | Skill demonstration trend              | available                           | Skill intelligence list filtered to the trend state                         |
+| skills.production_evidence                | Skills with production evidence        | available                           | Skill intelligence list filtered to productionLinked=true                   |
+| skills.radar                              | Skill radar                            | available                           | Skill dossier per axis; skill intelligence list                             |
+| skills.learning_velocity                  | Learning velocity                      | Specification decision required     | —                                                                           |
+| evidence.production_ratio                 | Production evidence ratio              | Specification decision required     | —                                                                           |
+| ai.experiments                            | AI experiments                         | Phase 6 — AI Lab                    | —                                                                           |
+| architecture.decisions                    | Architecture decisions                 | Phase 7 — Architecture Intelligence | —                                                                           |
+| engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics     | —                                                                           |
 
 ## Definitions
 
@@ -933,60 +944,212 @@ metric's definition drawer.
 
 #### `skills.coverage` — Skill coverage
 
-| Field                 | Value                                                                                                                                                                                                      |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Key                   | `skills.coverage`                                                                                                                                                                                          |
-| Name                  | Skill coverage                                                                                                                                                                                             |
-| Category              | skills                                                                                                                                                                                                     |
-| Definition            | Percentage of target skills with recent evidence.                                                                                                                                                          |
-| Formula               | `COUNT(target skills with evidence in the recency window) / COUNT(target skills)`                                                                                                                          |
-| Source                | Skill.targetLevel, SkillEvidence, Evidence.date                                                                                                                                                            |
-| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                |
-| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                                    |
-| Caveats               | Requires a defined recency window (skill freshness).                                                                                                                                                       |
-| Value type / temporal | count / point_in_time                                                                                                                                                                                      |
-| Availability          | **Unavailable** — Phase 4 — Skills & Career Intelligence: “Recent” is not defined by the specification; skill freshness is Phase 4 work. “Skills with evidence” is shown instead, without a recency claim. |
-| Drill-down target     | None                                                                                                                                                                                                       |
-| Spec reference        | 05 Career Metrics — Skill Coverage; 00 §4 KPI strip                                                                                                                                                        |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                                                                                                                                                             |
+| Field                 | Value                                                                                                                                                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.coverage`                                                                                                                                                                                                                                                |
+| Name                  | Skill coverage                                                                                                                                                                                                                                                   |
+| Category              | skills                                                                                                                                                                                                                                                           |
+| Definition            | Share of active target skills (target level ≥ 1) whose latest dated demonstration is fresh (≤ 365 days).                                                                                                                                                         |
+| Formula               | `COUNT(active skills WITH target ≥ 1 AND freshness = fresh) / COUNT(active skills WITH target ≥ 1); freshness-v1`                                                                                                                                                |
+| Source                | Skill.targetLevel, Skill.active, SkillEvidence.date, Evidence.date                                                                                                                                                                                               |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                      |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                                                                                          |
+| Caveats               | Only records owned by the signed-in user are counted. • “Recent” = fresh under freshness-v1 (ADR 0028): last demonstration within 365 days (UTC days). • No active target skill → insufficient data, never 0%. • Describes recency of evidence, not proficiency. |
+| Value type / temporal | ratio / point_in_time                                                                                                                                                                                                                                            |
+| Availability          | Available                                                                                                                                                                                                                                                        |
+| Drill-down target     | Skill intelligence list: active, with target, freshness = fresh (numerator)                                                                                                                                                                                      |
+| Spec reference        | 05 Career Metrics — Skill Coverage; 00 §4 KPI strip                                                                                                                                                                                                              |
+| Version               | v2 (introduced 2026-10-02, revised 2026-10-03)                                                                                                                                                                                                                   |
 
 #### `skills.critical_gaps` — Critical skill gaps
 
-| Field                 | Value                                                                                                            |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Key                   | `skills.critical_gaps`                                                                                           |
-| Name                  | Critical skill gaps                                                                                              |
-| Category              | skills                                                                                                           |
-| Definition            | Target skills whose evidence-derived level is far below target.                                                  |
-| Formula               | `Requires evidence-derived current levels`                                                                       |
-| Source                | Skill, SkillEvidence                                                                                             |
-| Frequency             | On request — computed live from the database when the Command Center loads.                                      |
-| Owner                 | PEOS Skills domain (src/modules/skills)                                                                          |
-| Caveats               | Current skill levels are not stored and are not yet derived.                                                     |
-| Value type / temporal | count / point_in_time                                                                                            |
-| Availability          | **Unavailable** — Phase 4 — Skills & Career Intelligence: Gap analysis needs evidence-derived levels (ADR 0013). |
-| Drill-down target     | None                                                                                                             |
-| Spec reference        | 00 §4 KPI strip — Critical Skill Gaps                                                                            |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                                                                   |
+| Field                 | Value                                                                                                                                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.critical_gaps`                                                                                                                                                                                                                              |
+| Name                  | Critical skill gaps                                                                                                                                                                                                                                 |
+| Category              | skills                                                                                                                                                                                                                                              |
+| Definition            | Active target skills whose evidence-derived level is at least 2 below target, or below target with stale evidence.                                                                                                                                  |
+| Formula               | `COUNT(active skills WHERE target ≥ 1 AND derived level exists AND (target − level ≥ 2 OR (target − level ≥ 1 AND freshness = stale))); gap-analysis-v1`                                                                                            |
+| Source                | Skill.targetLevel, Derived skill level (skill-level-v1), Skill freshness (freshness-v1)                                                                                                                                                             |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                         |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                                                                             |
+| Caveats               | Only records owned by the signed-in user are counted. • Skills without evidence are never critical; they are counted as “targets without evidence”. • The definition is a PEOS convention (ADR 0029); the specification does not define “critical”. |
+| Value type / temporal | count / point_in_time                                                                                                                                                                                                                               |
+| Availability          | Available                                                                                                                                                                                                                                           |
+| Drill-down target     | Skill intelligence list filtered to critical=true                                                                                                                                                                                                   |
+| Spec reference        | 00 §4 KPI strip — Critical Skill Gaps; ADR 0029                                                                                                                                                                                                     |
+| Version               | v2 (introduced 2026-10-02, revised 2026-10-03)                                                                                                                                                                                                      |
 
 #### `skills.freshness` — Skill freshness
 
-| Field                 | Value                                                                                                                                                                                        |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Key                   | `skills.freshness`                                                                                                                                                                           |
-| Name                  | Skill freshness                                                                                                                                                                              |
-| Category              | skills                                                                                                                                                                                       |
-| Definition            | Time since a skill was last demonstrated.                                                                                                                                                    |
-| Formula               | `today − MAX(evidence date) per skill`                                                                                                                                                       |
-| Source                | SkillEvidence, Evidence.date                                                                                                                                                                 |
-| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                  |
-| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                      |
-| Caveats               | Freshness scoring and decay are Phase 4 intelligence.                                                                                                                                        |
-| Value type / temporal | count / point_in_time                                                                                                                                                                        |
-| Availability          | **Unavailable** — Phase 4 — Skills & Career Intelligence: Freshness thresholds are not specified. The Command Center shows each skill's latest linked evidence date as a plain fact instead. |
-| Drill-down target     | None                                                                                                                                                                                         |
-| Spec reference        | 05 Career Metrics — Skill Freshness                                                                                                                                                          |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                                                                                                                                               |
+| Field                 | Value                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `skills.freshness`                                                                                                                                                                                                                                                                                     |
+| Name                  | Skill freshness                                                                                                                                                                                                                                                                                        |
+| Category              | skills                                                                                                                                                                                                                                                                                                 |
+| Definition            | Active skills by recency of their latest dated demonstration: fresh, aging, stale, no dated evidence, no evidence.                                                                                                                                                                                     |
+| Formula               | `days = today − MAX(COALESCE(SkillEvidence.date, Evidence.date)) over demonstrations ≤ today; fresh ≤ 365, aging ≤ 730, stale > 730`                                                                                                                                                                   |
+| Source                | SkillEvidence.date, Evidence.date                                                                                                                                                                                                                                                                      |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                                                            |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                                                                                                                                |
+| Caveats               | Only records owned by the signed-in user are counted. • Never uses updatedAt, import time or audit time. Undated evidence counts as evidence but never establishes recency. • Future-dated demonstrations are ignored until their date arrives. • A descriptive signal, not a judgement of competence. |
+| Value type / temporal | distribution / point_in_time                                                                                                                                                                                                                                                                           |
+| Availability          | Available                                                                                                                                                                                                                                                                                              |
+| Drill-down target     | Skill intelligence list filtered to the freshness state                                                                                                                                                                                                                                                |
+| Spec reference        | 05 Career Metrics — Skill Freshness; ADR 0028                                                                                                                                                                                                                                                          |
+| Version               | v2 (introduced 2026-10-02, revised 2026-10-03)                                                                                                                                                                                                                                                         |
+
+#### `skills.current_level` — Evidence-derived skill level
+
+| Field                 | Value                                                                                                                                                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.current_level`                                                                                                                                                                                                                                                                                               |
+| Name                  | Evidence-derived skill level                                                                                                                                                                                                                                                                                         |
+| Category              | skills                                                                                                                                                                                                                                                                                                               |
+| Definition            | The highest level of the canonical 0–5 ladder whose evidence rules (and all lower rules) hold for one skill (skill-level-v1).                                                                                                                                                                                        |
+| Formula               | `L1 any record; L2 moderate/strong evidence OR delivered project OR earned certification; L3 ≥2 moderate/strong (≥1 verified) AND delivered project; L4 ≥3 (≥2 verified, ≥1 strong) AND production-linked; L5 ≥5 (≥3 verified, ≥2 strong verified), ≥2 production-linked AND verified testimonial/publication`       |
+| Source                | SkillEvidence, Evidence, ProjectSkill, Project.status, CertificationSkill, Certification.status                                                                                                                                                                                                                      |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                                                                          |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                                                                                                                                              |
+| Caveats               | Only records owned by the signed-in user are counted. • Never self-assessed and never stored; recomputed from linked records on request. • No linked record → “Not enough evidence” (null), never level 0. • Certification or project links alone cap at level 2. Evidence strength is set by the user when linking. |
+| Value type / temporal | score / point_in_time                                                                                                                                                                                                                                                                                                |
+| Availability          | Available                                                                                                                                                                                                                                                                                                            |
+| Drill-down target     | Skill dossier (rule-by-rule breakdown)                                                                                                                                                                                                                                                                               |
+| Spec reference        | 08 Phase 4 — skill levels; 00 §2.1; ADR 0027                                                                                                                                                                                                                                                                         |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                                                                       |
+
+#### `skills.level_distribution` — Skills by derived level
+
+| Field                 | Value                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.level_distribution`                                                                                   |
+| Name                  | Skills by derived level                                                                                       |
+| Category              | skills                                                                                                        |
+| Definition            | Active skills per evidence-derived level, plus skills without a derivable level.                              |
+| Formula               | `COUNT(active skills) GROUP BY derived level (1–5                                                             | none); skill-level-v1` |
+| Source                | Derived skill level (skill-level-v1)                                                                          |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                   |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                       |
+| Caveats               | Only records owned by the signed-in user are counted. • “None” means not enough evidence — it is not level 0. |
+| Value type / temporal | distribution / point_in_time                                                                                  |
+| Availability          | Available                                                                                                     |
+| Drill-down target     | Skill intelligence list filtered to the level                                                                 |
+| Spec reference        | 05 Skill Radar (capability profile); ADR 0027                                                                 |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                |
+
+#### `skills.gap_distribution` — Skills by gap state
+
+| Field                 | Value                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.gap_distribution`                                                                                            |
+| Name                  | Skills by gap state                                                                                                  |
+| Category              | skills                                                                                                               |
+| Definition            | Active skills below, at or above target, with a target but no derivable level (not computable), or without a target. |
+| Formula               | `COUNT(active skills) GROUP BY gap state; gap-analysis-v1`                                                           |
+| Source                | Skill.targetLevel, Derived skill level (skill-level-v1)                                                              |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                          |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                              |
+| Caveats               | Only records owned by the signed-in user are counted. • Target 0 (“not evaluated”) counts as no target.              |
+| Value type / temporal | distribution / point_in_time                                                                                         |
+| Availability          | Available                                                                                                            |
+| Drill-down target     | Skill intelligence list filtered to the gap state                                                                    |
+| Spec reference        | 08 Phase 4 — skill gap analysis; 05 Skill Gap Heatmap                                                                |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                       |
+
+#### `skills.targets_without_evidence` — Targets without evidence
+
+| Field                 | Value                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.targets_without_evidence`                                                                   |
+| Name                  | Targets without evidence                                                                            |
+| Category              | skills                                                                                              |
+| Definition            | Active skills with a target level but no derivable level.                                           |
+| Formula               | `COUNT(active skills WHERE target ≥ 1 AND derived level IS NULL)`                                   |
+| Source                | Skill.targetLevel, Derived skill level (skill-level-v1)                                             |
+| Frequency             | On request — computed live from the database when the Command Center loads.                         |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                             |
+| Caveats               | Only records owned by the signed-in user are counted. • Missing evidence — not a measured weakness. |
+| Value type / temporal | count / point_in_time                                                                               |
+| Availability          | Available                                                                                           |
+| Drill-down target     | Skill intelligence list filtered to targetWithoutEvidence=true                                      |
+| Spec reference        | ADR 0029                                                                                            |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                      |
+
+#### `skills.growth` — Skill demonstration trend
+
+| Field                 | Value                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `skills.growth`                                                                                                                                                                            |
+| Name                  | Skill demonstration trend                                                                                                                                                                  |
+| Category              | skills                                                                                                                                                                                     |
+| Definition            | Active skills by demonstration activity: more, as many, or fewer dated demonstrations in the last 12 months than in the 12 before; or insufficient history.                                |
+| Formula               | `A = dated demonstrations in [today−364, today]; B = in the 365 days before; insufficient if < 2 dated or none before A; else A>B increasing, A=B stable, A<B decreasing (skill-trend-v1)` |
+| Source                | SkillEvidence.date, Evidence.date                                                                                                                                                          |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                                                                                    |
+| Caveats               | Only records owned by the signed-in user are counted. • Describes activity, not proficiency; no historical level is interpolated or reconstructed.                                         |
+| Value type / temporal | distribution / point_in_time                                                                                                                                                               |
+| Availability          | Available                                                                                                                                                                                  |
+| Drill-down target     | Skill intelligence list filtered to the trend state                                                                                                                                        |
+| Spec reference        | 10 Skills — Historical trend; 05 Career Metrics; ADR 0028                                                                                                                                  |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                             |
+
+#### `skills.production_evidence` — Skills with production evidence
+
+| Field                 | Value                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.production_evidence`                                                                                        |
+| Name                  | Skills with production evidence                                                                                     |
+| Category              | skills                                                                                                              |
+| Definition            | Active skills linked to at least one production-stage project or a moderate/strong production-metric evidence item. |
+| Formula               | `COUNT(active skills WHERE linked projects in production/maintenance + qualifying production_metric evidence ≥ 1)`  |
+| Source                | ProjectSkill, Project.status, SkillEvidence, Evidence.type                                                          |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                         |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                             |
+| Caveats               | Only records owned by the signed-in user are counted. • Project status is maintained manually (ADR 0018).           |
+| Value type / temporal | count / point_in_time                                                                                               |
+| Availability          | Available                                                                                                           |
+| Drill-down target     | Skill intelligence list filtered to productionLinked=true                                                           |
+| Spec reference        | 05 Skill Gap Heatmap — production evidence column                                                                   |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                      |
+
+#### `skills.radar` — Skill radar
+
+| Field                 | Value                                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.radar`                                                                                                                     |
+| Name                  | Skill radar                                                                                                                        |
+| Category              | skills                                                                                                                             |
+| Definition            | Capability profile: evidence-derived level and target for up to 12 active skills that have a derived level.                        |
+| Formula               | `Skills with a derived level, target skills first, then by level and name; skills without a derived level are listed, not plotted` |
+| Source                | Derived skill level (skill-level-v1), Skill.targetLevel                                                                            |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                        |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                                            |
+| Caveats               | Only records owned by the signed-in user are counted. • A missing level is never plotted as 0.                                     |
+| Value type / temporal | score / point_in_time                                                                                                              |
+| Availability          | Available                                                                                                                          |
+| Drill-down target     | Skill dossier per axis; skill intelligence list                                                                                    |
+| Spec reference        | 05 Visualization Catalog — Skill Radar                                                                                             |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                     |
+
+#### `skills.learning_velocity` — Learning velocity
+
+| Field                 | Value                                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `skills.learning_velocity`                                                                                            |
+| Name                  | Learning velocity                                                                                                     |
+| Category              | skills                                                                                                                |
+| Definition            | Learning hours, completed learning items and learning-to-evidence conversion (05 Learning Metrics).                   |
+| Formula               | `Requires LearningItem records`                                                                                       |
+| Source                | LearningItem (not modelled)                                                                                           |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                           |
+| Owner                 | PEOS Skills domain (src/modules/skills)                                                                               |
+| Caveats               | Never estimated from evidence or activity.                                                                            |
+| Value type / temporal | count / period                                                                                                        |
+| Availability          | **Unavailable** — Specification decision required: The Knowledge/LearningItem domain is not scheduled in 08 (gap C4). |
+| Drill-down target     | None                                                                                                                  |
+| Spec reference        | 05 Learning Metrics; 00 §4 Learning velocity                                                                          |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                        |
 
 #### `evidence.production_ratio` — Production evidence ratio
 

@@ -90,3 +90,9 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 
 - **Milestone** (ADR 0022): `id`, `userId`, `projectId` (composite FK with the owner, cascade on project delete), `title`, `dueDate?`, `completedAt?`, `status` (planned · in_progress · blocked · completed · cancelled), timestamps. Check constraints: completed ⇔ completedAt; title not blank and at most 200 characters.
 - **Computed project health** is derived on request and not stored (ADR 0023/0024). `Project.healthStatus` remains the manual assessment.
+
+## Phase 4 additions
+
+- **SkillLevelModel** (ADR 0026): `id`, `userId`, `name` (unique per user), `levels` (JSON array of exactly six entries `{value 0–5, label, description}`, CHECK-bounded). Skills reference it through `levelModel = "custom"` + `levelModelId` (composite FK with the owner, `NO ACTION`).
+- **TechnologySkill** (ADR 0030): `userId`, `technologyId`, `skillId`, `createdAt`. Explicit user-maintained link; composite FKs to both owners; cascades.
+- **Computed, never stored:** evidence-derived level (skill-level-v1), freshness (freshness-v1), demonstration trend (skill-trend-v1) and gap / critical gap (gap-analysis-v1).

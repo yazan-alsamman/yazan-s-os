@@ -108,3 +108,46 @@ Measured on PostgreSQL 17.10 against a local Docker database. One user held 1,00
 | Computed health list (all projects)              | 63.0               | 67.7            | 58.8               | 77.3            |
 
 ¹ A single outlier right after the bulk insert, most likely autovacuum or statistics collection. It did not recur on run 2.
+
+## Phase 4 — skills & career intelligence
+
+- **Signals** (`src/modules/skills/skill-intelligence.service.ts`): three grouped, parameterised aggregates over `skill_evidence ⋈ evidence`, `project_skills ⋈ projects` and `certification_skills ⋈ certifications`, for any number of skills. They are analysed by pure, versioned functions (`skill-intelligence.ts`).
+- **Source list:** `/api/v1/skills/intelligence`. Every skill metric uses the same `matchesQuery` predicate, so each count equals its drill-down list total (integration-tested).
+- **Career analytics** (`skills-analytics.service.ts`): coverage, critical gaps, targets without evidence, production evidence, freshness, levels, gaps, trend and radar. The Command Center reuses it for its Skill Coverage and Critical Skill Gaps KPIs.
+- **Career graph** (`career-graph.service.ts`): bounded and deterministic, built from real join rows only (ADR 0030).
+
+### Phase 4 performance
+
+Measured on PostgreSQL 17.10 against a local Docker database. One user held:
+
+- 1,000 projects
+- 150 skills
+- 500 technologies
+- 12,000 evidence items
+- 12,000 skill–evidence links
+- 3,000 project–skill links
+- 5,000 technology usages
+- 1,000 technology–skill links
+- 200 certifications (400 certification–skill links)
+- 50,000 audit rows
+
+Each call ran once as an excluded warm-up, then 10 timed times, through the service layer. The median is the mean of the 5th and 6th runs.
+
+| Call                                   | Run a       | Run c (`ANALYZE` after load) | Run b (no `ANALYZE`) | Run d (no `ANALYZE`) |
+| -------------------------------------- | ----------- | ---------------------------- | -------------------- | -------------------- |
+| Skill list (Phase 1)                   | 10.5 / 20.3 | 11.0 / 23.4                  | 252.8 / 318.5        | 277.4 / 328.0        |
+| Skill detail (Phase 1)                 | 18.7 / 25.5 | 18.0 / 26.4                  | 174.5 / 186.3        | 173.0 / 205.8        |
+| Skill intelligence (dossier)           | 24.9 / 30.4 | 28.4 / 43.3                  | 203.1 / 273.9        | 215.6 / 275.4        |
+| Gap list / heatmap                     | 28.3 / 37.5 | 28.8 / 30.2                  | 32.6 / 36.7          | 54.6 / 58.2          |
+| Freshness filter                       | 26.8 / 32.2 | 27.4 / 29.6                  | 28.3 / 33.1          | 51.9 / 55.6          |
+| Career analytics + radar               | 28.9 / 36.7 | 28.9 / 30.7                  | 28.8 / 32.4          | 53.5 / 83.4          |
+| Career graph overview (80)             | 27.3 / 39.4 | 26.4 / 29.3                  | 26.4 / 30.8          | 304.5 / 387.8        |
+| Career graph overview (150, all types) | 35.2 / 37.9 | 37.4 / 46.0                  | 38.1 / 43.8          | 301.3 / 322.8        |
+| Career graph focus                     | 16.4 / 22.7 | 18.3 / 28.8                  | 15.6 / 19.3          | 21.3 / 22.0          |
+| Command Center dashboard               | 66.5 / 81.7 | 67.3 / 87.7                  | 57.1 / 69.5          | 447.1 / 536.5        |
+
+Each cell is median / max in milliseconds.
+
+**Outliers.** Runs b and d were up to 10× slower on the Phase 1 skill list and detail, the dossier, the graph overview and the dashboard. The cause was verified: the benchmark bulk-loads freshly truncated tables, and the planner used stale statistics until `ANALYZE` ran. Run c, with an explicit `ANALYZE`, reproduces the fast numbers. In normal use autovacuum maintains statistics, and rows arrive incrementally.
+
+**Caching:** none. Phase 4 adds no indexes beyond the primary keys and `skill_id` / `level_model_id` indexes of the new tables; the existing join-table indexes cover the aggregates.

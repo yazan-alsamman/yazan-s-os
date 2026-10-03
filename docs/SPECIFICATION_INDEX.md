@@ -53,7 +53,7 @@ resolution or an explicit deferral; none was resolved by inventing requirements.
 | C3  | Resolved for Phase 0–1                                                                                                                                                                                    | ADR 0004                     |
 | C4  | **Open.** Knowledge remains unscheduled; LearningItem deferred with it                                                                                                                                    | ADR 0017                     |
 | C5  | **Partly resolved.** Education designed and built; import review queue built. Opportunity, Notification, domain events, metric definitions and tool-call log remain deferred to their phases              | ADR 0012, ADR 0014, ADR 0017 |
-| C6  | **Partly resolved.** Certification `category` added. Technology↔Skill and Goal↔Skill deferred (Phases 4/5)                                                                                                | ADR 0011, ADR 0017           |
+| C6  | **Partly resolved.** Certification `category` added; Technology↔Skill built in Phase 4 (ADR 0030). Goal↔Skill deferred (Phase 5)                                                                          | ADR 0011, ADR 0017           |
 | C7  | **Resolved for available metrics** (Phase 3: 52 metrics, 39 available; ADR 0024). Metric catalogue (28 metrics, 19 available) with full governance; 9 KPIs are catalogued as unavailable with their phase | ADR 0019                     |
 | C8  | Resolved                                                                                                                                                                                                  | —                            |
 | C9  | Resolved                                                                                                                                                                                                  | ADR 0002                     |
@@ -81,3 +81,16 @@ New ambiguities found and decided in Phase 1:
 | P3-6 | Portfolio matrix needs numeric impact, complexity and effort                                                     | Unavailable                                                |
 | P3-7 | Technology heatmap needs dated usage                                                                             | Unavailable                                                |
 | P3-8 | `04` Milestone.goalId — Goals are Phase 5                                                                        | Deferred (ADR 0022)                                        |
+
+## Phase 4 specification gaps (ADRs 0026–0030)
+
+| Gap  | Detail                                                                                  | Handling                                                                                              |
+| ---- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| P4-1 | "Levels must be customizable" does not say whether names or the number of levels change | Names and descriptions of the canonical 0–5 scale (ADR 0026)                                          |
+| P4-2 | No algorithm maps evidence to a skill level                                             | skill-level-v1 ladder (ADR 0027)                                                                      |
+| P4-3 | Freshness thresholds and the meaning of "recent" are undefined                          | 365 / 730 days (ADR 0028)                                                                             |
+| P4-4 | "Critical skill gap" is undefined; no skill importance field                            | gap ≥ 2, or below target and stale (ADR 0029)                                                         |
+| P4-5 | Historical trend has no level history                                                   | Demonstration-activity trend only (ADR 0028)                                                          |
+| P4-6 | Expert / "can lead" has no leadership record                                            | Verified testimonial or publication as the closest real signal (ADR 0027)                             |
+| P4-7 | Learning metrics need LearningItem (Knowledge is unscheduled, gap C4)                   | Unavailable (`skills.learning_velocity`)                                                              |
+| P4-8 | Production evidence ratio: no production flag on evidence beyond `production_metric`    | `evidence.production_ratio` stays unavailable; skills use production projects plus production metrics |

@@ -30,3 +30,8 @@ An accepted ADR is changed only by a new ADR that supersedes it.
 | [0023](0023-manual-vs-computed-health.md)            | Manual health and computed health are independent signals                 | Accepted |
 | [0024](0024-computed-health-formula-v1.md)           | Computed health formula v1, delivery rate and missing inputs              | Accepted |
 | [0025](0025-portfolio-analytics-and-dossier.md)      | Portfolio analytics semantics, technology mapping and the project dossier | Accepted |
+| [0026](0026-custom-skill-level-models.md)            | Customisable skill level models                                           | Accepted |
+| [0027](0027-evidence-derived-skill-level.md)         | Evidence-derived skill level (skill-level-v1)                             | Accepted |
+| [0028](0028-skill-freshness-and-trend.md)            | Skill freshness (freshness-v1) and demonstration trend (skill-trend-v1)   | Accepted |
+| [0029](0029-skill-gap-analysis.md)                   | Skill gap analysis and critical gaps (gap-analysis-v1)                    | Accepted |
+| [0030](0030-career-graph-and-technology-skill.md)    | Career graph and the explicit Technology ↔ Skill relationship             | Accepted |

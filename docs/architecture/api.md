@@ -1,4 +1,4 @@
-# PEOS HTTP API (`/api/v1`) — Phases 1–3
+# PEOS HTTP API (`/api/v1`) — Phases 1–4
 
 Conventions: ADR 0015.
 
@@ -79,6 +79,23 @@ All endpoints require a session and are owner-scoped. Read endpoints use the `an
 | GET                  | `/analytics/project-health`  | Computed health per project (`computed`=bucket, `manual`=status, `page`) — the source list for the computed-health charts                                  | `healthListQuerySchema`                                      |
 
 **List filters added in Phase 3** (optional and backwards-compatible): `/projects?hasEvidence=true|false` and `/evidence?projectId=<uuid>`.
+
+### Phase 4 — skills & career intelligence (ADRs 0026–0030)
+
+All endpoints require a session and are owner-scoped. Reads use the `analytics` rate limit (120 per minute); mutations use `mutation` plus the same-origin check. Foreign and missing ids return 404; foreign relationship targets return 400. No endpoint accepts `userId` or `ownerId`.
+
+| Method               | Path                       | Purpose                                                                                                                                                                                                                                                                                               | Validation                     |
+| -------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| GET                  | `/skills/intelligence`     | Source list: derived level, target, gap, freshness, trend and counts per skill. Filters: `category`, `active`, `hasTarget`, `level` (1–5, none), `freshness`, `gap`, `critical`, `targetWithoutEvidence`, `trend`, `productionLinked`; `sort` (gap, name, freshness, level, evidence); `page` (≤ 100) | `skillIntelligenceQuerySchema` |
+| GET                  | `/skills/:id/intelligence` | Skill dossier analysis: rule breakdown, freshness, trend, gap, evidence (≤ 100, newest demonstration first), yearly counts, projects, technologies (explicit and via projects), certifications, experiences                                                                                           | —                              |
+| PUT                  | `/skills/:id/technologies` | Replace the explicit technology links (`{ technologyIds }`)                                                                                                                                                                                                                                           | `skillTechnologiesSchema`      |
+| GET · POST           | `/skill-level-models`      | The default model plus your custom models (with usage counts) · create                                                                                                                                                                                                                                | `levelModelInputSchema`        |
+| GET · PATCH · DELETE | `/skill-level-models/:id`  | Read · update · delete (409 while skills use it)                                                                                                                                                                                                                                                      | `levelModelUpdateSchema`       |
+| GET                  | `/analytics/skills`        | Career analytics: coverage, critical gaps, targets without evidence, production evidence, freshness, levels, gaps, trend, radar (`category`)                                                                                                                                                          | `skillsAnalyticsFiltersSchema` |
+| GET                  | `/analytics/career-graph`  | Bounded graph: `focusType` and `focusId`, `types` (skill, project, technology, certification, experience, evidence), `category`, `limit` (10–150)                                                                                                                                                     | `careerGraphQuerySchema`       |
+
+- **Skill fields added in Phase 4:** `levelModelId` (uuid or null) on skill create and update.
+- **List filter added in Phase 4:** `/evidence?skillId=`.
 
 **Error codes:**
 

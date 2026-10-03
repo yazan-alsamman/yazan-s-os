@@ -1,4 +1,4 @@
-# PEOS Security Baseline (Phases 0–3)
+# PEOS Security Baseline (Phases 0–4)
 
 Scope: controls that exist now. Threat model source: `07_SECURITY_PRIVACY.md`.
 
@@ -160,6 +160,35 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
   - Computed health uses a fixed number of queries for any portfolio size.
 - **Audit.** Milestone created, updated, completed, reopened and deleted are audited in the same transaction. Project activity reuses the Phase 2 safe DTO, so snapshots never leave the server.
 - **XSS and CSV.** All content renders through React. Chart tables export through the shared formula-injection guard.
+
+## Phase 4 controls (skills & career intelligence)
+
+- **Database ownership.**
+  - `technology_skills` has composite FKs to the technology and the skill under the same `user_id`.
+  - `skills.level_model_id` has a composite FK to the owner's `skill_level_models`.
+  - CHECK `skills_level_model_chk` keeps the model marker and the id consistent.
+- **IDOR.** `tests/integration/skill-intelligence-authz.int.test.ts` covers, with two real users:
+  - foreign skill intelligence, skills and level models (404);
+  - modifying or deleting a foreign level model;
+  - replacing a foreign skill's technology links;
+  - using a foreign level model (400);
+  - linking a foreign technology (400);
+  - focusing the career graph on a foreign skill, technology or evidence item (404);
+  - injected `userId` and `ownerId`;
+  - invalid filters (400).
+- **Aggregates.** Every grouped query filters `user_id` on both sides of each join (`se.user_id = e.user_id`, …), so no cross-user row can enter a count.
+- **Graph traversal.** Bounded by a node limit (≤ 150) and per-relation row caps. The fixed number of queries does not depend on data size, and the focus record is ownership-checked.
+- **Raw SQL.** Four parameterised `$queryRaw` queries were added (`Prisma.sql` / `Prisma.empty`): the three signal aggregates and the yearly series. There is no `$queryRawUnsafe`.
+- **Validation.** Strict Zod schemas cover filters, graph types, node limits and level models (exactly six levels with values 0–5). Unknown keys are stripped.
+- **Audit.** These events are audited in the same transaction:
+  - `skill_level_model.created`, `.updated`, `.deleted`
+  - `skill.updated` (level model and target)
+  - `skill.relations_updated` (technologies, with id lists only)
+
+  Computed analytics are not audited.
+
+- **Accessibility-related security.** All dialogs now return focus to their opener (`useReturnFocus`). No secrets or personal data are logged.
+- **Dependency audit (2026-10-03):** `braces <=3.0.3` (GHSA-vfj7-8cjw-p6xm, high, ReDoS/stack exhaustion). It comes only through `eslint-config-next → @next/eslint-plugin-next → fast-glob → micromatch`, a lint-time dev dependency that is not shipped and never processes user input. No patched release exists on the registry (latest is 3.0.3), so an override is not possible. **Status: open and accepted for development tooling.** Add an override once `braces@3.0.4` is published.
 
 ## Not yet implemented (tracked)
 
