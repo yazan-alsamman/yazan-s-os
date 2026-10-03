@@ -17,6 +17,9 @@ export type AuditEntity =
   | "goal"
   | "goal_measurement"
   | "evidence"
+  | "ai_experiment"
+  | "experiment_run"
+  | "experiment_metric"
   | "import_job"
   | "import_record"
   | "export";
@@ -28,6 +31,7 @@ export type AuditVerb =
   | "relations_updated"
   | "completed"
   | "reopened"
+  | "abandoned"
   | "uploaded"
   | "accepted"
   | "rejected"

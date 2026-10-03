@@ -3,6 +3,10 @@ import type { ServiceContext } from "@/modules/shared/service-context";
 
 const TABLES = [
   "audit_logs",
+  "experiment_metrics",
+  "experiment_evidence",
+  "experiment_runs",
+  "ai_experiments",
   "import_records",
   "import_jobs",
   "project_skills",

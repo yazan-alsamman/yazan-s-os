@@ -31,24 +31,28 @@ model User {
   accounts  Account[]
   auditLogs AuditLog[]
 
-  profile          Profile?
-  experiences      Experience[]
-  education        Education[]
-  skills           Skill[]
-  technologies     Technology[]
-  certifications   Certification[]
-  projects         Project[]
-  milestones       Milestone[]
-  skillLevelModels SkillLevelModel[]
-  goals            Goal[]
-  goalProjects     GoalProject[]
-  goalSkills       GoalSkill[]
-  goalDependencies GoalDependency[]
-  goalMeasurements GoalMeasurement[]
-  technologySkills TechnologySkill[]
-  evidence         Evidence[]
-  importJobs       ImportJob[]
-  reviewedImports  ImportRecord[]    @relation("ImportReviewer")
+  profile            Profile?
+  experiences        Experience[]
+  education          Education[]
+  skills             Skill[]
+  technologies       Technology[]
+  certifications     Certification[]
+  projects           Project[]
+  milestones         Milestone[]
+  skillLevelModels   SkillLevelModel[]
+  goals              Goal[]
+  goalProjects       GoalProject[]
+  goalSkills         GoalSkill[]
+  goalDependencies   GoalDependency[]
+  goalMeasurements   GoalMeasurement[]
+  technologySkills   TechnologySkill[]
+  evidence           Evidence[]
+  aiExperiments      AIExperiment[]
+  experimentRuns     ExperimentRun[]
+  experimentMetrics  ExperimentMetric[]
+  experimentEvidence ExperimentEvidence[]
+  importJobs         ImportJob[]
+  reviewedImports    ImportRecord[]       @relation("ImportReviewer")
 
   @@map("users")
 }
@@ -430,13 +434,14 @@ model Project {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord ImportRecord?     @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
-  skills       ProjectSkill[]
-  technologies TechnologyUsage[]
-  evidence     ProjectEvidence[]
-  milestones   Milestone[]
-  goals        GoalProject[]
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord  ImportRecord?     @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  skills        ProjectSkill[]
+  technologies  TechnologyUsage[]
+  evidence      ProjectEvidence[]
+  milestones    Milestone[]
+  goals         GoalProject[]
+  aiExperiments AIExperiment[]
 
   @@unique([id, userId])
   @@unique([userId, slug])
@@ -468,6 +473,7 @@ model Evidence {
   skills         SkillEvidence[]
   certifications CertificationEvidence[]
   experiences    ExperienceEvidence[]
+  aiExperiments  ExperimentEvidence[]
 
   @@unique([id, userId])
   @@index([userId, type])
@@ -754,6 +760,158 @@ model ExperienceEvidence {
   @@id([experienceId, evidenceId])
   @@index([evidenceId])
   @@map("experience_evidence")
+}
+
+// ── AI Lab & Experimentation (00 §4, 01 §4, 04 AIExperiment/ExperimentMetric; Phase 6) ──────────
+
+/// Experiment lifecycle (ADR 0037). Completion is NOT success — the owner's conclusion is a
+/// separate `decision`. "abandoned" = stopped without a conclusion.
+enum ExperimentStatus {
+  planned
+  active
+  completed
+  abandoned
+
+  @@map("experiment_status")
+}
+
+/// The owner's interpretation of what the experiment showed (04 AIExperiment.decision; ADR 0037).
+/// Distinct from lifecycle status and from run execution status; null = not yet decided.
+enum ExperimentDecision {
+  adopt
+  reject
+  inconclusive
+
+  @@map("experiment_decision")
+}
+
+/// Execution status of one run/iteration (ADR 0037). Distinguishes a failed execution from a
+/// run that completed but was inconclusive (that judgement lives in the experiment's decision).
+enum ExperimentRunStatus {
+  completed
+  failed
+  aborted
+
+  @@map("experiment_run_status")
+}
+
+/// An AI/ML experiment: the registry entry (04 AIExperiment; 01 §4). Hypothesis, objective and the
+/// owner's decision live here; model/config/measurements live on its runs (ADR 0037). PEOS records
+/// experiments — it does not execute them, so every measurement is a user-recorded fact (ADR 0040).
+model AIExperiment {
+  id                  String              @id @default(uuid()) @db.Uuid
+  userId              String              @map("user_id") @db.Uuid
+  /// 04: Project 1:N AIExperiment. Optional — a lab experiment need not belong to a project.
+  projectId           String?             @map("project_id") @db.Uuid
+  title               String
+  hypothesis          String?
+  objective           String?
+  /// Free-text experiment category/type (e.g. "RAG", "fine-tuning"); no closed taxonomy (ADR 0036).
+  category            String?
+  status              ExperimentStatus    @default(planned)
+  /// Owner's conclusion (04 AIExperiment.decision); null = undecided. Never derived from status.
+  decision            ExperimentDecision?
+  /// 04 AIExperiment.result — narrative conclusion entered by the owner.
+  result              String?
+  /// 01 §4 "Reproducibility notes".
+  reproducibilityNote String?             @map("reproducibility_note")
+  startedAt           DateTime?           @map("started_at") @db.Date
+  completedAt         DateTime?           @map("completed_at") @db.Date
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project?             @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+  runs     ExperimentRun[]
+  evidence ExperimentEvidence[]
+
+  @@unique([id, userId])
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([projectId])
+  @@map("ai_experiments")
+}
+
+/// One run/iteration of an experiment (ADR 0037). First-class and append-only: never overwritten,
+/// so history is preserved. Holds the configuration that varies across runs (04's model /
+/// modelVersion / promptVersion / dataset) and the measured cost, latency and tokens. All measured
+/// values are recorded facts; a null means "not recorded", never zero (ADR 0040).
+model ExperimentRun {
+  id             String              @id @default(uuid()) @db.Uuid
+  userId         String              @map("user_id") @db.Uuid
+  experimentId   String              @map("experiment_id") @db.Uuid
+  /// Sequential per experiment (1, 2, 3 …) for stable labels and ordering.
+  runNumber      Int                 @map("run_number")
+  label          String?
+  status         ExperimentRunStatus @default(completed)
+  /// Reproducibility metadata (ADR 0039) — recorded, not verified.
+  model          String?
+  modelVersion   String?             @map("model_version")
+  provider       String?
+  promptVersion  String?             @map("prompt_version")
+  datasetName    String?             @map("dataset_name")
+  datasetVersion String?             @map("dataset_version")
+  codeRef        String?             @map("code_ref")
+  environment    String?
+  runAt          DateTime?           @map("run_at") @db.Date
+  /// Measured engineering facts (04/05 cost & latency; token usage). Units: USD, ms, tokens.
+  costUsd        Float?              @map("cost_usd")
+  latencyMs      Float?              @map("latency_ms")
+  tokensInput    Int?                @map("tokens_input")
+  tokensOutput   Int?                @map("tokens_output")
+  notes          String?
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiment AIExperiment       @relation(fields: [experimentId, userId], references: [id, userId], onDelete: Cascade)
+  metrics    ExperimentMetric[]
+
+  @@unique([id, userId])
+  @@unique([experimentId, runNumber])
+  @@index([experimentId])
+  @@index([userId])
+  @@map("experiment_runs")
+}
+
+/// A recorded evaluation result for one run (04 ExperimentMetric). Per-criterion, with a unit and
+/// an optional direction — never an opaque single "AI score" (ADR 0038). Attached to a run so runs
+/// compare by metric deltas (01 §4). `value` is a recorded fact.
+model ExperimentMetric {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  runId          String   @map("run_id") @db.Uuid
+  /// 04 ExperimentMetric.name — the criterion (e.g. "accuracy", "groundedness", "human rating").
+  name           String
+  value          Float
+  unit           String?
+  /// 04 ExperimentMetric.higherIsBetter; null = no direction (informational only).
+  higherIsBetter Boolean? @map("higher_is_better")
+  note           String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  run  ExperimentRun @relation(fields: [runId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("experiment_metrics")
+}
+
+/// Experiment ↔ Evidence (evidence-first provenance, 00 §5). Reuses the existing Evidence domain
+/// rather than a new evidence concept (ADR 0038).
+model ExperimentEvidence {
+  userId       String   @map("user_id") @db.Uuid
+  experimentId String   @map("experiment_id") @db.Uuid
+  evidenceId   String   @map("evidence_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiment AIExperiment @relation(fields: [experimentId, userId], references: [id, userId], onDelete: Cascade)
+  evidence   Evidence     @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([experimentId, evidenceId])
+  @@index([evidenceId])
+  @@map("experiment_evidence")
 }
 
 // ── Import review queue (00 §9, 11_DATA_IMPORT_PROFILE.md, ADR 0014) ─────────
