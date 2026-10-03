@@ -188,8 +188,11 @@ test.describe("with records", () => {
 
     await page.getByRole("link", { name: "Metric definitions" }).click();
     await expect(page).toHaveURL(/\/command-center\/metrics$/);
-    // Phase 7 made the architecture KPIs available; technical debt (Phase 9) remains unavailable.
-    await expect(page.getByText(/Unavailable — Phase 9/).first()).toBeVisible();
+    // Phase 7 made the architecture KPIs available; the integration/DORA metrics (deployment
+    // frequency, technical debt, …) remain unavailable because PEOS has no engineering integration.
+    await expect(
+      page.getByText(/Unavailable — Future — requires an engineering integration/).first(),
+    ).toBeVisible();
     await expectNoAxeViolations(page);
   });
 
