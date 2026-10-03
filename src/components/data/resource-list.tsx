@@ -62,6 +62,8 @@ export interface ResourceListProps<T extends { id: string }> {
   sortOptions: readonly FieldOption[];
   defaultSort: string;
   fields: readonly FieldDescriptor[];
+  /** Edit form fields when they differ from the create form (default: fields). */
+  editFields?: readonly FieldDescriptor[];
   /** Other resources whose cached views change when this one does. */
   related?: readonly string[];
   empty: { title: string; body: ReactNode };
@@ -262,7 +264,12 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
         </div>
       ) : (
         <>
-          <div className={cn("hidden md:block", query.isFetching && "opacity-70")}>
+          <div
+            className={cn(
+              "relative hidden overflow-x-auto md:block",
+              query.isFetching && "opacity-70",
+            )}
+          >
             <table className="w-full text-left text-body">
               <caption className="sr-only">{props.plural}</caption>
               <thead className="border-b text-caption text-muted-foreground">
@@ -375,7 +382,7 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
         title={`Edit ${props.singular}`}
-        fields={props.fields}
+        fields={props.editFields ?? props.fields}
         initial={editing as Record<string, unknown> | null}
         submitLabel="Save changes"
         onSubmit={(payload) => update.mutateAsync({ ...payload, id: editing!.id })}

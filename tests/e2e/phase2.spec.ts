@@ -188,8 +188,8 @@ test.describe("with records", () => {
 
     await page.getByRole("link", { name: "Metric definitions" }).click();
     await expect(page).toHaveURL(/\/command-center\/metrics$/);
-    // Phase 4 made the skill KPIs available; Goals (Phase 5) remain catalogued as unavailable.
-    await expect(page.getByText(/Unavailable — Phase 5/).first()).toBeVisible();
+    // Phase 5 made the goal KPIs available; AI experiments (Phase 6) remain catalogued as unavailable.
+    await expect(page.getByText(/Unavailable — Phase 6/).first()).toBeVisible();
     await expectNoAxeViolations(page);
   });
 

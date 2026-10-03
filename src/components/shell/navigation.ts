@@ -143,8 +143,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: "/goals",
     icon: GitBranch,
     summary: "Goal hierarchy, milestones, dependencies and roadmap views.",
-    availability: "planned",
-    plannedIn: "Phase 5 — Goals & Roadmap",
+    availability: "available",
+    plannedIn: "Phase 5 — Goals & Roadmap (available)",
     placement: "main",
   },
   {

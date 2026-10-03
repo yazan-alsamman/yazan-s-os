@@ -27,7 +27,8 @@ import { useReturnFocus } from "@/lib/ui/return-focus";
  * improve feedback; the server re-validates everything and its field errors are mapped back
  * onto the inputs (server validation is authoritative).
  */
-export type FieldKind = "text" | "textarea" | "url" | "date" | "select" | "checkbox" | "lines";
+export type FieldKind =
+  "text" | "textarea" | "url" | "date" | "number" | "select" | "checkbox" | "lines";
 
 export interface FieldOption {
   value: string;
@@ -87,6 +88,9 @@ function buildSchema(fields: readonly FieldDescriptor[]) {
     if (field.kind === "date") {
       refined = refined.refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Use YYYY-MM-DD");
     }
+    if (field.kind === "number") {
+      refined = refined.refine((v) => !v.trim() || Number.isFinite(Number(v)), "Enter a number");
+    }
     shape[field.name] = refined;
   }
   return z.object(shape);
@@ -124,6 +128,9 @@ export function toPayload(
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean);
+    } else if (field.kind === "number") {
+      const text = String(value ?? "").trim();
+      payload[field.name] = text === "" ? null : Number(text);
     } else if (field.kind === "select") {
       const text = String(value ?? "");
       if (text === "") {
@@ -291,7 +298,16 @@ export function EntityForm({
                 </NativeSelect>
               ) : field.kind !== "checkbox" ? (
                 <Input
-                  type={field.kind === "date" ? "date" : field.kind === "url" ? "url" : "text"}
+                  type={
+                    field.kind === "date"
+                      ? "date"
+                      : field.kind === "url"
+                        ? "url"
+                        : field.kind === "number"
+                          ? "number"
+                          : "text"
+                  }
+                  step={field.kind === "number" ? "any" : undefined}
                   autoComplete={field.autoComplete ?? "off"}
                   {...common}
                   {...form.register(field.name)}

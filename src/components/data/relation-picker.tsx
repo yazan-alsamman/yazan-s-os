@@ -42,6 +42,8 @@ interface RelationPickerProps {
   /** Text shown for an option row. */
   optionLabel: (row: Record<string, unknown>) => string;
   initial: readonly PickedItem[];
+  /** Record ids that cannot be chosen (e.g. the record itself). */
+  exclude?: readonly string[];
   attribute?: { label: string; options: readonly FieldOption[]; defaultValue: string };
   onSave: (items: PickedItem[]) => Promise<unknown>;
 }
@@ -67,6 +69,7 @@ function PickerBody({
   optionLabel,
   initial,
   attribute,
+  exclude,
   onSave,
   onOpenChange,
 }: RelationPickerProps) {
@@ -122,45 +125,47 @@ function PickerBody({
           </p>
         ) : (
           <ul className="divide-y">
-            {options.data.data.map((row) => {
-              const label = optionLabel(row);
-              const checked = selected.has(row.id);
-              return (
-                <li key={row.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-                  <label className="flex min-w-0 flex-1 items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-[var(--accent-brand)]"
-                      checked={checked}
-                      onChange={() => toggle(row.id, label)}
-                    />
-                    <span className="truncate">{label}</span>
-                  </label>
-                  {attribute && checked && (
-                    <NativeSelect
-                      aria-label={`${attribute.label} for ${label}`}
-                      className="h-8 w-40"
-                      value={selected.get(row.id)?.attribute ?? attribute.defaultValue}
-                      onChange={(e) =>
-                        setSelected((current) =>
-                          new Map(current).set(row.id, {
-                            id: row.id,
-                            label,
-                            attribute: e.target.value,
-                          }),
-                        )
-                      }
-                    >
-                      {attribute.options.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  )}
-                </li>
-              );
-            })}
+            {options.data.data
+              .filter((row) => !exclude?.includes(row.id))
+              .map((row) => {
+                const label = optionLabel(row);
+                const checked = selected.has(row.id);
+                return (
+                  <li key={row.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                    <label className="flex min-w-0 flex-1 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-[var(--accent-brand)]"
+                        checked={checked}
+                        onChange={() => toggle(row.id, label)}
+                      />
+                      <span className="truncate">{label}</span>
+                    </label>
+                    {attribute && checked && (
+                      <NativeSelect
+                        aria-label={`${attribute.label} for ${label}`}
+                        className="h-8 w-40"
+                        value={selected.get(row.id)?.attribute ?? attribute.defaultValue}
+                        onChange={(e) =>
+                          setSelected((current) =>
+                            new Map(current).set(row.id, {
+                              id: row.id,
+                              label,
+                              attribute: e.target.value,
+                            }),
+                          )
+                        }
+                      >
+                        {attribute.options.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    )}
+                  </li>
+                );
+              })}
           </ul>
         )}
       </fieldset>
