@@ -28,6 +28,9 @@ export type ActivityEntity =
   | "goal"
   | "goal_measurement"
   | "evidence"
+  | "ai_experiment"
+  | "experiment_run"
+  | "experiment_metric"
   | "import_job"
   | "import_record"
   | "export";
@@ -56,6 +59,9 @@ const ENTITY_NOUNS: Record<ActivityEntity, string> = {
   goal: "goal",
   goal_measurement: "goal measurement",
   evidence: "evidence",
+  ai_experiment: "AI experiment",
+  experiment_run: "experiment run",
+  experiment_metric: "evaluation metric",
   import_job: "import",
   import_record: "import record",
   export: "data export",
@@ -87,6 +93,9 @@ const LABEL_FIELDS: Partial<Record<ActivityEntity, readonly string[]>> = {
   goal: ["title"],
   goal_measurement: ["date"],
   evidence: ["title"],
+  ai_experiment: ["title"],
+  experiment_run: ["label"],
+  experiment_metric: ["name"],
   import_job: ["fileName"],
   import_record: ["entityType"],
   export: ["format"],
@@ -173,6 +182,19 @@ export function toActivityItem(
       href = id && exists("skill_level_model", id) ? "/skills/level-models" : null;
       deleted = Boolean(id) && !href;
       break;
+    case "experiment_run": {
+      // A run never moves between experiments, so the snapshot experimentId is authoritative.
+      const experimentId = snapshot?.experimentId;
+      href =
+        typeof experimentId === "string" && exists("ai_experiment", experimentId)
+          ? `/ai-lab/${experimentId}#runs`
+          : null;
+      deleted = Boolean(id) && !href;
+      break;
+    }
+    case "experiment_metric":
+      // Evaluation metrics have no page of their own; shown without a link.
+      break;
     case "other":
       break;
     default: {
@@ -184,6 +206,7 @@ export function toActivityItem(
         project: "/projects/",
         evidence: "/evidence/",
         goal: "/goals/",
+        ai_experiment: "/ai-lab/",
       };
       if (id && exists(entity, id)) href = `${paths[entity]}${id}`;
       else deleted = Boolean(id);
@@ -289,6 +312,23 @@ async function present(db: PrismaClient, userId: string, rows: AuditRow[]) {
     db.skillLevelModel.findMany({
       where: { userId, id: { in: idsOf("skill_level_model") } },
       select: { id: true, name: true },
+    }),
+    db.aIExperiment.findMany({
+      where: {
+        userId,
+        id: {
+          in: [
+            ...new Set([
+              ...idsOf("ai_experiment"),
+              ...rows
+                .filter((r) => r.entityType === "experiment_run")
+                .map((r) => asRecord(r.after ?? r.before)?.experimentId)
+                .filter((v): v is string => typeof v === "string"),
+            ]),
+          ],
+        },
+      },
+      select: { id: true, title: true },
     }),
     db.importJob.findMany({ where: { userId, id: { in: jobIds } }, select: { id: true } }),
   ]);

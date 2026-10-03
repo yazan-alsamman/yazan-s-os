@@ -45,6 +45,9 @@ const evidenceBase = (f: DrillFilters) => ({
 const skillBase = (f: DrillFilters) => ({ category: f.skillCategory });
 /** Phase 5 source list: the goals list. */
 const goalsList = (params: Record<string, string | undefined | null>) => href("/goals", params);
+/** Phase 6 source list: the experiments list. */
+const experimentsList = (params: Record<string, string | undefined | null>) =>
+  href("/ai-lab", params);
 
 /** Phase 4 source list: active skills, keeping the dashboard's skill category filter. */
 const skillIntel = (f: DrillFilters, params: Record<string, string | undefined | null>) =>
@@ -173,6 +176,25 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
       return f.projectId ? href("/evidence", { projectId: f.projectId }) : null;
     case "projects.evidence_verified":
       return f.projectId ? href("/evidence", { projectId: f.projectId, verified: "true" }) : null;
+    // ── Phase 6 — AI Lab (ADR 0038) ──
+    case "ai.experiments":
+      return experimentsList({});
+    case "ai.active_experiments":
+      return experimentsList({ open: "true" });
+    case "ai.completed_experiments":
+      return experimentsList({ status: "completed" });
+    case "ai.abandoned_experiments":
+      return experimentsList({ status: "abandoned" });
+    case "ai.runs_total":
+      return experimentsList({ hasRuns: "true" });
+    case "ai.adoption_rate": // numerator; denominator adds the other decisions
+      return experimentsList({ decision: "adopt" });
+    case "ai.evaluation_coverage": // numerator
+      return experimentsList({ hasEvaluation: "true" });
+    case "ai.experiments_missing_evaluation":
+      return experimentsList({ hasRuns: "true", hasEvaluation: "false" });
+    case "ai.experiments_missing_provenance":
+      return experimentsList({ hasEvidence: "false" });
     default:
       return null;
   }
@@ -242,6 +264,20 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
       return m
         ? milestones(f, { completedFrom: m.from, completedTo: m.to, sort: "-completedAt" })
         : null;
+    }
+    // ── Phase 6 — AI Lab (ADR 0038) ──
+    case "ai.experiments_by_status":
+      return experimentsList({ status: bucket });
+    case "ai.experiments_by_decision":
+      // "undecided" has no list filter (decision IS NULL).
+      return bucket === "undecided" ? null : experimentsList({ decision: bucket });
+    case "ai.experiments_by_category":
+      return bucket === "__none" ? null : experimentsList({ category: bucket });
+    case "ai.reproducibility_distribution":
+      return experimentsList({ reproducibility: bucket });
+    case "ai.experiments_per_month": {
+      const m = monthBounds(bucket);
+      return m ? experimentsList({ createdFrom: m.from, createdTo: m.to }) : null;
     }
     default:
       return null;

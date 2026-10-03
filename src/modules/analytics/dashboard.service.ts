@@ -8,6 +8,7 @@ import { toDateOnly } from "@/modules/shared/fields";
 import type { ServiceContext } from "@/modules/shared/service-context";
 
 import type { DashboardFilters } from "./dashboard.schemas";
+import { createExperimentsAnalyticsService } from "./experiments-analytics.service";
 import { createGoalsAnalyticsService } from "./goals-analytics.service";
 import {
   comparisonFor,
@@ -517,6 +518,7 @@ export function createDashboardService(db: PrismaClient) {
         education,
         skillIntel,
         goals,
+        experiments,
       ] = await Promise.all([
         projectSection(ctx, filters, period),
         evidenceSection(ctx, filters, period),
@@ -531,6 +533,8 @@ export function createDashboardService(db: PrismaClient) {
         }),
         // Phase 5: the same goal analytics as the Goals pages (ADR 0034).
         createGoalsAnalyticsService(db, () => now).summary(ctx),
+        // Phase 6: the same AI Lab analytics as the experiments pages (ADR 0038).
+        createExperimentsAnalyticsService(db, () => now).summary(ctx),
       ]);
       const recordCounts = {
         projects: projects.base,
@@ -563,6 +567,7 @@ export function createDashboardService(db: PrismaClient) {
         skillIntel.coverage,
         skillIntel.criticalGaps,
         goals.active,
+        experiments.active,
         certifications.metrics.expiring,
       ];
       return {
@@ -590,6 +595,11 @@ export function createDashboardService(db: PrismaClient) {
         },
         certifications: { ...certifications.metrics, attention: certifications.attention },
         goals: { active: goals.active, atRisk: goals.atRisk, attention: goals.attention },
+        experiments: {
+          total: experiments.total,
+          active: experiments.active,
+          reproducibility: experiments.reproducibility,
+        },
       };
     },
   };
