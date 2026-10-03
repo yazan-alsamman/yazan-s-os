@@ -98,12 +98,13 @@ test("a signed-in user reaches the protected shell, which shows no fabricated da
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   await expectNoAxeViolations(page);
 
-  // Planned sections render the honest unavailable state.
+  // Planned sections render the honest unavailable state (AI Lab became available in Phase 6;
+  // Architecture Intelligence is still Phase 7).
   await page
     .getByRole("navigation", { name: "Primary" })
-    .getByRole("link", { name: /AI Lab/ })
+    .getByRole("link", { name: /Architecture/ })
     .click();
-  await expect(page).toHaveURL(/\/ai-lab$/);
+  await expect(page).toHaveURL(/\/architecture$/);
   await expect(page.getByRole("heading", { name: "Not available yet" })).toBeVisible();
 
   expect(errors).toEqual([]);

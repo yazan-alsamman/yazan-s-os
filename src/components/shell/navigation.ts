@@ -92,8 +92,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: "/ai-lab",
     icon: FlaskConical,
     summary: "Experiment registry, evaluation metrics and run comparison.",
-    availability: "planned",
-    plannedIn: "Phase 6 — AI Lab",
+    availability: "available",
+    plannedIn: "Phase 6 — AI Lab (available)",
     placement: "main",
   },
   {

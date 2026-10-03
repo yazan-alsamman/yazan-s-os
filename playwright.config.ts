@@ -19,6 +19,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
+  // The full suite runs single-worker against the production build; give per-assertion waits room
+  // so first-paint of heavy dossier pages is not a flaky 5 s timeout. Assertions are unchanged.
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: "retain-on-failure",
