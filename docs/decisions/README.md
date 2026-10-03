@@ -56,3 +56,5 @@ An accepted ADR is changed only by a new ADR that supersedes it.
 | [0049](0049-copilot-context-construction-and-prompt-injection.md) | Copilot context construction and prompt-injection defence                                  | Accepted |
 | [0050](0050-copilot-persistence-api-and-rate-limiting.md)         | Copilot persistence, API surface and rate limiting                                         | Accepted |
 | [0051](0051-engineering-analytics.md)                             | Engineering Analytics: cross-domain activity, temporal semantics, unavailable integrations | Accepted |
+| [0052](0052-integration-platform.md)                              | Integration platform: connectors, token encryption, external identity                      | Accepted |
+| [0053](0053-integration-oauth-and-mcp-boundary.md)                | Integration OAuth flow, mutation confirmation, MCP boundary                                | Accepted |

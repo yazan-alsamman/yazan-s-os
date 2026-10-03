@@ -163,3 +163,14 @@ New ambiguities found and decided in Phase 1:
 | P9-4 | No time-tracking data, but "engineering focus" implies effort                             | Reported as recorded output / activity distribution, never time spent; no productivity score                        |
 | P9-5 | Technology heatmap (P3-7/P7-8) needs dated technology usage                               | Still unavailable — TechnologyUsage has no dates (unchanged)                                                        |
 | P9-6 | `/engineering` nav section (deployments/incidents/quality) planned for Phase 9            | Deferred — requires integrations; Engineering Analytics delivered under `/analytics` instead                        |
+
+## Phase 9.5 specification gaps (ADRs 0052–0053)
+
+| Gap    | Detail                                                                          | Handling                                                                                                               |
+| ------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| P9.5-1 | No integration architecture existed in the specs (only 08's one-line list)      | Net-new Integration Hub: connector registry, connection model, token encryption, OAuth (ADR 0052/0053)                 |
+| P9.5-2 | Live OAuth needs provider app registration + secrets + verified consent (Gmail) | Built credential-less; env + setup documented; automated tests use mock adapters; live validation reported unavailable |
+| P9.5-3 | Scope breadth (GitHub + Gmail + Drive + Calendar + MCP) vs one session          | GitHub implemented (read + linking); Google + MCP scaffolded at the boundary and deferred                              |
+| P9.5-4 | GitHub classic OAuth has no read-only private-repo scope                        | Request `repo` (minimum to read private repos); PEOS only reads; documented in the registry                            |
+| P9.5-5 | `08` Engineering/DORA integration metrics                                       | Still unavailable (ADR 0051); this phase adds the connection layer, not DORA metrics                                   |
+| P9.5-6 | GitHub `/user/repos` has no text query                                          | Page-level search/filter, labelled "within this page"                                                                  |

@@ -218,3 +218,17 @@ HTTP 503 only when the database (critical) is unavailable.
   the catalogue, not the doc, then regenerate the Definitions section.
 - **Integration/DORA metrics** (deployment frequency, lead time, change failure rate, time to
   restore, technical debt) remain `unavailable` — no data source; never fabricated (05, ADR 0051).
+
+## Phase 9.5 notes (Integration platform)
+
+- **Migration:** `pnpm db:deploy` adds four integration tables (additive).
+- **Env:** `INTEGRATION_ENCRYPTION_KEY` (base64 32 bytes) + per-connector OAuth vars (see
+  `.env.example` / `docs/INTEGRATIONS.md`). Validated at startup; a configured connector requires the
+  encryption key. Without config, integrations show honest "Not configured"/"Not connected" states.
+- **Module:** `src/modules/integrations` (crypto, oauth, oauth-state, providers, config, provenance,
+  integration.service, github/*). Adapters take an injectable `fetch`, so provider contracts are
+  tested without the network (`integrations-unit.test.ts`, `integrations.int.test.ts`).
+- **Adding a connector:** registry entry + config + adapter + read service + routes + UI + tests + an
+  ADR if architectural. Never log/return tokens; never trust provider payloads (normalize first).
+- **UI:** Settings → Integrations (connector cards) and Settings → Integrations → GitHub (explorer).
+- **Live provider validation** requires real OAuth apps/secrets; not run in CI (mock adapters only).

@@ -206,18 +206,43 @@ Owner-scoped; identity from the session; analytics rate limit; `userId`/`ownerId
 - No deployment/lead-time/incident/technical-debt metric is computed — PEOS has no integration data
   source, so those are returned as explicitly unavailable (never fabricated).
 
+### Phase 9.5 — Integration platform (ADRs 0052–0053)
+
+Owner-scoped; identity from the session; `userId`/`ownerId`/external-account ids from the client are
+ignored. Reads/syncs use the `integration` rate limit. Tokens are never returned.
+
+| Method        | Path                                             | Purpose                                                                  |
+| ------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
+| GET           | `/integrations`                                  | The user's connections (no tokens)                                       |
+| GET           | `/integrations/providers`                        | Connector registry with configuration + connection state                 |
+| POST          | `/integrations/connect/:provider`                | Returns a provider authorize URL (signed state)                          |
+| GET           | `/integrations/callback/:provider`               | OAuth redirect target; validates state, stores the connection, redirects |
+| GET · DELETE  | `/integrations/:id`                              | Read a connection · disconnect (discards tokens)                         |
+| POST          | `/integrations/:id/refresh`                      | Re-validate / refresh a connection                                       |
+| POST          | `/integrations/:id/sync`                         | Synchronize resources (GitHub repositories), recording sync state        |
+| GET           | `/integrations/:id/health` · `/permissions`      | Connection health · granted vs requested scopes                          |
+| GET           | `/github/repositories`                           | Repositories for the connected GitHub account (live + cached)            |
+| GET           | `/github/repositories/:id`                       | One repository (by GitHub id) with its PEOS links                        |
+| GET           | `/github/repositories/:id/commits` · `/activity` | Commit history · activity timeline (paginated)                           |
+| POST · DELETE | `/github/repositories/:id/link`                  | Explicitly link · unlink a repository ↔ PEOS project                     |
+
+- OAuth callback errors never leak provider internals; the user lands on an explained settings state.
+- `:id` for GitHub resources is the provider-native repository id (not a UUID).
+
 **Error codes:**
 
-| Code                                                                | HTTP status |
-| ------------------------------------------------------------------- | ----------- |
-| `VALIDATION_FAILED`                                                 | 400         |
-| `UNAUTHENTICATED`                                                   | 401         |
-| `FORBIDDEN` (cross-origin mutation)                                 | 403         |
-| `NOT_FOUND`                                                         | 404         |
-| `CONFLICT` (duplicate name or slug, already-reviewed import record) | 409         |
-| `PAYLOAD_TOO_LARGE`                                                 | 413         |
-| `UNSUPPORTED_MEDIA_TYPE`                                            | 415         |
-| `RATE_LIMITED`                                                      | 429         |
-| `INTERNAL_ERROR`                                                    | 500         |
+| Code                                                                                      | HTTP status |
+| ----------------------------------------------------------------------------------------- | ----------- |
+| `VALIDATION_FAILED`                                                                       | 400         |
+| `UNAUTHENTICATED`                                                                         | 401         |
+| `FORBIDDEN` (cross-origin mutation)                                                       | 403         |
+| `NOT_FOUND` / `EXTERNAL_RESOURCE_NOT_FOUND`                                               | 404         |
+| `CONFLICT` / `INTEGRATION_NOT_CONNECTED`                                                  | 409         |
+| `PAYLOAD_TOO_LARGE`                                                                       | 413         |
+| `UNSUPPORTED_MEDIA_TYPE`                                                                  | 415         |
+| `RATE_LIMITED` / `INTEGRATION_RATE_LIMITED`                                               | 429         |
+| `INTEGRATION_AUTH_FAILED`                                                                 | 502         |
+| `SERVICE_UNAVAILABLE` / `INTEGRATION_NOT_CONFIGURED` / `INTEGRATION_PROVIDER_UNAVAILABLE` | 503         |
+| `INTERNAL_ERROR`                                                                          | 500         |
 
 All error responses carry `requestId`.

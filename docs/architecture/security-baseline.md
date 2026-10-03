@@ -287,6 +287,37 @@ deleted/relations_updated`, `architecture_alternative.created/updated/deleted`,
   history.
 - **Dependency audit (2026-10-03):** `pnpm audit --prod` — no known vulnerabilities.
 
+## Phase 9.5 additions (Integration platform)
+
+- **Token security.** Provider OAuth tokens are encrypted at rest (AES-256-GCM,
+  `INTEGRATION_ENCRYPTION_KEY`), decrypted only server-side to call providers, and excluded from every
+  DTO. They never appear in logs, errors, analytics, API responses, the client bundle or test
+  snapshots. Without the key, connecting fails safely. Disconnect discards tokens. Verified:
+  `integrations.int.test.ts` asserts the stored token is encrypted and never returned, plus a
+  secret-leak grep over the module.
+- **OAuth CSRF/SSRF.** The authorization-code flow uses an HMAC-signed `state` bound to the session
+  user, provider, a nonce and a 10-minute expiry; the callback rejects a forged/replayed/foreign-user
+  state (tested). Authorize/token/identity endpoints come only from the trusted registry — no
+  user-controlled URLs (SSRF defence). The redirect URI is server-configured.
+- **Owner isolation.** All four integration tables carry `user_id` with composite FKs; every query is
+  session-scoped; client-supplied `userId`/`ownerId`/external-account ids are ignored. IDOR tested
+  (two users, HTTP): anonymous 401; a foreign connection 404 on read and disconnect; GitHub resources
+  refuse access without a connection (409). A disconnected connection cannot be used.
+- **Untrusted external content.** Provider payloads are normalized/validated before use; external text
+  (README, commit messages, descriptions, future email/issues) is treated as untrusted and may not
+  override PEOS or AI-Copilot system instructions. Rendered through React (no raw HTML injection); the
+  deferred Gmail connector must sanitize HTML email.
+- **Rate limiting.** Provider 403/429 are detected and surfaced as `degraded`; no aggressive retry.
+  Integration endpoints use the `integration` limiter (60/min); existing PEOS limits are unchanged.
+- **Audit.** connect / reauthorize / disconnect / sync_completed / sync_failed / link / unlink — never
+  with tokens.
+- **Read-only providers this phase.** No external-provider mutation is implemented; the only mutation
+  is the owner-controlled PEOS-side repository↔project link. The Copilot is unchanged (no integration
+  tools, no autonomous external actions).
+- **Live validation unavailable.** No OAuth apps/secrets are configured in CI; automated tests use
+  mocked provider adapters. Live provider validation is reported as not performed (never mocked
+  success).
+
 ## Not yet implemented (tracked)
 
 MFA, session/device management UI, email verification/password reset, secret scanning and SAST in

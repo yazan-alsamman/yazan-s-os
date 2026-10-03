@@ -161,3 +161,21 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 - **Computed, never stored:** routing, retrieval, grounding validation, citations and retrieval-only
   answers (derived at request time from authoritative services; ADRs 0046–0049). PEOS never fabricates
   Copilot data; the model never writes domain records.
+
+## Phase 9.5 additions (Integration platform)
+
+- **IntegrationConnection** (ADR 0052): `provider` (github · google), `externalAccountId`,
+  `displayName`, `accountEmail?`, `accountLogin?`, `status` (connected · degraded · error · expired ·
+  revoked · disconnected), encrypted `accessTokenEnc?`/`refreshTokenEnc?` (AES-256-GCM; never
+  returned), `tokenExpiresAt?`, `scopes[]`, `capabilities[]`, sync timestamps, `lastError?`.
+  `@@unique([id, userId])`, `@@unique([userId, provider, externalAccountId])`.
+- **IntegrationSyncState**: per connection + `resourceType`, `status` (idle · running · success ·
+  partial · failed), timestamps, `cursor?`, `recordsFetched/Updated/Failed` (≥ 0), `lastError?`.
+  `@@unique([connectionId, resourceType])`.
+- **IntegrationExternalResource**: normalized metadata for one external resource — provider-native
+  `externalId`, `displayName`, `url?`, `metadata` (Json), `observedAt`, `lastSyncedAt`. Never the full
+  payload. `@@unique([userId, provider, resourceType, externalId])`, `@@unique([id, userId])`.
+- **IntegrationResourceLink**: explicit owner-controlled link `external resource ↔ Project`
+  (composite FKs to both). `@@unique([userId, resourceId, projectId])`.
+- All tables carry `user_id` with composite FKs and cascade from the owner. Tokens are encrypted at
+  rest and excluded from every DTO. External providers remain the source of truth.
