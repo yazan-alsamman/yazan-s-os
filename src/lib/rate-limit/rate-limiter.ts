@@ -20,6 +20,8 @@ export const RateLimits = {
   analytics: { name: "analytics", limit: 120, windowSeconds: 60 },
   /** AI Copilot questions (06 "rate-limit expensive operations"; ADR 0050): each may call a model. */
   copilot: { name: "copilot", limit: 30, windowSeconds: 600 },
+  /** Integration reads/syncs (Phase 9.5, ADR 0052): each may call an external provider. */
+  integration: { name: "integration", limit: 60, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 /**

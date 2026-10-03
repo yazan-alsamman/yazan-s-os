@@ -14,6 +14,16 @@ export const errorCatalog = {
   RATE_LIMITED: { status: 429, message: "Too many requests. Try again later." },
   SERVICE_UNAVAILABLE: { status: 503, message: "A required service is unavailable." },
   INTERNAL_ERROR: { status: 500, message: "An unexpected error occurred." },
+  // Integration platform (Phase 9.5, ADR 0052).
+  INTEGRATION_NOT_CONFIGURED: {
+    status: 503,
+    message: "This integration is not configured on the server.",
+  },
+  INTEGRATION_NOT_CONNECTED: { status: 409, message: "This integration is not connected." },
+  INTEGRATION_AUTH_FAILED: { status: 502, message: "Authentication with the provider failed." },
+  INTEGRATION_RATE_LIMITED: { status: 429, message: "The provider is rate-limiting requests." },
+  INTEGRATION_PROVIDER_UNAVAILABLE: { status: 503, message: "The provider is unavailable." },
+  EXTERNAL_RESOURCE_NOT_FOUND: { status: 404, message: "The external resource was not found." },
 } as const satisfies Record<string, { status: number; message: string }>;
 
 export type ErrorCode = keyof typeof errorCatalog;

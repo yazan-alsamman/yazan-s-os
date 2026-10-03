@@ -57,6 +57,17 @@ export const serverEnvSchema = z
     AI_MODEL: optionalString,
     AI_API_KEY: optionalString,
     AI_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(30_000),
+
+    // ── Integration platform (Phase 9.5, ADR 0052) ────────────────
+    // Base64-encoded 32-byte key (AES-256-GCM) for encrypting provider tokens at rest. Required
+    // once any OAuth connector is configured; without it, connecting fails safely.
+    INTEGRATION_ENCRYPTION_KEY: optionalString,
+    GITHUB_INTEGRATION_CLIENT_ID: optionalString,
+    GITHUB_INTEGRATION_CLIENT_SECRET: optionalString,
+    GITHUB_INTEGRATION_REDIRECT_URI: optionalUrl,
+    GOOGLE_CLIENT_ID: optionalString,
+    GOOGLE_CLIENT_SECRET: optionalString,
+    GOOGLE_REDIRECT_URI: optionalUrl,
   })
   .superRefine((env, ctx) => {
     const github = [env.AUTH_GITHUB_CLIENT_ID, env.AUTH_GITHUB_CLIENT_SECRET];
@@ -95,6 +106,53 @@ export const serverEnvSchema = z
         path: ["AI_PROVIDER"],
         message: "AI_PROVIDER=openai_compatible needs AI_BASE_URL and AI_MODEL",
       });
+    }
+
+    // Integration connectors: a client id/secret/redirect come as a set, and any configured
+    // connector requires the encryption key (tokens are never stored in plaintext).
+    const ghInt = [
+      env.GITHUB_INTEGRATION_CLIENT_ID,
+      env.GITHUB_INTEGRATION_CLIENT_SECRET,
+      env.GITHUB_INTEGRATION_REDIRECT_URI,
+    ];
+    if (ghInt.some(Boolean) && !ghInt.every(Boolean)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["GITHUB_INTEGRATION_CLIENT_ID"],
+        message:
+          "GitHub integration needs GITHUB_INTEGRATION_CLIENT_ID, GITHUB_INTEGRATION_CLIENT_SECRET and GITHUB_INTEGRATION_REDIRECT_URI together",
+      });
+    }
+    const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI];
+    if (google.some(Boolean) && !google.every(Boolean)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["GOOGLE_CLIENT_ID"],
+        message:
+          "Google integration needs GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI together",
+      });
+    }
+    if ((ghInt.every(Boolean) || google.every(Boolean)) && !env.INTEGRATION_ENCRYPTION_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["INTEGRATION_ENCRYPTION_KEY"],
+        message: "A configured integration connector requires INTEGRATION_ENCRYPTION_KEY",
+      });
+    }
+    if (env.INTEGRATION_ENCRYPTION_KEY) {
+      let bytes = 0;
+      try {
+        bytes = Buffer.from(env.INTEGRATION_ENCRYPTION_KEY, "base64").length;
+      } catch {
+        bytes = 0;
+      }
+      if (bytes !== 32) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["INTEGRATION_ENCRYPTION_KEY"],
+          message: "INTEGRATION_ENCRYPTION_KEY must be a base64-encoded 32-byte key (AES-256)",
+        });
+      }
     }
 
     if (env.NODE_ENV === "production" && !env.APP_URL.startsWith("https://")) {

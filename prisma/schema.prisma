@@ -62,6 +62,10 @@ model User {
   copilotConversations         CopilotConversation[]
   copilotMessages              CopilotMessage[]
   copilotToolCalls             CopilotToolCall[]
+  integrationConnections       IntegrationConnection[]
+  integrationSyncStates        IntegrationSyncState[]
+  integrationExternalResources IntegrationExternalResource[]
+  integrationResourceLinks     IntegrationResourceLink[]
   componentTechnologies        ComponentTechnology[]
   importJobs                   ImportJob[]
   reviewedImports              ImportRecord[]                 @relation("ImportReviewer")
@@ -447,12 +451,13 @@ model Project {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord          ImportRecord?      @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord          ImportRecord?             @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
   skills                ProjectSkill[]
   technologies          TechnologyUsage[]
   evidence              ProjectEvidence[]
   milestones            Milestone[]
+  integrationLinks      IntegrationResourceLink[]
   goals                 GoalProject[]
   aiExperiments         AIExperiment[]
   architectureDecisions DecisionProject[]
@@ -1366,4 +1371,140 @@ model ImportRecord {
   @@index([jobId, reviewStatus])
   @@index([userId, reviewStatus])
   @@map("import_records")
+}
+
+// ── Integration platform (Phase 9.5, ADRs 0052–0053) ──────────────────────────
+// External systems remain authoritative. PEOS stores connection metadata, encrypted tokens,
+// sync state, normalized external-resource metadata and explicit owner-controlled links.
+
+enum IntegrationProvider {
+  github
+  google
+
+  @@map("integration_provider")
+}
+
+enum IntegrationStatus {
+  connected
+  degraded
+  error
+  expired
+  revoked
+  disconnected
+
+  @@map("integration_status")
+}
+
+enum IntegrationSyncStatus {
+  idle
+  running
+  success
+  partial
+  failed
+
+  @@map("integration_sync_status")
+}
+
+/// An authenticated relationship between the owner and an external provider account.
+model IntegrationConnection {
+  id                  String              @id @default(uuid()) @db.Uuid
+  userId              String              @map("user_id") @db.Uuid
+  provider            IntegrationProvider
+  /// Provider-native account id (never a client-supplied value).
+  externalAccountId   String              @map("external_account_id")
+  displayName         String              @map("display_name")
+  accountEmail        String?             @map("account_email")
+  accountLogin        String?             @map("account_login")
+  status              IntegrationStatus   @default(connected)
+  /// Encrypted at rest (AES-256-GCM); never returned by the API or logged.
+  accessTokenEnc      String?             @map("access_token_enc")
+  refreshTokenEnc     String?             @map("refresh_token_enc")
+  tokenExpiresAt      DateTime?           @map("token_expires_at") @db.Timestamptz(3)
+  scopes              String[]
+  capabilities        String[]
+  connectedAt         DateTime?           @map("connected_at") @db.Timestamptz(3)
+  lastSyncAt          DateTime?           @map("last_sync_at") @db.Timestamptz(3)
+  lastAttemptedSyncAt DateTime?           @map("last_attempted_sync_at") @db.Timestamptz(3)
+  lastError           String?             @map("last_error")
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncState IntegrationSyncState[]
+  resources IntegrationExternalResource[]
+
+  @@unique([id, userId])
+  @@unique([userId, provider, externalAccountId])
+  @@index([userId, provider])
+  @@map("integration_connections")
+}
+
+/// Synchronization state per connection + resource type. A failed sync is never success.
+model IntegrationSyncState {
+  id             String                @id @default(uuid()) @db.Uuid
+  userId         String                @map("user_id") @db.Uuid
+  connectionId   String                @map("connection_id") @db.Uuid
+  resourceType   String                @map("resource_type")
+  status         IntegrationSyncStatus @default(idle)
+  startedAt      DateTime?             @map("started_at") @db.Timestamptz(3)
+  completedAt    DateTime?             @map("completed_at") @db.Timestamptz(3)
+  cursor         String?
+  recordsFetched Int                   @default(0) @map("records_fetched")
+  recordsUpdated Int                   @default(0) @map("records_updated")
+  recordsFailed  Int                   @default(0) @map("records_failed")
+  lastError      String?               @map("last_error")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection IntegrationConnection @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@unique([connectionId, resourceType])
+  @@index([userId, connectionId])
+  @@map("integration_sync_states")
+}
+
+/// Normalized metadata for one external resource (provider-native identity; never the full payload).
+model IntegrationExternalResource {
+  id           String              @id @default(uuid()) @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  connectionId String              @map("connection_id") @db.Uuid
+  provider     IntegrationProvider
+  resourceType String              @map("resource_type")
+  /// Provider-native id, e.g. a GitHub repository id.
+  externalId   String              @map("external_id")
+  displayName  String              @map("display_name")
+  url          String?
+  metadata     Json
+  observedAt   DateTime            @map("observed_at") @db.Timestamptz(3)
+  lastSyncedAt DateTime            @map("last_synced_at") @db.Timestamptz(3)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection IntegrationConnection     @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade)
+  links      IntegrationResourceLink[]
+
+  @@unique([id, userId])
+  @@unique([userId, provider, resourceType, externalId])
+  @@index([userId, connectionId, resourceType])
+  @@map("integration_external_resources")
+}
+
+/// An explicit, owner-controlled link between an external resource and a PEOS project.
+model IntegrationResourceLink {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  resourceId String   @map("resource_id") @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource IntegrationExternalResource @relation(fields: [resourceId, userId], references: [id, userId], onDelete: Cascade)
+  project  Project                     @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@unique([userId, resourceId, projectId])
+  @@index([userId, projectId])
+  @@index([userId, resourceId])
+  @@map("integration_resource_links")
 }
