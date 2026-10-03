@@ -24,6 +24,7 @@ export type ActivityEntity =
   | "certification"
   | "project"
   | "milestone"
+  | "skill_level_model"
   | "evidence"
   | "import_job"
   | "import_record"
@@ -49,6 +50,7 @@ const ENTITY_NOUNS: Record<ActivityEntity, string> = {
   certification: "certification",
   project: "project",
   milestone: "milestone",
+  skill_level_model: "skill level model",
   evidence: "evidence",
   import_job: "import",
   import_record: "import record",
@@ -77,6 +79,7 @@ const LABEL_FIELDS: Partial<Record<ActivityEntity, readonly string[]>> = {
   certification: ["name"],
   project: ["name"],
   milestone: ["title"],
+  skill_level_model: ["name"],
   evidence: ["title"],
   import_job: ["fileName"],
   import_record: ["entityType"],
@@ -150,6 +153,10 @@ export function toActivityItem(
       } else deleted = Boolean(id);
       break;
     }
+    case "skill_level_model":
+      href = id && exists("skill_level_model", id) ? "/skills/level-models" : null;
+      deleted = Boolean(id) && !href;
+      break;
     case "other":
       break;
     default: {
@@ -244,6 +251,10 @@ async function present(db: PrismaClient, userId: string, rows: AuditRow[]) {
     db.milestone.findMany({
       where: { userId, id: { in: idsOf("milestone") } },
       select: { id: true, title: true },
+    }),
+    db.skillLevelModel.findMany({
+      where: { userId, id: { in: idsOf("skill_level_model") } },
+      select: { id: true, name: true },
     }),
     db.importJob.findMany({ where: { userId, id: { in: jobIds } }, select: { id: true } }),
   ]);

@@ -38,8 +38,8 @@ describe("metric catalogue governance (05 Metric Governance)", () => {
         expect(metric.availability.plannedPhase.length).toBeGreaterThan(0);
       }
     }
-    expect(availableMetrics()).toHaveLength(39);
-    expect(METRIC_CATALOGUE).toHaveLength(52);
+    expect(availableMetrics()).toHaveLength(49);
+    expect(METRIC_CATALOGUE).toHaveLength(60);
   });
 
   it("covers every 00 §4 KPI strip item, available or explicitly unavailable", () => {
@@ -61,7 +61,11 @@ describe("metric catalogue governance (05 Metric Governance)", () => {
 
   it("refuses to compute an unavailable metric", () => {
     expect(() =>
-      metricResult("skills.coverage", { value: 1, hasBaseRecords: true, noDataReason: "x" }),
+      metricResult("skills.learning_velocity", {
+        value: 1,
+        hasBaseRecords: true,
+        noDataReason: "x",
+      }),
     ).toThrow(/unavailable/);
   });
 });

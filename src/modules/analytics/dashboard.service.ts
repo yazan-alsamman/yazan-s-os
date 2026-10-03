@@ -15,6 +15,7 @@ import {
   type MetricResult,
 } from "./metric-result";
 import { dateWhere, previousPeriod, resolvePeriod, toPeriodDto, type Period } from "./period";
+import { createSkillsAnalyticsService } from "./skills-analytics.service";
 
 /**
  * Command Center calculations (ADR 0019/0020). Every number comes from an owner-scoped database
@@ -505,16 +506,28 @@ export function createDashboardService(db: PrismaClient) {
     /** Everything the Command Center needs in one owner-scoped, bounded request. */
     async dashboard(ctx: ServiceContext, filters: DashboardFilters, now: Date = new Date()) {
       const period = resolvePeriod(filters, now);
-      const [projects, evidence, skills, certifications, technologies, experiences, education] =
-        await Promise.all([
-          projectSection(ctx, filters, period),
-          evidenceSection(ctx, filters, period),
-          skillSection(ctx, filters),
-          certificationSection(ctx, now),
-          db.technology.count({ where: { userId: ctx.userId } }),
-          db.experience.count({ where: { userId: ctx.userId } }),
-          db.education.count({ where: { userId: ctx.userId } }),
-        ]);
+      const [
+        projects,
+        evidence,
+        skills,
+        certifications,
+        technologies,
+        experiences,
+        education,
+        skillIntel,
+      ] = await Promise.all([
+        projectSection(ctx, filters, period),
+        evidenceSection(ctx, filters, period),
+        skillSection(ctx, filters),
+        certificationSection(ctx, now),
+        db.technology.count({ where: { userId: ctx.userId } }),
+        db.experience.count({ where: { userId: ctx.userId } }),
+        db.education.count({ where: { userId: ctx.userId } }),
+        // Phase 4: evidence-derived skill intelligence (same rows as /api/v1/skills/intelligence).
+        createSkillsAnalyticsService(db, () => now).summary(ctx, {
+          category: filters.skillCategory,
+        }),
+      ]);
       const recordCounts = {
         projects: projects.base,
         skills: skills.base,
@@ -543,6 +556,8 @@ export function createDashboardService(db: PrismaClient) {
         evidence.metrics.total,
         evidence.metrics.velocity,
         skills.metrics.withEvidence,
+        skillIntel.coverage,
+        skillIntel.criticalGaps,
         certifications.metrics.expiring,
       ];
       return {
@@ -561,7 +576,13 @@ export function createDashboardService(db: PrismaClient) {
           })),
         },
         evidence: { ...evidence.metrics, monthly: evidence.monthly },
-        skills: { ...skills.metrics, top: skills.top },
+        skills: {
+          ...skills.metrics,
+          top: skills.top,
+          coverage: skillIntel.coverage,
+          criticalGaps: skillIntel.criticalGaps,
+          gapAttention: skillIntel.attention,
+        },
         certifications: { ...certifications.metrics, attention: certifications.attention },
       };
     },

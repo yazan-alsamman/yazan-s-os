@@ -12,6 +12,8 @@ export interface DrillFilters {
   skillCategory?: string;
   /** Phase 3: a single project's dossier metrics drill into that project's records. */
   projectId?: string;
+  /** Phase 4: a single skill's metrics drill into that skill's dossier. */
+  skillId?: string;
 }
 
 export interface DrillPeriod {
@@ -39,6 +41,9 @@ const evidenceBase = (f: DrillFilters) => ({
   origin: f.evidenceOrigin,
 });
 const skillBase = (f: DrillFilters) => ({ category: f.skillCategory });
+/** Phase 4 source list: active skills, keeping the dashboard's skill category filter. */
+const skillIntel = (f: DrillFilters, params: Record<string, string | undefined | null>) =>
+  href("/skills/intelligence", { category: f.skillCategory, active: "true", ...params });
 const milestones = (f: DrillFilters, params: Record<string, string | undefined | null> = {}) =>
   href("/projects/milestones", { projectId: f.projectId, ...params });
 
@@ -119,6 +124,19 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
     case "projects.health_component.recent_activity":
       // Scores are explained by their component breakdown, not by a list (documented exception).
       return f.projectId ? `/projects/${f.projectId}#health` : "/projects/health";
+    // ── Phase 4 (ADR 0029) ──
+    case "skills.coverage": // numerator list; the denominator drops freshness=fresh
+      return skillIntel(f, { hasTarget: "true", freshness: "fresh" });
+    case "skills.critical_gaps":
+      return skillIntel(f, { critical: "true" });
+    case "skills.targets_without_evidence":
+      return skillIntel(f, { targetWithoutEvidence: "true" });
+    case "skills.production_evidence":
+      return skillIntel(f, { productionLinked: "true" });
+    case "skills.current_level":
+    case "skills.radar":
+      // Scores are explained by the skill dossier's rule breakdown (documented exception).
+      return f.skillId ? `/skills/${f.skillId}` : skillIntel(f, {});
     case "projects.evidence_linked":
       return f.projectId ? href("/evidence", { projectId: f.projectId }) : null;
     case "projects.evidence_verified":
@@ -141,6 +159,14 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
     case "certifications.expiry_distribution":
       return href("/certifications", { expiry: bucket, current: "true", sort: "expiryDate" });
     // ── Phase 3 (ADR 0025) ──
+    case "skills.freshness":
+      return skillIntel(f, { freshness: bucket });
+    case "skills.level_distribution":
+      return skillIntel(f, { level: bucket });
+    case "skills.gap_distribution":
+      return skillIntel(f, { gap: bucket });
+    case "skills.growth":
+      return skillIntel(f, { trend: bucket });
     case "projects.computed_health_distribution":
       return href("/projects/health", { computed: bucket });
     case "projects.health_comparison": {

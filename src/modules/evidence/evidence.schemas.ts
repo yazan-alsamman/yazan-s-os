@@ -47,6 +47,8 @@ export const listEvidenceQuerySchema = paginationQuerySchema.extend({
   dated: booleanQuerySchema,
   /** Evidence linked to one project — project dossier drill-down (Phase 3). */
   projectId: uuidSchema.optional(),
+  /** Evidence linked to one skill — skill dossier drill-down (Phase 4). */
+  skillId: uuidSchema.optional(),
   sort: sortSchema(["title", "date", "type", "updatedAt", "createdAt"], "-date"),
 });
 

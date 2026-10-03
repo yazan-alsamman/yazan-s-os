@@ -54,6 +54,7 @@ export const evidenceRepository = {
     const and: Prisma.EvidenceWhereInput[] = [];
     if (query.dated !== undefined) and.push({ date: query.dated ? { not: null } : null });
     if (query.projectId) and.push({ projects: { some: { projectId: query.projectId } } });
+    if (query.skillId) and.push({ skills: { some: { skillId: query.skillId } } });
     if (and.length) where.AND = and;
 
     const [rows, total] = await Promise.all([
