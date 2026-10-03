@@ -191,6 +191,21 @@ are validated and cite only retrieved records.
 - When no provider is configured (`AI_PROVIDER=none`), `ask` returns a deterministic, fully cited
   **retrieval-only** answer (`mode: "retrieval_only"`, `provider`/`model`/usage all `null`).
 
+### Phase 9 — Engineering Analytics (ADR 0051)
+
+Owner-scoped; identity from the session; analytics rate limit; `userId`/`ownerId` never accepted.
+
+| Method | Path                     | Purpose                                                                                                                                                                                                                                                       | Validation                                         |
+| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| GET    | `/analytics/engineering` | Cross-domain engineering activity for the period: the `engineering.activity` KPI (with comparison), `engineering.activity_trend` (monthly), `engineering.activity_by_domain` (focus), per-domain record counts, and the unavailable integration/DORA metrics. | `engineeringFiltersSchema` (`range`, `from`, `to`) |
+
+- The activity count, trend and by-domain distribution reconcile (total = Σ domains = Σ trend) and
+  reconcile with the authoritative portfolio metrics; integration-tested.
+- Date boundaries are whole UTC calendar days, inclusive; comparison is to the previous equal-length
+  period and is offered only when history exists before it (never a misleading 0 %).
+- No deployment/lead-time/incident/technical-debt metric is computed — PEOS has no integration data
+  source, so those are returned as explicitly unavailable (never fabricated).
+
 **Error codes:**
 
 | Code                                                                | HTTP status |

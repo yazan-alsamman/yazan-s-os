@@ -200,3 +200,21 @@ HTTP 503 only when the database (critical) is unavailable.
   and unit-test the adapter with an injected `fetchImpl`.
 - **Adding a tool** requires a new entry in `TOOLS` (strict Zod input, wrap an authoritative service,
   map to provenance-tagged `Source`s) and a new ADR — the model cannot gain capabilities otherwise.
+
+## Phase 9 notes (Engineering Analytics)
+
+- **No migration.** Phase 9 computes everything from existing dated columns; zero schema changes.
+- **Page:** `/analytics` (Engineering Analytics). Nav "Analytics" flips to available. The separate
+  "Engineering" (`/engineering`) section stays unavailable — it needs integrations PEOS does not have.
+- **Service:** `src/modules/analytics/engineering-analytics.service.ts` — two owner-scoped SQL
+  aggregates (a UNION-ALL counts matrix and a UNION-ALL monthly series). Reuses `period.ts`,
+  `metric-result.ts`, `comparisonFor`, `monthlyCounts` and the metric catalogue. No new formulas.
+- **Adding/changing an activity domain** means editing `DOMAINS` in the service AND `ACTIVITY_SOURCES`
+  in the catalogue, and keeping the reconciliation tests green. Each domain's dated column:
+  Project.completedAt, Milestone.completedAt, Evidence.date, Goal.completedAt,
+  ArchitectureDecision.decidedAt, ExperimentRun.runAt, Certification.issueDate.
+- **Metric catalogue doc** is regenerated from the source of truth
+  (`src/modules/analytics/metric-catalogue.ts`) into `docs/architecture/metric-catalogue.md`; update
+  the catalogue, not the doc, then regenerate the Definitions section.
+- **Integration/DORA metrics** (deployment frequency, lead time, change failure rate, time to
+  restore, technical debt) remain `unavailable` — no data source; never fabricated (05, ADR 0051).

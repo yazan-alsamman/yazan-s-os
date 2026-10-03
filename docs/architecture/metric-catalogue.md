@@ -1,11 +1,11 @@
-# PEOS Metric Catalogue (Phases 2–7)
+# PEOS Metric Catalogue (Phases 2–9)
 
 Generated from `src/modules/analytics/metric-catalogue.ts`, which is the source of truth (ADR 0019).
 The catalogue is validated by a strict Zod schema when it is loaded, served read-only at
 `GET /api/v1/analytics/metrics`, and shown in the app at `/command-center/metrics` and in each
 metric's definition drawer.
 
-- **101 metrics**: 93 available, 8 unavailable (each with its reason and the phase or decision
+- **108 metrics**: 96 available, 12 unavailable (each with its reason and the phase or decision
   that unlocks it).
 - Phase 3 adds milestone, delivery, computed-health, portfolio, technology and project-evidence
   metrics (ADRs 0022–0025). `projects.delivery_rate` is now available (version 2).
@@ -24,6 +24,12 @@ metric's definition drawer.
   documentation gaps, decision timeline, project coverage, components by type, critical
   components, components without decisions) and makes `architecture.decisions` available (version
   2; ADRs 0041–0045). No architecture quality score; gaps are listed, never scored.
+- Phase 9 adds 3 available Engineering Analytics metrics (`engineering.activity`,
+  `engineering.activity_trend`, `engineering.activity_by_domain`) — a cross-domain view of dated
+  engineering events (recorded output, not time spent; no score) with comparison periods — and
+  catalogues 4 DORA metrics (deployment frequency, lead time, change failure rate, time to restore)
+  plus technical debt as **unavailable**: PEOS has no integration data source and never fabricates
+  them (ADR 0051).
 - Every metric counts only records owned by the signed-in user.
 - Frequency: computed live on request. Nothing is cached, pre-aggregated or estimated.
 - Periods are whole UTC calendar days, inclusive. "Today" is the UTC calendar day.
@@ -522,22 +528,22 @@ metric's definition drawer.
 
 #### `projects.health_component.issue_severity` — Health component: issue severity
 
-| Field                 | Value                                                                          |
-| --------------------- | ------------------------------------------------------------------------------ |
-| Key                   | `projects.health_component.issue_severity`                                     |
-| Name                  | Health component: issue severity                                               |
-| Category              | projects                                                                       |
-| Definition            | Severity of open issues affecting the project.                                 |
-| Formula               | `Requires an issue data source`                                                |
-| Source                | Issues (not modelled; integrations)                                            |
-| Frequency             | Per integration sync                                                           |
-| Owner                 | PEOS Projects domain (src/modules/projects)                                    |
-| Caveats               | 05: do not fabricate metrics when integrations are unavailable.                |
-| Value type / temporal | score / point_in_time                                                          |
-| Availability          | **Unavailable** — Phase 9 — Engineering Analytics: PEOS has no issue tracking. |
-| Drill-down target     | None                                                                           |
-| Spec reference        | 01 §3 — issue severity                                                         |
-| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                 |
+| Field                 | Value                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `projects.health_component.issue_severity`                                                                               |
+| Name                  | Health component: issue severity                                                                                         |
+| Category              | projects                                                                                                                 |
+| Definition            | Severity of open issues affecting the project.                                                                           |
+| Formula               | `Requires an issue data source`                                                                                          |
+| Source                | Issues (not modelled; integrations)                                                                                      |
+| Frequency             | Per integration sync                                                                                                     |
+| Owner                 | PEOS Projects domain (src/modules/projects)                                                                              |
+| Caveats               | 05: do not fabricate metrics when integrations are unavailable.                                                          |
+| Value type / temporal | score / point_in_time                                                                                                    |
+| Availability          | **Unavailable** — Future — requires an engineering integration (GitHub/CI/CD/issue tracker): PEOS has no issue tracking. |
+| Drill-down target     | None                                                                                                                     |
+| Spec reference        | 01 §3 — issue severity                                                                                                   |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                           |
 
 #### `projects.computed_health_distribution` — Projects by computed health
 
@@ -2040,21 +2046,154 @@ metric's definition drawer.
 | Spec reference        | 01 §5 node detail — decisions; ADR 0045                                                                              |
 | Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                       |
 
+#### `engineering.activity` — Engineering activity
+
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `engineering.activity`                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Name                  | Engineering activity                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Category              | engineering                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Definition            | Count of dated engineering events recorded in the selected period across all domains: project and milestone completions, evidence recorded, goals completed, architecture decisions, experiment runs completed, and certifications earned.                                                                                                                                                                                 |
+| Formula               | `SUM over events of COUNT(event WHERE event_date BETWEEN period.start AND period.end), events = {Project.completedAt, Milestone.completedAt, Evidence.date, Goal.completedAt, ArchitectureDecision.decidedAt, ExperimentRun.completedAt, Certification.issueDate}`                                                                                                                                                         |
+| Source                | Project.completedAt, Milestone.completedAt, Evidence.date, Goal.completedAt, ArchitectureDecision.decidedAt, ExperimentRun.runAt, Certification.issueDate                                                                                                                                                                                                                                                                  |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                                                                                                                                                                                |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                                                                                                                                                                                                                                                                                                        |
+| Caveats               | Only records owned by the signed-in user are counted. • Counts recorded engineering outputs, not time spent — PEOS stores no time tracking. • Each event is counted once by its authoritative recorded date; skill demonstrations are represented by their evidence, never double-counted. • Period boundaries are whole calendar days in UTC. • Undated records are never counted and historical state is never inferred. |
+| Value type / temporal | count / period                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Availability          | Available                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Drill-down target     | Per-domain record lists for the period (via engineering.activity_by_domain)                                                                                                                                                                                                                                                                                                                                                |
+| Spec reference        | 08 Phase 9 — Engineering Analytics; 05 Analytics UX — comparison period                                                                                                                                                                                                                                                                                                                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                                                                                                                                                                             |
+
+#### `engineering.activity_trend` — Engineering activity trend
+
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `engineering.activity_trend`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Name                  | Engineering activity trend                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Category              | engineering                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Definition            | Dated engineering events per calendar month inside the selected period (continuous series; months with no events are real zeros).                                                                                                                                                                                                                                                                                                                                                                |
+| Formula               | `COUNT(events) GROUP BY month(event_date) WHERE event_date within period`                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Source                | Project.completedAt, Milestone.completedAt, Evidence.date, Goal.completedAt, ArchitectureDecision.decidedAt, ExperimentRun.runAt, Certification.issueDate                                                                                                                                                                                                                                                                                                                                        |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Caveats               | Only records owned by the signed-in user are counted. • Counts recorded engineering outputs, not time spent — PEOS stores no time tracking. • Each event is counted once by its authoritative recorded date; skill demonstrations are represented by their evidence, never double-counted. • Period boundaries are whole calendar days in UTC. • Undated records are never counted and historical state is never inferred. • Months without events are real zeros. At most 120 months are shown. |
+| Value type / temporal | distribution / period                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Availability          | Available                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Drill-down target     | The month's engineering records, reached through each domain's list (see activity by domain) and the chart's data table                                                                                                                                                                                                                                                                                                                                                                          |
+| Spec reference        | 05 Visualization Catalog — trends; 08 Phase 9                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+#### `engineering.activity_by_domain` — Engineering activity by domain
+
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `engineering.activity_by_domain`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Name                  | Engineering activity by domain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Category              | engineering                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Definition            | Distribution of the period's dated engineering events across domains — the mix of recorded engineering output (engineering focus).                                                                                                                                                                                                                                                                                                                                                                                  |
+| Formula               | `COUNT(events in period) GROUP BY domain`                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Source                | Project.completedAt, Milestone.completedAt, Evidence.date, Goal.completedAt, ArchitectureDecision.decidedAt, ExperimentRun.runAt, Certification.issueDate                                                                                                                                                                                                                                                                                                                                                           |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Caveats               | Only records owned by the signed-in user are counted. • Counts recorded engineering outputs, not time spent — PEOS stores no time tracking. • Each event is counted once by its authoritative recorded date; skill demonstrations are represented by their evidence, never double-counted. • Period boundaries are whole calendar days in UTC. • Undated records are never counted and historical state is never inferred. • A distribution of recorded output, not a measure of effort, importance or proficiency. |
+| Value type / temporal | distribution / period                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Availability          | Available                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Drill-down target     | Each domain drills into that domain's records dated in the period                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Spec reference        | 08 Phase 9 — engineering focus and distribution                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+
+#### `engineering.deployment_frequency` — Deployment frequency
+
+| Field                 | Value                                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `engineering.deployment_frequency`                                                                                                      |
+| Name                  | Deployment frequency                                                                                                                    |
+| Category              | engineering                                                                                                                             |
+| Definition            | How often changes are deployed to production (DORA).                                                                                    |
+| Formula               | `Requires a CI/CD or deployment integration`                                                                                            |
+| Source                | Integrations (not yet built)                                                                                                            |
+| Frequency             | Per integration sync                                                                                                                    |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                     |
+| Caveats               | 05 Engineering Metrics: support DORA-style concepts only where data exists; do not fabricate metrics when integrations are unavailable. |
+| Value type / temporal | count / period                                                                                                                          |
+| Availability          | **Unavailable** — Future — requires an engineering integration (GitHub/CI/CD/issue tracker): PEOS has no deployment/CI integration.     |
+| Drill-down target     | None                                                                                                                                    |
+| Spec reference        | 05 Engineering Metrics — deployment frequency (DORA)                                                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                          |
+
+#### `engineering.lead_time` — Lead time for changes
+
+| Field                 | Value                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `engineering.lead_time`                                                                                                                          |
+| Name                  | Lead time for changes                                                                                                                            |
+| Category              | engineering                                                                                                                                      |
+| Definition            | Time from commit to production (DORA).                                                                                                           |
+| Formula               | `Requires a version-control and deployment integration`                                                                                          |
+| Source                | Integrations (not yet built)                                                                                                                     |
+| Frequency             | Per integration sync                                                                                                                             |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                              |
+| Caveats               | 05 Engineering Metrics: support DORA-style concepts only where data exists; do not fabricate metrics when integrations are unavailable.          |
+| Value type / temporal | count / period                                                                                                                                   |
+| Availability          | **Unavailable** — Future — requires an engineering integration (GitHub/CI/CD/issue tracker): PEOS has no version-control/deployment integration. |
+| Drill-down target     | None                                                                                                                                             |
+| Spec reference        | 05 Engineering Metrics — lead time (DORA)                                                                                                        |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                   |
+
+#### `engineering.change_failure_rate` — Change failure rate
+
+| Field                 | Value                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `engineering.change_failure_rate`                                                                                                         |
+| Name                  | Change failure rate                                                                                                                       |
+| Category              | engineering                                                                                                                               |
+| Definition            | Share of deployments causing a failure in production (DORA).                                                                              |
+| Formula               | `Requires deployment and incident integrations`                                                                                           |
+| Source                | Integrations (not yet built)                                                                                                              |
+| Frequency             | Per integration sync                                                                                                                      |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                       |
+| Caveats               | 05 Engineering Metrics: support DORA-style concepts only where data exists; do not fabricate metrics when integrations are unavailable.   |
+| Value type / temporal | ratio / period                                                                                                                            |
+| Availability          | **Unavailable** — Future — requires an engineering integration (GitHub/CI/CD/issue tracker): PEOS has no deployment/incident integration. |
+| Drill-down target     | None                                                                                                                                      |
+| Spec reference        | 05 Engineering Metrics — change failure rate (DORA)                                                                                       |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                            |
+
+#### `engineering.time_to_restore` — Time to restore service
+
+| Field                 | Value                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `engineering.time_to_restore`                                                                                                             |
+| Name                  | Time to restore service                                                                                                                   |
+| Category              | engineering                                                                                                                               |
+| Definition            | Time to recover from a production failure (DORA).                                                                                         |
+| Formula               | `Requires an incident-management integration`                                                                                             |
+| Source                | Integrations (not yet built)                                                                                                              |
+| Frequency             | Per integration sync                                                                                                                      |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                       |
+| Caveats               | 05 Engineering Metrics: support DORA-style concepts only where data exists; do not fabricate metrics when integrations are unavailable.   |
+| Value type / temporal | count / period                                                                                                                            |
+| Availability          | **Unavailable** — Future — requires an engineering integration (GitHub/CI/CD/issue tracker): PEOS has no incident-management integration. |
+| Drill-down target     | None                                                                                                                                      |
+| Spec reference        | 05 Engineering Metrics — time to restore (DORA)                                                                                           |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                            |
+
 #### `engineering.technical_debt_trend` — Technical debt trend
 
-| Field                 | Value                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| Key                   | `engineering.technical_debt_trend`                                                        |
-| Name                  | Technical debt trend                                                                      |
-| Category              | engineering                                                                               |
-| Definition            | Change in recorded technical debt over time.                                              |
-| Formula               | `Requires an engineering data source`                                                     |
-| Source                | Integrations (not yet built)                                                              |
-| Frequency             | Per integration sync                                                                      |
-| Owner                 | PEOS Engineering Analytics (Phase 9)                                                      |
-| Caveats               | 05: do not fabricate metrics when integrations are unavailable.                           |
-| Value type / temporal | count / period                                                                            |
-| Availability          | **Unavailable** — Phase 9 — Engineering Analytics: No engineering integration exists yet. |
-| Drill-down target     | None                                                                                      |
-| Spec reference        | 00 §4 KPI strip — Technical Debt Trend                                                    |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                                            |
+| Field                 | Value                                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `engineering.technical_debt_trend`                                                                                                      |
+| Name                  | Technical debt trend                                                                                                                    |
+| Category              | engineering                                                                                                                             |
+| Definition            | Change in recorded technical debt over time.                                                                                            |
+| Formula               | `Requires an engineering data source`                                                                                                   |
+| Source                | Integrations (not yet built)                                                                                                            |
+| Frequency             | Per integration sync                                                                                                                    |
+| Owner                 | PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)                                                     |
+| Caveats               | 05 Engineering Metrics: support DORA-style concepts only where data exists; do not fabricate metrics when integrations are unavailable. |
+| Value type / temporal | count / period                                                                                                                          |
+| Availability          | **Unavailable** — Future — requires an engineering integration (GitHub/CI/CD/issue tracker): No engineering integration exists yet.     |
+| Drill-down target     | None                                                                                                                                    |
+| Spec reference        | 00 §4 KPI strip — Technical Debt Trend                                                                                                  |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                          |

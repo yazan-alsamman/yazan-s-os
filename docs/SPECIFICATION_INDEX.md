@@ -152,3 +152,14 @@ New ambiguities found and decided in Phase 1:
 | P8-6 | Portfolio generation surface vs. the twelve-tool boundary                     | Portfolio flow built in router/service/tests (project focus → project + evidence + decisions);    |
 |      |                                                                               | UI exposes Answer and Recommend; portfolio is API/service-complete (Phase 8 report §13)           |
 | P8-7 | `06` expects exactly twelve tools                                             | Implemented exactly (ADR 0047)                                                                    |
+
+## Phase 9 specification gaps (ADR 0051)
+
+| Gap  | Detail                                                                                    | Handling                                                                                                            |
+| ---- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| P9-1 | 08 defines Phase 9 as integrations (GitHub/CI/CD/issue tracker/deployment) + DORA metrics | PEOS has no integration data source; 05 says never fabricate — kept explicitly unavailable (ADR 0051)               |
+| P9-2 | 05 DORA metrics "where data exists"; none exists                                          | `engineering.{deployment_frequency,lead_time,change_failure_rate,time_to_restore,technical_debt_trend}` unavailable |
+| P9-3 | "Engineering activity" not defined as a metric                                            | Defined as dated events across 7 domains, counted once by recorded date (ADR 0051)                                  |
+| P9-4 | No time-tracking data, but "engineering focus" implies effort                             | Reported as recorded output / activity distribution, never time spent; no productivity score                        |
+| P9-5 | Technology heatmap (P3-7/P7-8) needs dated technology usage                               | Still unavailable — TechnologyUsage has no dates (unchanged)                                                        |
+| P9-6 | `/engineering` nav section (deployments/incidents/quality) planned for Phase 9            | Deferred — requires integrations; Engineering Analytics delivered under `/analytics` instead                        |

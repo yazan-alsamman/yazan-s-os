@@ -265,3 +265,38 @@ rows. Service layer, 1 warm-up + 10 timed runs; cells are median / max ms.
 `_count` of decisions; without `ANALYZE` it measured 652–660 ms. A per-query breakdown in the same
 state showed that query at 646.5 ms while the plain node query took 3.6 ms and a grouped decision
 count over the same ids 3.8 ms. The map now uses the grouped count (8–10 ms in every run).
+
+## Phase 9 — Engineering Analytics
+
+A unified, cross-domain analytics surface (`/analytics`; `engineering-analytics.service.ts`; ADR 0051) over PEOS's own dated records. It adds three governed metrics in the `engineering` category:
+
+- `engineering.activity` — count of dated engineering events in the period across all domains, with
+  a previous-period comparison.
+- `engineering.activity_trend` — those events per calendar month (continuous series, zeros real).
+- `engineering.activity_by_domain` — the distribution of the period's events across domains
+  (engineering focus).
+
+An **event** is one authoritative dated record per domain, counted once by its recorded date:
+`Project.completedAt`, `Milestone.completedAt`, `Evidence.date`, `Goal.completedAt`,
+`ArchitectureDecision.decidedAt`, `ExperimentRun.runAt`, `Certification.issueDate`. These are
+**recorded output, not time spent** (PEOS has no time tracking) — no time-spent metric and no
+engineering/productivity score are produced. Skill demonstrations are represented by their evidence,
+never double-counted.
+
+**Temporal semantics.** Whole UTC calendar days, inclusive boundaries (`period.ts`). The comparison
+is the previous equal-length period and is offered only for a bounded period with history before it;
+otherwise `unavailable` or `not_applicable`, never a misleading 0 %. Missing data is distinguished:
+`no_data` (no engineering records), `insufficient_data` (records exist but carry no usable dates), a
+real `zero` (dated records exist but none in the period).
+
+**Reconciliation (tested).** activity total = Σ domain buckets = Σ trend points; the project and
+milestone buckets equal the authoritative portfolio metrics (`projects.delivery_trend`,
+`projects.milestones_completed_in_period`).
+
+**Computation, not storage.** Two owner-scoped SQL aggregates compute the whole surface (no N+1, no
+stored snapshots). **No database changes** were required.
+
+**Integration/DORA metrics are unavailable, never fabricated.** `engineering.deployment_frequency`,
+`engineering.lead_time`, `engineering.change_failure_rate`, `engineering.time_to_restore` and
+`engineering.technical_debt_trend` are catalogued and surfaced as unavailable with their source and
+reason — PEOS has no CI/CD, version-control or issue-tracking integration (05: do not fabricate).
