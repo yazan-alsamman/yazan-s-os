@@ -29,6 +29,12 @@ Object.assign(process.env, {
   DATABASE_URL: testDatabaseUrl,
   REDIS_URL: redisUrl.toString(),
   BETTER_AUTH_SECRET: randomBytes(32).toString("base64url"),
+  // Integration platform (Phase 9.5): a real encryption key + a configured GitHub connector so the
+  // OAuth flow and token encryption are exercised against a mocked provider adapter.
+  INTEGRATION_ENCRYPTION_KEY: randomBytes(32).toString("base64"),
+  GITHUB_INTEGRATION_CLIENT_ID: "test-github-client",
+  GITHUB_INTEGRATION_CLIENT_SECRET: "test-github-secret",
+  GITHUB_INTEGRATION_REDIRECT_URI: "http://localhost:3100/api/v1/integrations/github/callback",
   AUTH_ALLOW_SIGNUP: "true",
   AUTH_GITHUB_CLIENT_ID: "",
   AUTH_GITHUB_CLIENT_SECRET: "",

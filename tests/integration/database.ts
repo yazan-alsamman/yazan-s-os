@@ -2,6 +2,10 @@ import { getDb } from "@/lib/db/client";
 import type { ServiceContext } from "@/modules/shared/service-context";
 
 const TABLES = [
+  "integration_resource_links",
+  "integration_external_resources",
+  "integration_sync_states",
+  "integration_connections",
   "copilot_tool_calls",
   "copilot_messages",
   "copilot_conversations",
