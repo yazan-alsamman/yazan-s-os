@@ -448,6 +448,22 @@ test.describe("signed in", () => {
       }
     });
   });
+
+  test.describe("wide desktop", () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test("goal surfaces fit 1440 px without horizontal scrolling", async ({ page }) => {
+      for (const path of ["/goals", `/goals/${ids.annual}`, "/goals/roadmap", "/goals/analytics"]) {
+        await page.goto(path);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        await page.waitForLoadState("networkidle");
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow, path).toBeLessThanOrEqual(0);
+      }
+    });
+  });
 });
 
 test("15, 20: a new account sees empty states and none of another user's goals", async ({

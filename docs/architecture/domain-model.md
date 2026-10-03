@@ -96,3 +96,12 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 - **SkillLevelModel** (ADR 0026): `id`, `userId`, `name` (unique per user), `levels` (JSON array of exactly six entries `{value 0–5, label, description}`, CHECK-bounded). Skills reference it through `levelModel = "custom"` + `levelModelId` (composite FK with the owner, `NO ACTION`).
 - **TechnologySkill** (ADR 0030): `userId`, `technologyId`, `skillId`, `createdAt`. Explicit user-maintained link; composite FKs to both owners; cascades.
 - **Computed, never stored:** evidence-derived level (skill-level-v1), freshness (freshness-v1), demonstration trend (skill-trend-v1) and gap / critical gap (gap-analysis-v1).
+
+## Phase 5 additions
+
+- **Goal** (ADRs 0031–0033): `id`, `userId`, `parentId?` (composite self-FK with the owner, `NO ACTION`), `title`, `type` (north_star · annual_objective · quarterly_goal), `description?`, `outcome?`, `metric?`, `unit?`, `baseline?`, `target?` (finite floats), `startDate?`, `deadline?`, `status` (draft · active · on_hold · completed · cancelled, default draft), `completedAt?`, `confidence?` (low · medium · high, manual), timestamps. Checks: title not blank; completed ⇔ completedAt; deadline ≥ startDate; not its own parent. A parent is always a strictly higher level, so the hierarchy is acyclic and at most three levels deep.
+- **GoalProject**, **GoalSkill**: `(goalId, projectId)` / `(goalId, skillId)` with `userId`; composite FKs to both owners; cascade.
+- **GoalDependency**: `(goalId, dependsOnGoalId)` with `userId`; composite FKs; not self (check); acyclic (service).
+- **GoalMeasurement**: `id`, `userId`, `goalId`, `date`, `value` (finite), `note?`, `createdAt`. Only recorded values; nothing is interpolated.
+- **Milestone.goalId?** (ADR 0032): the goal a project milestone counts toward (Goal 1:N Milestone, `04`). Composite FK with the owner, `NO ACTION`; set only through `PUT /goals/:id/milestones`. Deleting a goal unlinks its milestones.
+- **Computed, never stored:** overdue, target attainment (`goal-attainment-v1`), risk with its signals (`goal-risk-v1`), milestone progress, skill readiness (from Phase 4 skill intelligence).

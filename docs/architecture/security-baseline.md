@@ -1,4 +1,4 @@
-# PEOS Security Baseline (Phases 0–4)
+# PEOS Security Baseline (Phases 0–5)
 
 Scope: controls that exist now. Threat model source: `07_SECURITY_PRIVACY.md`.
 
@@ -189,6 +189,22 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
 
 - **Accessibility-related security.** All dialogs now return focus to their opener (`useReturnFocus`). No secrets or personal data are logged.
 - **Dependency audit (2026-10-03):** `braces <=3.0.3` (GHSA-vfj7-8cjw-p6xm, high, ReDoS/stack exhaustion). It comes only through `eslint-config-next → @next/eslint-plugin-next → fast-glob → micromatch`, a lint-time dev dependency that is not shipped and never processes user input. No patched release exists on the registry (latest is 3.0.3), so an override is not possible. **Status: open and accepted for development tooling.** Add an override once `braces@3.0.4` is published.
+
+## Phase 5 controls (goals & roadmap)
+
+- **Database ownership.** Every goal table carries `user_id` with composite FKs: `goals(parent_id, user_id)`, `goal_projects` / `goal_skills` / `goal_dependencies` to both owners, `goal_measurements(goal_id, user_id)` and `milestones(goal_id, user_id)`. A goal can never reference another user's goal, project, skill or milestone, even through a service bug.
+- **IDOR.** `tests/integration/goals-authz.int.test.ts` (HTTP, two real users) and the Phase 5 E2E cover:
+  - reading, updating, deleting and analysing a foreign goal (404);
+  - replacing a foreign goal's projects, skills, dependencies or milestones (404);
+  - linking a foreign parent, project, skill, dependency goal or milestone (400);
+  - reading, adding or deleting measurements of a foreign goal (404);
+  - injected `userId` / `ownerId` (ignored; the owner is always the session);
+  - malformed ids (404) and invalid filters or windows (400);
+  - list, analytics and roadmap never include another user's goals.
+- **Bounds.** At most 2,000 goals per user, 1,000 measurements per goal, hierarchy depth 3 by construction, dependency cycle search visits each goal once, roadmap ≤ 5 years / 40 quarters / 500 timeline rows, list page size ≤ 100.
+- **Raw SQL.** Four parameterised `$queryRaw` aggregates (`Prisma.sql`, `Prisma.join`, `Prisma.empty`); every join repeats the owner (`p.user_id = m.user_id`, …). No `$queryRawUnsafe`.
+- **Audit.** In the same transaction: `goal.created`, `goal.updated`, `goal.completed`, `goal.reopened`, `goal.deleted`, `goal.relations_updated` (sorted id lists only) and `goal_measurement.created` / `.deleted`. Computed analytics are not audited.
+- **Dependency audit (2026-10-03):** unchanged from Phase 4 — `braces <=3.0.3` (dev-only lint tooling) remains open and accepted; `pnpm audit --prod` reports no known vulnerabilities.
 
 ## Not yet implemented (tracked)
 

@@ -1,17 +1,21 @@
-# PEOS Metric Catalogue (Phases 2–4)
+# PEOS Metric Catalogue (Phases 2–5)
 
 Generated from `src/modules/analytics/metric-catalogue.ts`, which is the source of truth (ADR 0019).
 The catalogue is validated by a strict Zod schema when it is loaded, served read-only at
 `GET /api/v1/analytics/metrics`, and shown in the app at `/command-center/metrics` and in each
 metric's definition drawer.
 
-- **60 metrics**: 49 available, 11 unavailable (each with its reason and the phase or decision
+- **76 metrics**: 66 available, 10 unavailable (each with its reason and the phase or decision
   that unlocks it).
 - Phase 3 adds milestone, delivery, computed-health, portfolio, technology and project-evidence
   metrics (ADRs 0022–0025). `projects.delivery_rate` is now available (version 2).
 - Phase 4 adds evidence-derived skill metrics (`skill-level-v1`, `freshness-v1`, `skill-trend-v1`,
   `gap-analysis-v1`) and makes skill coverage, critical gaps and freshness available (version 2;
   ADRs 0026–0030). Learning velocity stays unavailable.
+- Phase 5 adds 16 goal metrics (status, risk, overdue, completion rate, target attainment,
+  coverage, deadline load, milestone progress, burndown; `goal-lifecycle-v1`,
+  `goal-attainment-v1`, `goal-risk-v1`) and makes `goals.active` available (version 2; ADRs
+  0031–0035). No composite goal progress score exists.
 - Every metric counts only records owned by the signed-in user.
 - Frequency: computed live on request. Nothing is cached, pre-aggregated or estimated.
 - Periods are whole UTC calendar days, inclusive. "Today" is the UTC calendar day.
@@ -22,68 +26,84 @@ metric's definition drawer.
 
 ## Summary
 
-| Key                                       | Name                                   | Availability                        | Drill-down                                                                  |
-| ----------------------------------------- | -------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
-| projects.total                            | Projects                               | available                           | Projects list with the same filters                                         |
-| projects.active                           | Active projects                        | available                           | Projects list filtered to the active lifecycle group                        |
-| projects.production                       | Production systems                     | available                           | Projects list filtered to the production lifecycle group                    |
-| projects.completed_in_period              | Projects completed                     | available                           | Projects list filtered to completion dates in the period                    |
-| projects.health_distribution              | Project health                         | available                           | Projects list filtered to the selected health state                         |
-| projects.lifecycle_distribution           | Projects by lifecycle status           | available                           | Projects list filtered to the selected status                               |
-| projects.delivery_rate                    | Delivery rate                          | available                           | Milestones list: completed (status=completed) and overdue (overdue=true)    |
-| projects.milestones_total                 | Milestones                             | available                           | Milestones list (per project: projectId filter)                             |
-| projects.milestones_completed             | Completed milestones                   | available                           | Milestones list filtered to status=completed                                |
-| projects.milestones_completed_in_period   | Milestones completed                   | available                           | Milestones list filtered to completedFrom/completedTo                       |
-| projects.milestones_overdue               | Overdue milestones                     | available                           | Milestones list filtered to overdue=true                                    |
-| projects.milestones_blocked               | Blocked milestones                     | available                           | Milestones list filtered to status=blocked                                  |
-| projects.milestone_completion_trend       | Milestone completions over time        | available                           | Milestones list filtered to the month's completion dates                    |
-| projects.delivery_trend                   | Project delivery trend                 | available                           | Projects list filtered to the month's completion dates                      |
-| projects.health_score                     | Computed project health                | available                           | Project dossier, Health section (component breakdown)                       |
-| projects.health_component.schedule        | Health component: schedule             | available                           | Project dossier, Health section                                             |
-| projects.health_component.milestones      | Health component: milestone completion | available                           | Project dossier, Delivery section                                           |
-| projects.health_component.blockers        | Health component: blockers             | available                           | Milestones list filtered to the project and status=blocked                  |
-| projects.health_component.recent_activity | Health component: recent activity      | available                           | Project dossier, Activity section                                           |
-| projects.health_component.scope_stability | Health component: scope stability      | Specification decision required     | —                                                                           |
-| projects.health_component.issue_severity  | Health component: issue severity       | Phase 9 — Engineering Analytics     | —                                                                           |
-| projects.computed_health_distribution     | Projects by computed health            | available                           | Computed health list filtered to the band                                   |
-| projects.health_comparison                | Manual vs computed health              | available                           | Computed health list filtered to manual status and band                     |
-| projects.technology_usage                 | Technology usage across projects       | available                           | Projects list filtered to the technology (technologyId)                     |
-| projects.evidence_coverage                | Project evidence coverage              | available                           | Projects list filtered to hasEvidence=true / false                          |
-| projects.evidence_linked                  | Project evidence                       | available                           | Evidence list filtered to the project (projectId)                           |
-| projects.evidence_verified                | Verified project evidence              | available                           | Evidence list filtered to the project and verified=true                     |
-| projects.evidence_by_type                 | Project evidence by type               | available                           | Evidence list filtered to the project and type                              |
-| projects.blocked_time                     | Blocked time                           | Specification decision required     | —                                                                           |
-| projects.portfolio_matrix                 | Project portfolio matrix               | Specification decision required     | —                                                                           |
-| projects.technology_heatmap               | Technology heatmap                     | Specification decision required     | —                                                                           |
-| evidence.total                            | Evidence items                         | available                           | Evidence list with the same filters                                         |
-| evidence.verified                         | Verified evidence                      | available                           | Evidence list filtered to verified                                          |
-| evidence.velocity                         | Evidence velocity                      | available                           | Evidence list filtered to verified items dated in the period                |
-| evidence.undated                          | Undated evidence                       | available                           | Evidence list filtered to undated items                                     |
-| skills.total                              | Skills                                 | available                           | Skills list                                                                 |
-| skills.active                             | Active skills                          | available                           | Skills list filtered to active                                              |
-| skills.with_target                        | Skills with a target level             | available                           | Skills list filtered to skills with a target                                |
-| skills.with_evidence                      | Skills with evidence                   | available                           | Skills list filtered to skills with evidence                                |
-| skills.without_evidence                   | Active skills without evidence         | available                           | Skills list filtered to active skills without evidence                      |
-| skills.by_category                        | Skills by category                     | available                           | Skills list filtered to the selected category                               |
-| certifications.total                      | Certifications                         | available                           | Certifications list                                                         |
-| certifications.expiry_distribution        | Certification expiry                   | available                           | Certifications list filtered to the selected expiry state                   |
-| certifications.expiring                   | Certifications expiring                | available                           | Certifications list filtered to expiring                                    |
-| goals.active                              | Active goals                           | Phase 5 — Goals & Roadmap           | —                                                                           |
-| skills.coverage                           | Skill coverage                         | available                           | Skill intelligence list: active, with target, freshness = fresh (numerator) |
-| skills.critical_gaps                      | Critical skill gaps                    | available                           | Skill intelligence list filtered to critical=true                           |
-| skills.freshness                          | Skill freshness                        | available                           | Skill intelligence list filtered to the freshness state                     |
-| skills.current_level                      | Evidence-derived skill level           | available                           | Skill dossier (rule-by-rule breakdown)                                      |
-| skills.level_distribution                 | Skills by derived level                | available                           | Skill intelligence list filtered to the level                               |
-| skills.gap_distribution                   | Skills by gap state                    | available                           | Skill intelligence list filtered to the gap state                           |
-| skills.targets_without_evidence           | Targets without evidence               | available                           | Skill intelligence list filtered to targetWithoutEvidence=true              |
-| skills.growth                             | Skill demonstration trend              | available                           | Skill intelligence list filtered to the trend state                         |
-| skills.production_evidence                | Skills with production evidence        | available                           | Skill intelligence list filtered to productionLinked=true                   |
-| skills.radar                              | Skill radar                            | available                           | Skill dossier per axis; skill intelligence list                             |
-| skills.learning_velocity                  | Learning velocity                      | Specification decision required     | —                                                                           |
-| evidence.production_ratio                 | Production evidence ratio              | Specification decision required     | —                                                                           |
-| ai.experiments                            | AI experiments                         | Phase 6 — AI Lab                    | —                                                                           |
-| architecture.decisions                    | Architecture decisions                 | Phase 7 — Architecture Intelligence | —                                                                           |
-| engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics     | —                                                                           |
+| Key                                       | Name                                   | Availability                        | Drill-down                                                                                         |
+| ----------------------------------------- | -------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| projects.total                            | Projects                               | available                           | Projects list with the same filters                                                                |
+| projects.active                           | Active projects                        | available                           | Projects list filtered to the active lifecycle group                                               |
+| projects.production                       | Production systems                     | available                           | Projects list filtered to the production lifecycle group                                           |
+| projects.completed_in_period              | Projects completed                     | available                           | Projects list filtered to completion dates in the period                                           |
+| projects.health_distribution              | Project health                         | available                           | Projects list filtered to the selected health state                                                |
+| projects.lifecycle_distribution           | Projects by lifecycle status           | available                           | Projects list filtered to the selected status                                                      |
+| projects.delivery_rate                    | Delivery rate                          | available                           | Milestones list: completed (status=completed) and overdue (overdue=true)                           |
+| projects.milestones_total                 | Milestones                             | available                           | Milestones list (per project: projectId filter)                                                    |
+| projects.milestones_completed             | Completed milestones                   | available                           | Milestones list filtered to status=completed                                                       |
+| projects.milestones_completed_in_period   | Milestones completed                   | available                           | Milestones list filtered to completedFrom/completedTo                                              |
+| projects.milestones_overdue               | Overdue milestones                     | available                           | Milestones list filtered to overdue=true                                                           |
+| projects.milestones_blocked               | Blocked milestones                     | available                           | Milestones list filtered to status=blocked                                                         |
+| projects.milestone_completion_trend       | Milestone completions over time        | available                           | Milestones list filtered to the month's completion dates                                           |
+| projects.delivery_trend                   | Project delivery trend                 | available                           | Projects list filtered to the month's completion dates                                             |
+| projects.health_score                     | Computed project health                | available                           | Project dossier, Health section (component breakdown)                                              |
+| projects.health_component.schedule        | Health component: schedule             | available                           | Project dossier, Health section                                                                    |
+| projects.health_component.milestones      | Health component: milestone completion | available                           | Project dossier, Delivery section                                                                  |
+| projects.health_component.blockers        | Health component: blockers             | available                           | Milestones list filtered to the project and status=blocked                                         |
+| projects.health_component.recent_activity | Health component: recent activity      | available                           | Project dossier, Activity section                                                                  |
+| projects.health_component.scope_stability | Health component: scope stability      | Specification decision required     | —                                                                                                  |
+| projects.health_component.issue_severity  | Health component: issue severity       | Phase 9 — Engineering Analytics     | —                                                                                                  |
+| projects.computed_health_distribution     | Projects by computed health            | available                           | Computed health list filtered to the band                                                          |
+| projects.health_comparison                | Manual vs computed health              | available                           | Computed health list filtered to manual status and band                                            |
+| projects.technology_usage                 | Technology usage across projects       | available                           | Projects list filtered to the technology (technologyId)                                            |
+| projects.evidence_coverage                | Project evidence coverage              | available                           | Projects list filtered to hasEvidence=true / false                                                 |
+| projects.evidence_linked                  | Project evidence                       | available                           | Evidence list filtered to the project (projectId)                                                  |
+| projects.evidence_verified                | Verified project evidence              | available                           | Evidence list filtered to the project and verified=true                                            |
+| projects.evidence_by_type                 | Project evidence by type               | available                           | Evidence list filtered to the project and type                                                     |
+| projects.blocked_time                     | Blocked time                           | Specification decision required     | —                                                                                                  |
+| projects.portfolio_matrix                 | Project portfolio matrix               | Specification decision required     | —                                                                                                  |
+| projects.technology_heatmap               | Technology heatmap                     | Specification decision required     | —                                                                                                  |
+| evidence.total                            | Evidence items                         | available                           | Evidence list with the same filters                                                                |
+| evidence.verified                         | Verified evidence                      | available                           | Evidence list filtered to verified                                                                 |
+| evidence.velocity                         | Evidence velocity                      | available                           | Evidence list filtered to verified items dated in the period                                       |
+| evidence.undated                          | Undated evidence                       | available                           | Evidence list filtered to undated items                                                            |
+| skills.total                              | Skills                                 | available                           | Skills list                                                                                        |
+| skills.active                             | Active skills                          | available                           | Skills list filtered to active                                                                     |
+| skills.with_target                        | Skills with a target level             | available                           | Skills list filtered to skills with a target                                                       |
+| skills.with_evidence                      | Skills with evidence                   | available                           | Skills list filtered to skills with evidence                                                       |
+| skills.without_evidence                   | Active skills without evidence         | available                           | Skills list filtered to active skills without evidence                                             |
+| skills.by_category                        | Skills by category                     | available                           | Skills list filtered to the selected category                                                      |
+| certifications.total                      | Certifications                         | available                           | Certifications list                                                                                |
+| certifications.expiry_distribution        | Certification expiry                   | available                           | Certifications list filtered to the selected expiry state                                          |
+| certifications.expiring                   | Certifications expiring                | available                           | Certifications list filtered to expiring                                                           |
+| goals.active                              | Active goals                           | available                           | Goals list filtered to status=active                                                               |
+| goals.total                               | Goals                                  | available                           | Goals list                                                                                         |
+| goals.overdue                             | Overdue goals                          | available                           | Goals list filtered to overdue=true                                                                |
+| goals.completion_rate                     | Goal completion rate                   | available                           | Goals list filtered to status=completed (numerator); overdue=true adds the rest of the denominator |
+| goals.at_risk                             | Goals at risk                          | available                           | Goals list filtered to risk=at_risk                                                                |
+| goals.on_track                            | On-track goals                         | available                           | Goals list filtered to risk=on_track                                                               |
+| goals.risk_distribution                   | Open goals by risk state               | available                           | Goals list filtered to the risk state                                                              |
+| goals.status_distribution                 | Goals by lifecycle status              | available                           | Goals list filtered to the status                                                                  |
+| goals.target_attainment                   | Target attainment                      | available                           | Goals list filtered to committed=true&attainment=attained (numerator)                              |
+| goals.attainment_distribution             | Goals by target attainment             | available                           | Goals list filtered to committed=true and the attainment state                                     |
+| goals.without_deadline                    | Open goals without a deadline          | available                           | Goals list filtered to open=true&hasDeadline=false                                                 |
+| goals.without_projects                    | Open goals without projects            | available                           | Goals list filtered to open=true&hasProjects=false                                                 |
+| goals.without_skills                      | Open goals without skills              | available                           | Goals list filtered to open=true&hasSkills=false                                                   |
+| goals.with_skill_gaps                     | Open goals affected by skill gaps      | available                           | Goals list filtered to open=true&skillGap=true                                                     |
+| goals.deadline_load                       | Roadmap load by quarter                | available                           | Goals list filtered to the quarter's deadline range (open goals)                                   |
+| goals.milestone_progress                  | Goal milestone progress                | available                           | Goal dossier, Milestones section                                                                   |
+| goals.burndown                            | Goal burndown                          | available                           | Goal dossier, Measurements table                                                                   |
+| skills.coverage                           | Skill coverage                         | available                           | Skill intelligence list: active, with target, freshness = fresh (numerator)                        |
+| skills.critical_gaps                      | Critical skill gaps                    | available                           | Skill intelligence list filtered to critical=true                                                  |
+| skills.freshness                          | Skill freshness                        | available                           | Skill intelligence list filtered to the freshness state                                            |
+| skills.current_level                      | Evidence-derived skill level           | available                           | Skill dossier (rule-by-rule breakdown)                                                             |
+| skills.level_distribution                 | Skills by derived level                | available                           | Skill intelligence list filtered to the level                                                      |
+| skills.gap_distribution                   | Skills by gap state                    | available                           | Skill intelligence list filtered to the gap state                                                  |
+| skills.targets_without_evidence           | Targets without evidence               | available                           | Skill intelligence list filtered to targetWithoutEvidence=true                                     |
+| skills.growth                             | Skill demonstration trend              | available                           | Skill intelligence list filtered to the trend state                                                |
+| skills.production_evidence                | Skills with production evidence        | available                           | Skill intelligence list filtered to productionLinked=true                                          |
+| skills.radar                              | Skill radar                            | available                           | Skill dossier per axis; skill intelligence list                                                    |
+| skills.learning_velocity                  | Learning velocity                      | Specification decision required     | —                                                                                                  |
+| evidence.production_ratio                 | Production evidence ratio              | Specification decision required     | —                                                                                                  |
+| ai.experiments                            | AI experiments                         | Phase 6 — AI Lab                    | —                                                                                                  |
+| architecture.decisions                    | Architecture decisions                 | Phase 7 — Architecture Intelligence | —                                                                                                  |
+| engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics     | —                                                                                                  |
 
 ## Definitions
 
@@ -925,22 +945,326 @@ metric's definition drawer.
 
 #### `goals.active` — Active goals
 
-| Field                 | Value                                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| Key                   | `goals.active`                                                                                  |
-| Name                  | Active goals                                                                                    |
-| Category              | goals                                                                                           |
-| Definition            | Goals currently in progress.                                                                    |
-| Formula               | `COUNT(goals WHERE status = active)`                                                            |
-| Source                | Goal (not yet modelled)                                                                         |
-| Frequency             | On request — computed live from the database when the Command Center loads.                     |
-| Owner                 | PEOS Goals domain (Phase 5)                                                                     |
-| Caveats               | Goals do not exist yet.                                                                         |
-| Value type / temporal | count / point_in_time                                                                           |
-| Availability          | **Unavailable** — Phase 5 — Goals & Roadmap: The Goal entity is not part of the data model yet. |
-| Drill-down target     | None                                                                                            |
-| Spec reference        | 00 §4 KPI strip — Active Goals                                                                  |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                                                  |
+| Field                 | Value                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.active`                                                                                                                                 |
+| Name                  | Active goals                                                                                                                                   |
+| Category              | goals                                                                                                                                          |
+| Definition            | Goals whose lifecycle status is active (committed and in progress).                                                                            |
+| Formula               | `COUNT(goals WHERE status = active)`                                                                                                           |
+| Source                | Goal.status                                                                                                                                    |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                    |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                          |
+| Caveats               | Only records owned by the signed-in user are counted. • Status is set by the user (goal-lifecycle-v1); on-hold and draft goals are not active. |
+| Value type / temporal | count / point_in_time                                                                                                                          |
+| Availability          | Available                                                                                                                                      |
+| Drill-down target     | Goals list filtered to status=active                                                                                                           |
+| Spec reference        | 00 §4 KPI strip — Active Goals                                                                                                                 |
+| Version               | v2 (introduced 2026-10-02, revised 2026-10-03)                                                                                                 |
+
+#### `goals.total` — Goals
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `goals.total`                                                               |
+| Name                  | Goals                                                                       |
+| Category              | goals                                                                       |
+| Definition            | All goals, in any status.                                                   |
+| Formula               | `COUNT(goals)`                                                              |
+| Source                | Goal                                                                        |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                       |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | count / point_in_time                                                       |
+| Availability          | Available                                                                   |
+| Drill-down target     | Goals list                                                                  |
+| Spec reference        | 08 Phase 5                                                                  |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `goals.overdue` — Overdue goals
+
+| Field                 | Value                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.overdue`                                                                                                                                                     |
+| Name                  | Overdue goals                                                                                                                                                       |
+| Category              | goals                                                                                                                                                               |
+| Definition            | Open goals (active or on hold) whose deadline is before today.                                                                                                      |
+| Formula               | `COUNT(goals WHERE status IN (active, on_hold) AND deadline < today)`                                                                                               |
+| Source                | Goal.status, Goal.deadline                                                                                                                                          |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                         |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                                               |
+| Caveats               | Only records owned by the signed-in user are counted. • Today is the UTC calendar day; a goal due today is not overdue. Goals without a deadline are never overdue. |
+| Value type / temporal | count / point_in_time                                                                                                                                               |
+| Availability          | Available                                                                                                                                                           |
+| Drill-down target     | Goals list filtered to overdue=true                                                                                                                                 |
+| Spec reference        | 05 Goal Metrics — overdue goals                                                                                                                                     |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                      |
+
+#### `goals.completion_rate` — Goal completion rate
+
+| Field                 | Value                                                                                                                                                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.completion_rate`                                                                                                                                                                                                                                         |
+| Name                  | Goal completion rate                                                                                                                                                                                                                                            |
+| Category              | goals                                                                                                                                                                                                                                                           |
+| Definition            | Completed goals among goals that are either completed or overdue (same shape as the project delivery rate).                                                                                                                                                     |
+| Formula               | `COUNT(status = completed) / (COUNT(status = completed) + COUNT(overdue))`                                                                                                                                                                                      |
+| Source                | Goal.status, Goal.deadline                                                                                                                                                                                                                                      |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                     |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                                                                                                                                           |
+| Caveats               | Only records owned by the signed-in user are counted. • Goals not yet due, drafts and cancelled goals are excluded. Empty denominator → insufficient data, never 0 % or 100 %. • Completion is the user's lifecycle decision; it is not inferred from progress. |
+| Value type / temporal | ratio / point_in_time                                                                                                                                                                                                                                           |
+| Availability          | Available                                                                                                                                                                                                                                                       |
+| Drill-down target     | Goals list filtered to status=completed (numerator); overdue=true adds the rest of the denominator                                                                                                                                                              |
+| Spec reference        | 05 Goal Metrics — completion rate; ADR 0034                                                                                                                                                                                                                     |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                  |
+
+#### `goals.at_risk` — Goals at risk
+
+| Field                 | Value                                                                                                                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.at_risk`                                                                                                                                                                                                                        |
+| Name                  | Goals at risk                                                                                                                                                                                                                          |
+| Category              | goals                                                                                                                                                                                                                                  |
+| Definition            | Open goals with at least one risk signal (goal-risk-v1).                                                                                                                                                                               |
+| Formula               | `COUNT(open goals WITH ≥ 1 of: overdue; overdue or blocked linked milestones; contributing project manual health at risk/blocked; linked skill with a critical gap; cancelled or overdue dependency; measurement worse than baseline)` |
+| Source                | Goal, Milestone, Project.healthStatus, Skill intelligence (gap-analysis-v1), GoalDependency, GoalMeasurement                                                                                                                           |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                            |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                                                                                                                  |
+| Caveats               | Only records owned by the signed-in user are counted. • Signals are listed, never weighted or scored (ADR 0033). • Manual confidence is not a risk input.                                                                              |
+| Value type / temporal | count / point_in_time                                                                                                                                                                                                                  |
+| Availability          | Available                                                                                                                                                                                                                              |
+| Drill-down target     | Goals list filtered to risk=at_risk                                                                                                                                                                                                    |
+| Spec reference        | 05 Goal Metrics — at-risk goals; 08 Phase 5 risk states; 00 §4 Attention — Goal at risk                                                                                                                                                |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                         |
+
+#### `goals.on_track` — On-track goals
+
+| Field                 | Value                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `goals.on_track`                                                                                                         |
+| Name                  | On-track goals                                                                                                           |
+| Category              | goals                                                                                                                    |
+| Definition            | Open goals with no risk signal and at least one assessable input (deadline, links or measurements).                      |
+| Formula               | `COUNT(open goals WHERE risk = on_track)`                                                                                |
+| Source                | Goal, Milestone, Project, Skill intelligence, GoalDependency, GoalMeasurement                                            |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                              |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                    |
+| Caveats               | Only records owned by the signed-in user are counted. • Goals with nothing to assess are 'not assessable', not on track. |
+| Value type / temporal | count / point_in_time                                                                                                    |
+| Availability          | Available                                                                                                                |
+| Drill-down target     | Goals list filtered to risk=on_track                                                                                     |
+| Spec reference        | 05 Goal Metrics — on-track goals                                                                                         |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                           |
+
+#### `goals.risk_distribution` — Open goals by risk state
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `goals.risk_distribution`                                                   |
+| Name                  | Open goals by risk state                                                    |
+| Category              | goals                                                                       |
+| Definition            | Open goals that are at risk, on track, or not assessable.                   |
+| Formula               | `COUNT(open goals) GROUP BY goal-risk-v1 state`                             |
+| Source                | goal-risk-v1                                                                |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                       |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | distribution / point_in_time                                                |
+| Availability          | Available                                                                   |
+| Drill-down target     | Goals list filtered to the risk state                                       |
+| Spec reference        | 08 Phase 5 — risk states                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `goals.status_distribution` — Goals by lifecycle status
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `goals.status_distribution`                                                 |
+| Name                  | Goals by lifecycle status                                                   |
+| Category              | goals                                                                       |
+| Definition            | Goals per lifecycle status.                                                 |
+| Formula               | `COUNT(goals) GROUP BY status`                                              |
+| Source                | Goal.status                                                                 |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                       |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | distribution / point_in_time                                                |
+| Availability          | Available                                                                   |
+| Drill-down target     | Goals list filtered to the status                                           |
+| Spec reference        | ADR 0031                                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `goals.target_attainment` — Target attainment
+
+| Field                 | Value                                                                                                                                                                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.target_attainment`                                                                                                                                                                                                                                                                                                                      |
+| Name                  | Target attainment                                                                                                                                                                                                                                                                                                                              |
+| Category              | goals                                                                                                                                                                                                                                                                                                                                          |
+| Definition            | Share of measurable goals (open or completed, with baseline, target and a measurement) whose latest measurement has reached the target.                                                                                                                                                                                                        |
+| Formula               | `COUNT(attainment = attained) / COUNT(attainment computable); attainment = (latest − baseline) / (target − baseline) ≥ 1 (goal-attainment-v1)`                                                                                                                                                                                                 |
+| Source                | Goal.baseline, Goal.target, GoalMeasurement                                                                                                                                                                                                                                                                                                    |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                                                                                                                                    |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                                                                                                                                                                                                                          |
+| Caveats               | Only records owned by the signed-in user are counted. • Direction comes from the sign of target − baseline (lower-is-better metrics work). • Goals without baseline, target or a measurement are not computable and excluded — never counted as 0 % or 100 %. • Measurements are recorded by the user; future-dated measurements are rejected. |
+| Value type / temporal | ratio / point_in_time                                                                                                                                                                                                                                                                                                                          |
+| Availability          | Available                                                                                                                                                                                                                                                                                                                                      |
+| Drill-down target     | Goals list filtered to committed=true&attainment=attained (numerator)                                                                                                                                                                                                                                                                          |
+| Spec reference        | 05 Goal Metrics — target attainment; ADR 0034                                                                                                                                                                                                                                                                                                  |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                                                                                                                                 |
+
+#### `goals.attainment_distribution` — Goals by target attainment
+
+| Field                 | Value                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `goals.attainment_distribution`                                                                                                      |
+| Name                  | Goals by target attainment                                                                                                           |
+| Category              | goals                                                                                                                                |
+| Definition            | Open or completed goals by attainment state: attained, in progress, regressed, not computable.                                       |
+| Formula               | `COUNT(open or completed goals) GROUP BY goal-attainment-v1 state`                                                                   |
+| Source                | Goal.baseline, Goal.target, GoalMeasurement                                                                                          |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                          |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                |
+| Caveats               | Only records owned by the signed-in user are counted. • 'Not computable' lists goals that lack a measurable target or a measurement. |
+| Value type / temporal | distribution / point_in_time                                                                                                         |
+| Availability          | Available                                                                                                                            |
+| Drill-down target     | Goals list filtered to committed=true and the attainment state                                                                       |
+| Spec reference        | 05 Goal Metrics — target attainment                                                                                                  |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                       |
+
+#### `goals.without_deadline` — Open goals without a deadline
+
+| Field                 | Value                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.without_deadline`                                                                                                                    |
+| Name                  | Open goals without a deadline                                                                                                               |
+| Category              | goals                                                                                                                                       |
+| Definition            | Open goals that have no deadline.                                                                                                           |
+| Formula               | `COUNT(open goals WHERE deadline IS NULL)`                                                                                                  |
+| Source                | Goal.deadline                                                                                                                               |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                 |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                       |
+| Caveats               | Only records owned by the signed-in user are counted. • A data-completeness signal; such goals cannot be overdue or placed on the timeline. |
+| Value type / temporal | count / point_in_time                                                                                                                       |
+| Availability          | Available                                                                                                                                   |
+| Drill-down target     | Goals list filtered to open=true&hasDeadline=false                                                                                          |
+| Spec reference        | 08 Phase 5 — roadmap                                                                                                                        |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                              |
+
+#### `goals.without_projects` — Open goals without projects
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `goals.without_projects`                                                    |
+| Name                  | Open goals without projects                                                 |
+| Category              | goals                                                                       |
+| Definition            | Open goals with no contributing project linked.                             |
+| Formula               | `COUNT(open goals WITH no goal_projects)`                                   |
+| Source                | GoalProject                                                                 |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                       |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | count / point_in_time                                                       |
+| Availability          | Available                                                                   |
+| Drill-down target     | Goals list filtered to open=true&hasProjects=false                          |
+| Spec reference        | 08 Phase 5 acceptance — goals connect to projects                           |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `goals.without_skills` — Open goals without skills
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `goals.without_skills`                                                      |
+| Name                  | Open goals without skills                                                   |
+| Category              | goals                                                                       |
+| Definition            | Open goals with no skill linked.                                            |
+| Formula               | `COUNT(open goals WITH no goal_skills)`                                     |
+| Source                | GoalSkill                                                                   |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                       |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | count / point_in_time                                                       |
+| Availability          | Available                                                                   |
+| Drill-down target     | Goals list filtered to open=true&hasSkills=false                            |
+| Spec reference        | 08 Phase 5 acceptance — goals connect to skills                             |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `goals.with_skill_gaps` — Open goals affected by skill gaps
+
+| Field                 | Value                                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.with_skill_gaps`                                                                                                             |
+| Name                  | Open goals affected by skill gaps                                                                                                   |
+| Category              | goals                                                                                                                               |
+| Definition            | Open goals with at least one linked skill whose evidence-derived level is below its target.                                         |
+| Formula               | `COUNT(open goals WITH ≥ 1 linked skill in gap state below_target) — Phase 4 gap-analysis-v1`                                       |
+| Source                | GoalSkill, Skill intelligence (skill-level-v1, gap-analysis-v1)                                                                     |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                         |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                               |
+| Caveats               | Only records owned by the signed-in user are counted. • Skills without evidence are not gaps (they are 'not computable', ADR 0029). |
+| Value type / temporal | count / point_in_time                                                                                                               |
+| Availability          | Available                                                                                                                           |
+| Drill-down target     | Goals list filtered to open=true&skillGap=true                                                                                      |
+| Spec reference        | Phase 5 prompt §7; ADR 0029                                                                                                         |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                      |
+
+#### `goals.deadline_load` — Roadmap load by quarter
+
+| Field                 | Value                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| Key                   | `goals.deadline_load`                                                                            |
+| Name                  | Roadmap load by quarter                                                                          |
+| Category              | goals                                                                                            |
+| Definition            | Open goals per deadline quarter: overdue, the next four quarters, later, and without a deadline. |
+| Formula               | `COUNT(open goals) GROUP BY quarter(deadline) with overdue and undated buckets`                  |
+| Source                | Goal.deadline, Goal.status                                                                       |
+| Frequency             | On request — computed live from the database when the Command Center loads.                      |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                            |
+| Caveats               | Only records owned by the signed-in user are counted. • Quarters are UTC calendar quarters.      |
+| Value type / temporal | distribution / point_in_time                                                                     |
+| Availability          | Available                                                                                        |
+| Drill-down target     | Goals list filtered to the quarter's deadline range (open goals)                                 |
+| Spec reference        | 01 §8 Roadmap views — quarter board                                                              |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                   |
+
+#### `goals.milestone_progress` — Goal milestone progress
+
+| Field                 | Value                                                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.milestone_progress`                                                                                                                                      |
+| Name                  | Goal milestone progress                                                                                                                                         |
+| Category              | goals                                                                                                                                                           |
+| Definition            | For one goal: completed milestones among its linked, non-cancelled milestones.                                                                                  |
+| Formula               | `COUNT(linked milestones WHERE status = completed) / COUNT(linked milestones WHERE status <> cancelled)`                                                        |
+| Source                | Milestone.goalId, Milestone.status                                                                                                                              |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                     |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                                           |
+| Caveats               | Only records owned by the signed-in user are counted. • No linked milestones → not computable. A milestone counts toward one goal only (04 Goal 1:N Milestone). |
+| Value type / temporal | ratio / point_in_time                                                                                                                                           |
+| Availability          | Available                                                                                                                                                       |
+| Drill-down target     | Goal dossier, Milestones section                                                                                                                                |
+| Spec reference        | 04 Milestone.goalId; 08 Phase 5 — progress metrics                                                                                                              |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                  |
+
+#### `goals.burndown` — Goal burndown
+
+| Field                 | Value                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `goals.burndown`                                                                                                                       |
+| Name                  | Goal burndown                                                                                                                          |
+| Category              | goals                                                                                                                                  |
+| Definition            | For one goal: recorded measurements of its metric over time against baseline and target.                                               |
+| Formula               | `Series of GoalMeasurement(date, value) with baseline and target reference lines`                                                      |
+| Source                | GoalMeasurement, Goal.baseline, Goal.target                                                                                            |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                            |
+| Owner                 | PEOS Goals domain (src/modules/goals)                                                                                                  |
+| Caveats               | Only records owned by the signed-in user are counted. • Only recorded measurements are plotted — nothing is interpolated or projected. |
+| Value type / temporal | distribution / period                                                                                                                  |
+| Availability          | Available                                                                                                                              |
+| Drill-down target     | Goal dossier, Measurements table                                                                                                       |
+| Spec reference        | 05 Visualization Catalog — Goal Burndown                                                                                               |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                         |
 
 #### `skills.coverage` — Skill coverage
 

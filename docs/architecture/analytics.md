@@ -1,4 +1,4 @@
-# PEOS Analytics & Command Center Architecture (Phase 2)
+# PEOS Analytics & Command Center Architecture (Phases 2–5)
 
 Decisions: ADR 0018 (lifecycle groups), ADR 0019 (catalogue and result contract), ADR 0020
 (filters and drill-down), ADR 0021 (activity and timeline). The metric list is in
@@ -151,3 +151,41 @@ Each cell is median / max in milliseconds.
 **Outliers.** Runs b and d were up to 10× slower on the Phase 1 skill list and detail, the dossier, the graph overview and the dashboard. The cause was verified: the benchmark bulk-loads freshly truncated tables, and the planner used stale statistics until `ANALYZE` ran. Run c, with an explicit `ANALYZE`, reproduces the fast numbers. In normal use autovacuum maintains statistics, and rows arrive incrementally.
 
 **Caching:** none. Phase 4 adds no indexes beyond the primary keys and `skill_id` / `level_model_id` indexes of the new tables; the existing join-table indexes cover the aggregates.
+
+## Phase 5 — goals & roadmap
+
+- **Signals** (`src/modules/goals/goal-intelligence.ts`): `analyseGoals` loads the goals, then runs six parallel owner-scoped aggregates: linked milestones (total, completed, overdue, blocked), contributing projects (delivered, manual at-risk/blocked), goal–skill links, dependencies (blocking = cancelled or overdue), the latest measurement (`DISTINCT ON`) and measurement counts. Linked skills are analysed once with the Phase 4 `analyseSkills`, so goal skill readiness is the same value as the skill dossier. Unfiltered calls scope the aggregates by owner instead of a long id list.
+- **Pure rules** (`goal.rules.ts`): `goal-lifecycle-v1`, `goal-attainment-v1` and `goal-risk-v1` (ADRs 0031 and 0033). No composite progress score exists.
+- **Source list:** `/api/v1/goals`. Structural filters run in SQL (`goalWhere`); derived filters (`overdue`, `risk`, `attainment`, `skillGap`) run on the analysed set (`matchesDerived`). The analytics service evaluates every goal metric with `matchesGoalQuery`, which mirrors `goalWhere` and calls the same `matchesDerived`, so each value equals its drill-down list total (integration-tested for every metric and bucket).
+- **Goal analytics** (`goals-analytics.service.ts`): total, active, overdue, completion rate, at risk, on track, risk/status/attainment distributions, target attainment, coverage gaps (no deadline, projects or skills; skill gaps), deadline load and the at-risk attention list. The Command Center reuses it for the Active goals KPI and the attention panel.
+- **Roadmap** (`roadmap.service.ts`): one analysis plus one dependency query. The timeline is capped at 500 goals, undated goals at 50 shown (with the full count); quarters are UTC calendar quarters (≤ 40).
+
+### Phase 5 performance
+
+Measured on PostgreSQL 17.10 against a local Docker database. One user held:
+
+- 1,000 goals (10 North Stars, 90 annual objectives, 900 quarterly goals)
+- 5,000 goal relationships: 2,000 goal–project, 1,500 goal–skill, 500 dependencies, 1,000 milestone links
+- 1,002 measurements
+- 1,000 projects, 3,000 milestones
+- 150 skills, 12,000 evidence items, 12,000 skill–evidence links (Phase 4 volume)
+- 50,000 audit rows
+
+Each call ran once as an excluded warm-up, then 10 timed times, through the service layer. The median is the mean of the 5th and 6th runs. Cells are median / max in milliseconds.
+
+| Call                                   | Run a (`ANALYZE`) | Run b (no `ANALYZE`) | Run c (no `ANALYZE`) |
+| -------------------------------------- | ----------------- | -------------------- | -------------------- |
+| Goal list (page 1, sort deadline)      | 78.2 / 107.4      | 77.5 / 116.3         | 89.8 / 115.6         |
+| Goal list (risk = at risk, sort risk)  | 78.7 / 83.5       | 73.3 / 78.7          | 78.0 / 92.2          |
+| Goal list (search + open)              | 39.1 / 50.3       | 40.7 / 43.8          | 39.3 / 45.0          |
+| Goal detail (record)                   | 2.6 / 3.2         | 3.5 / 4.4            | 2.3 / 2.5            |
+| Goal intelligence (dossier)            | 47.3 / 67.8       | 48.8 / 83.9          | 47.8 / 69.4          |
+| Goal analytics (summary)               | 82.8 / 87.9       | 83.4 / 102.6         | 79.1 / 91.6          |
+| Roadmap (default window)               | 75.9 / 92.8       | 80.2 / 100.2         | 75.6 / 86.1          |
+| Roadmap (5-year window)                | 78.8 / 103.5      | 82.5 / 94.7          | 78.9 / 90.5          |
+| Command Center dashboard (incl. goals) | 114.8 / 152.9     | 128.2 / 137.7        | 120.1 / 130.5        |
+| Skill intelligence list (Phase 4 path) | 25.9 / 29.1       | 26.3 / 30.1          | 26.1 / 29.5          |
+
+**Planner statistics (verified).** Before the final code, a run without `ANALYZE` measured the dossier at 1,373.6 ms. A per-query breakdown in the same stale-statistics state showed the cause: listing a goal's projects through a projects-side semi-join (`project.goals.some`) took 1,318.6 ms, while the same rows read from `goal_projects` by its primary key took 9.2 ms. The dossier now reads from the link table; runs b and c above are without `ANALYZE`. Earlier no-`ANALYZE` runs also measured the unfiltered goal list at 163–184 ms (before the owner-scoped aggregate change); they did not recur in the final runs. Statistics still matter for other relation filters (`goalWhere` uses `some` for `projectId`, `skillId`, `hasProjects` and `hasSkills`), so bulk benchmarks must `ANALYZE` after loading.
+
+**Caching:** none. Phase 5 adds the indexes of the new tables only: `goals(user_id, status, deadline)`, `goals(parent_id)`, `goal_projects(project_id)`, `goal_skills(skill_id)`, `goal_dependencies(depends_on_goal_id)`, `goal_measurements(goal_id, date)` and `milestones(goal_id)`.

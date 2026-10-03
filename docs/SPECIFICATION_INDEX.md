@@ -53,7 +53,7 @@ resolution or an explicit deferral; none was resolved by inventing requirements.
 | C3  | Resolved for Phase 0–1                                                                                                                                                                                    | ADR 0004                     |
 | C4  | **Open.** Knowledge remains unscheduled; LearningItem deferred with it                                                                                                                                    | ADR 0017                     |
 | C5  | **Partly resolved.** Education designed and built; import review queue built. Opportunity, Notification, domain events, metric definitions and tool-call log remain deferred to their phases              | ADR 0012, ADR 0014, ADR 0017 |
-| C6  | **Partly resolved.** Certification `category` added; Technology↔Skill built in Phase 4 (ADR 0030). Goal↔Skill deferred (Phase 5)                                                                          | ADR 0011, ADR 0017           |
+| C6  | **Partly resolved.** Certification `category` added; Technology↔Skill built in Phase 4 (ADR 0030); Goal↔Skill built in Phase 5 (ADR 0032)                                                                 | ADR 0011, ADR 0017           |
 | C7  | **Resolved for available metrics** (Phase 3: 52 metrics, 39 available; ADR 0024). Metric catalogue (28 metrics, 19 available) with full governance; 9 KPIs are catalogued as unavailable with their phase | ADR 0019                     |
 | C8  | Resolved                                                                                                                                                                                                  | —                            |
 | C9  | Resolved                                                                                                                                                                                                  | ADR 0002                     |
@@ -80,7 +80,7 @@ New ambiguities found and decided in Phase 1:
 | P3-5 | Blocked time and lifecycle durations need status history, which is not recorded                                  | Unavailable; never reconstructed                           |
 | P3-6 | Portfolio matrix needs numeric impact, complexity and effort                                                     | Unavailable                                                |
 | P3-7 | Technology heatmap needs dated usage                                                                             | Unavailable                                                |
-| P3-8 | `04` Milestone.goalId — Goals are Phase 5                                                                        | Deferred (ADR 0022)                                        |
+| P3-8 | `04` Milestone.goalId — Goals are Phase 5                                                                        | Built in Phase 5 (ADR 0032)                                |
 
 ## Phase 4 specification gaps (ADRs 0026–0030)
 
@@ -94,3 +94,20 @@ New ambiguities found and decided in Phase 1:
 | P4-6 | Expert / "can lead" has no leadership record                                            | Verified testimonial or publication as the closest real signal (ADR 0027)                             |
 | P4-7 | Learning metrics need LearningItem (Knowledge is unscheduled, gap C4)                   | Unavailable (`skills.learning_velocity`)                                                              |
 | P4-8 | Production evidence ratio: no production flag on evidence beyond `production_metric`    | `evidence.production_ratio` stays unavailable; skills use production projects plus production metrics |
+
+## Phase 5 specification gaps (ADRs 0031–0035)
+
+| Gap   | Detail                                                                            | Handling                                                                              |
+| ----- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| P5-1  | `10` has no Goals acceptance section; `12_IMPLEMENTATION_GUIDE.md` does not exist | Acceptance taken from `08` Phase 5 and the Phase 5 prompt                             |
+| P5-2  | Goal `status` values are not defined                                              | draft · active · on_hold · completed · cancelled with a transition table (ADR 0031)   |
+| P5-3  | Hierarchy rules (which level may parent which) are not defined                    | Strictly higher level; levels may be skipped; depth ≤ 3 (ADR 0031)                    |
+| P5-4  | `01` §8 "Action" level and `04` Goal 1:N Task — no Task entity exists             | Deferred; milestones are the lowest linked level                                      |
+| P5-5  | `00` §5 Goal → Evidence is not in `04`                                            | Deferred (evidence reaches goals through projects and skills)                         |
+| P5-6  | Target attainment, on-track and at-risk are named in `05` but not defined         | goal-attainment-v1 and goal-risk-v1 with explicit signals, no score (ADR 0033)        |
+| P5-7  | Goal Burndown needs a measurement history                                         | `goal_measurements` (recorded values only) (ADR 0032)                                 |
+| P5-8  | Roadmap needs a start date; `04` has only a deadline                              | Optional `startDate` added; spans drawn only between recorded dates (ADR 0035)        |
+| P5-9  | No per-goal target level for a skill                                              | The skill's own target and Phase 4 gap are used; no importance is invented (ADR 0032) |
+| P5-10 | `confidence` semantics are undefined                                              | Manual self-assessment, shown as entered, never used in a calculation (ADR 0033)      |
+| P5-11 | Completion rate denominator is undefined                                          | completed ÷ (completed + overdue), mirroring the Phase 3 delivery rate (ADR 0034)     |
+| P5-12 | Priority is not in `04`                                                           | Not added                                                                             |

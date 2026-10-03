@@ -138,3 +138,16 @@ HTTP 503 only when the database (critical) is unavailable.
 - **Algorithms:** `src/modules/skills/skill-intelligence.ts` is pure and versioned (`skill-level-v1`, `freshness-v1`, `skill-trend-v1`, `gap-analysis-v1`). Change them only together with a new ADR and the catalogue entries.
 - **Dialogs:** wrap controlled Radix dialogs with `useReturnFocus()` (`src/lib/ui/return-focus.ts`) so focus returns to the opener.
 - **Benchmarks** after bulk inserts need `ANALYZE`, or the planner may use stale statistics (see `analytics.md`).
+
+## Phase 5 notes
+
+- **Migration:** run `pnpm db:deploy` on both databases. It adds `goals`, `goal_projects`, `goal_skills`, `goal_dependencies`, `goal_measurements` and `milestones.goal_id` (additive; no data is changed).
+- **Pages:**
+  - `/goals` — the goals list (source list for every goal metric)
+  - `/goals/:id` — the goal dossier
+  - `/goals/roadmap` — timeline, quarter board, goal tree and dependencies (window in the URL)
+  - `/goals/analytics` — goal KPIs and distributions
+- **Rules:** `src/modules/goals/goal.rules.ts` is pure and versioned (`goal-lifecycle-v1`, `goal-attainment-v1`, `goal-risk-v1`). Change them only together with a new ADR and the catalogue entries.
+- **Reconciliation:** a new goal filter must be added to `goalWhere` (SQL) **and** `matchesGoalQuery` (analytics), or list totals and metrics drift; the integration tests compare them for every metric.
+- **Forms:** `FieldDescriptor.kind = "number"` sends a number or null; `ResourceList` accepts `editFields` when the edit form differs from the create form.
+- **Scroll regions:** make horizontally scrolling table wrappers `relative`, or absolutely positioned `sr-only` cells escape the clip and widen the page on phones.
