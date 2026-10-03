@@ -16,6 +16,10 @@ const TABS = [
     href: "/settings/export",
     label: "Export",
   },
+  {
+    href: "/settings/integrations",
+    label: "Integrations",
+  },
 ];
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {

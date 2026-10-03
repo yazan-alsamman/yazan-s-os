@@ -12,7 +12,7 @@ export default function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        description="Account and appearance. Integrations arrive in Phase 9."
+        description="Account and appearance. Manage external connections under Integrations."
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <AccountPanel />
