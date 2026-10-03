@@ -2,6 +2,9 @@ import { getDb } from "@/lib/db/client";
 import type { ServiceContext } from "@/modules/shared/service-context";
 
 const TABLES = [
+  "copilot_tool_calls",
+  "copilot_messages",
+  "copilot_conversations",
   "audit_logs",
   "decision_components",
   "decision_projects",
