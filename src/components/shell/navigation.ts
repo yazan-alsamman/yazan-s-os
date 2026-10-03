@@ -193,7 +193,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: "/copilot",
     icon: Bot,
     summary: "Evidence-grounded assistant over your structured data, with citations.",
-    availability: "planned",
+    availability: "available",
     plannedIn: "Phase 8 — AI Copilot",
     placement: "footer",
     mobilePrimary: true,
