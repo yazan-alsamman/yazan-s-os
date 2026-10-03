@@ -89,6 +89,7 @@ export const DOSSIER_SECTIONS = [
   { id: "health", label: "Health" },
   { id: "delivery", label: "Delivery" },
   { id: "context", label: "Engineering context" },
+  { id: "architecture", label: "Architecture" },
   { id: "evidence", label: "Evidence" },
   { id: "activity", label: "Activity" },
 ] as const;

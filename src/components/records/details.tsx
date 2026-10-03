@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import { ProjectArchitecture } from "@/components/architecture/project-architecture";
 import { MetricDefinitionProvider } from "@/components/command-center/metric-definition";
 import { ConfirmDelete } from "@/components/data/confirm-delete";
 import {
@@ -356,9 +357,23 @@ export function ProjectDetail({ id }: { id: string }) {
                   />
                 </div>
                 <p className="text-caption text-muted-foreground">
-                  Architecture decisions and AI experiments for this project arrive with
-                  Architecture Intelligence (Phase 7) and the AI Lab (Phase 6).
+                  AI experiments for this project are in the{" "}
+                  <Link
+                    href={`/ai-lab?projectId=${p.id}` as never}
+                    className="underline underline-offset-4"
+                  >
+                    AI Lab
+                  </Link>
+                  .
                 </p>
+              </DossierSection>
+
+              <DossierSection
+                id="architecture"
+                title="Architecture"
+                description="Architecture decisions and components explicitly linked to this project. Technologies alone do not count as architecture."
+              >
+                <ProjectArchitecture projectId={p.id} />
               </DossierSection>
 
               <DossierSection

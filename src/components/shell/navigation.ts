@@ -133,8 +133,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: "/architecture",
     icon: Network,
     summary: "Architecture decision records and the interactive architecture map.",
-    availability: "planned",
-    plannedIn: "Phase 7 — Architecture Intelligence",
+    availability: "available",
+    plannedIn: "Phase 7 — Architecture Intelligence (available)",
     placement: "main",
   },
   {
