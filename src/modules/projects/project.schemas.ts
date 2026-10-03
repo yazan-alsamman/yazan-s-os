@@ -89,6 +89,8 @@ export const listProjectsQuerySchema = paginationQuerySchema.extend({
   completedTo: isoDate.optional(),
   /** Projects with (true) / without (false) linked evidence — portfolio drill-down (ADR 0025). */
   hasEvidence: booleanQuerySchema,
+  /** Projects with (true) / without (false) a linked architecture decision (ADR 0045). */
+  hasArchitecture: booleanQuerySchema,
   sort: sortSchema(["name", "updatedAt", "startDate", "status", "createdAt"], "-updatedAt"),
 });
 

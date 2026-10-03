@@ -14,6 +14,7 @@ const SAMPLE_BUCKET: Record<string, string> = {
   "projects.evidence_coverage": "true",
   "goals.deadline_load": "2026-Q4",
   "ai.experiments_per_month": "2026-05",
+  "architecture.decision_timeline": "2026-05",
 };
 
 describe("Command Center drill-down mapping", () => {
@@ -49,8 +50,8 @@ describe("Command Center drill-down mapping", () => {
     expect(metricHref("certifications.expiring", {}, period)).toBe(
       "/certifications?expiry=expiring&current=true&sort=expiryDate",
     );
-    // Goals (P5) and AI experiments (P6) are now available; Architecture (Phase 7) still has no drill-down.
-    expect(metricHref("architecture.decisions", {}, period)).toBeNull();
+    // Architecture became available in Phase 7; technical debt (Phase 9) still has no drill-down.
+    expect(metricHref("engineering.technical_debt_trend", {}, period)).toBeNull();
   });
 
   it("maps distribution buckets, refusing buckets without a list equivalent", () => {

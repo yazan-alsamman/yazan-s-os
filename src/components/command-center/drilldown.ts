@@ -45,6 +45,11 @@ const evidenceBase = (f: DrillFilters) => ({
 const skillBase = (f: DrillFilters) => ({ category: f.skillCategory });
 /** Phase 5 source list: the goals list. */
 const goalsList = (params: Record<string, string | undefined | null>) => href("/goals", params);
+/** Phase 7 source lists: architecture decisions and components. */
+const decisionsList = (params: Record<string, string | undefined | null>) =>
+  href("/architecture", params);
+const componentsList = (params: Record<string, string | undefined | null>) =>
+  href("/architecture/components", params);
 /** Phase 6 source list: the experiments list. */
 const experimentsList = (params: Record<string, string | undefined | null>) =>
   href("/ai-lab", params);
@@ -195,6 +200,27 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
       return experimentsList({ hasRuns: "true", hasEvaluation: "false" });
     case "ai.experiments_missing_provenance":
       return experimentsList({ hasEvidence: "false" });
+    // ── Phase 7 — Architecture Intelligence (ADR 0045) ──
+    case "architecture.decisions":
+      return decisionsList({});
+    case "architecture.decisions_in_force":
+      return decisionsList({ inForce: "true" });
+    case "architecture.revisit_due":
+      return decisionsList({ revisitDue: "true", sort: "revisitDate" });
+    case "architecture.stale_critical_decisions":
+      return decisionsList({ staleCritical: "true", sort: "revisitDate" });
+    case "architecture.decisions_without_evidence":
+      return decisionsList({ hasEvidence: "false" });
+    case "architecture.decisions_with_gaps":
+      return decisionsList({ incomplete: "true" });
+    case "architecture.project_coverage": // numerator; the denominator is all projects
+      return href("/projects", { hasArchitecture: "true" });
+    case "architecture.components":
+      return componentsList({});
+    case "architecture.critical_components":
+      return componentsList({ critical: "true" });
+    case "architecture.components_without_decisions":
+      return componentsList({ hasDecisions: "false" });
     default:
       return null;
   }
@@ -275,6 +301,14 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
       return bucket === "__none" ? null : experimentsList({ category: bucket });
     case "ai.reproducibility_distribution":
       return experimentsList({ reproducibility: bucket });
+    case "architecture.decisions_by_status":
+      return decisionsList({ status: bucket });
+    case "architecture.components_by_type":
+      return componentsList({ type: bucket });
+    case "architecture.decision_timeline": {
+      const m = monthBounds(bucket);
+      return m ? decisionsList({ decidedFrom: m.from, decidedTo: m.to }) : null;
+    }
     case "ai.experiments_per_month": {
       const m = monthBounds(bucket);
       return m ? experimentsList({ createdFrom: m.from, createdTo: m.to }) : null;

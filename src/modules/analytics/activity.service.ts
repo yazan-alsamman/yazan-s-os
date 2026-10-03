@@ -31,6 +31,9 @@ export type ActivityEntity =
   | "ai_experiment"
   | "experiment_run"
   | "experiment_metric"
+  | "architecture_decision"
+  | "architecture_alternative"
+  | "architecture_component"
   | "import_job"
   | "import_record"
   | "export";
@@ -62,6 +65,9 @@ const ENTITY_NOUNS: Record<ActivityEntity, string> = {
   ai_experiment: "AI experiment",
   experiment_run: "experiment run",
   experiment_metric: "evaluation metric",
+  architecture_decision: "architecture decision",
+  architecture_alternative: "decision alternative",
+  architecture_component: "architecture component",
   import_job: "import",
   import_record: "import record",
   export: "data export",
@@ -96,6 +102,9 @@ const LABEL_FIELDS: Partial<Record<ActivityEntity, readonly string[]>> = {
   ai_experiment: ["title"],
   experiment_run: ["label"],
   experiment_metric: ["name"],
+  architecture_decision: ["title"],
+  architecture_alternative: ["name"],
+  architecture_component: ["name"],
   import_job: ["fileName"],
   import_record: ["entityType"],
   export: ["format"],
@@ -192,6 +201,16 @@ export function toActivityItem(
       deleted = Boolean(id) && !href;
       break;
     }
+    case "architecture_alternative": {
+      // An alternative never moves between decisions; the snapshot decisionId is authoritative.
+      const decisionId = snapshot?.decisionId;
+      href =
+        typeof decisionId === "string" && exists("architecture_decision", decisionId)
+          ? `/architecture/${decisionId}#alternatives`
+          : null;
+      deleted = Boolean(id) && !href;
+      break;
+    }
     case "experiment_metric":
       // Evaluation metrics have no page of their own; shown without a link.
       break;
@@ -207,6 +226,8 @@ export function toActivityItem(
         evidence: "/evidence/",
         goal: "/goals/",
         ai_experiment: "/ai-lab/",
+        architecture_decision: "/architecture/",
+        architecture_component: "/architecture/components/",
       };
       if (id && exists(entity, id)) href = `${paths[entity]}${id}`;
       else deleted = Boolean(id);
@@ -329,6 +350,27 @@ async function present(db: PrismaClient, userId: string, rows: AuditRow[]) {
         },
       },
       select: { id: true, title: true },
+    }),
+    db.architectureDecision.findMany({
+      where: {
+        userId,
+        id: {
+          in: [
+            ...new Set([
+              ...idsOf("architecture_decision"),
+              ...rows
+                .filter((r) => r.entityType === "architecture_alternative")
+                .map((r) => asRecord(r.after ?? r.before)?.decisionId)
+                .filter((v): v is string => typeof v === "string"),
+            ]),
+          ],
+        },
+      },
+      select: { id: true, title: true },
+    }),
+    db.architectureComponent.findMany({
+      where: { userId, id: { in: idsOf("architecture_component") } },
+      select: { id: true, name: true },
     }),
     db.importJob.findMany({ where: { userId, id: { in: jobIds } }, select: { id: true } }),
   ]);

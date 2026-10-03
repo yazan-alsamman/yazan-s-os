@@ -76,6 +76,9 @@ export const projectRepository = {
     if (query.hasEvidence !== undefined) {
       and.push({ evidence: query.hasEvidence ? { some: {} } : { none: {} } });
     }
+    if (query.hasArchitecture !== undefined) {
+      and.push({ architectureDecisions: query.hasArchitecture ? { some: {} } : { none: {} } });
+    }
     if (and.length) where.AND = and;
 
     const [rows, total] = await Promise.all([

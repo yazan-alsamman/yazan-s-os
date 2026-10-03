@@ -180,8 +180,13 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
   const certs = dashboard.certifications.attention;
   const overdue = dashboard.projects.overdueMilestones;
   const goals = dashboard.goals.attention;
+  const stale = dashboard.architecture.attention.staleCritical;
   const empty =
-    projects.length === 0 && certs.length === 0 && overdue.length === 0 && goals.length === 0;
+    projects.length === 0 &&
+    certs.length === 0 &&
+    overdue.length === 0 &&
+    goals.length === 0 &&
+    stale.length === 0;
   return (
     <section aria-labelledby="attention-title" className="rounded-lg border bg-surface">
       <header className="border-b px-4 py-3">
@@ -189,8 +194,9 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
           Needs attention
         </h2>
         <p className="mt-1 text-caption text-muted-foreground">
-          Blocked or at-risk projects (not archived), overdue milestones, goals at risk, and
-          certifications expired or expiring within 90 days. Up to 10 each.
+          Blocked or at-risk projects (not archived), overdue milestones, stale critical
+          architecture decisions (revisit date passed, governing a critical component), goals at
+          risk, and certifications expired or expiring within 90 days. Up to 10 each.
         </p>
       </header>
       {empty ? (
@@ -225,6 +231,21 @@ export function AttentionPanel({ dashboard }: { dashboard: DashboardDto }) {
                 <span className="font-normal text-muted-foreground"> · {m.project.name}</span>
               </Link>
               <Badge tone="danger">Overdue since {formatDate(m.dueDate)}</Badge>
+            </li>
+          ))}
+          {stale.map((d) => (
+            <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+              <Link
+                href={`/architecture/${d.id}` as never}
+                className="min-w-0 font-medium hover:underline"
+              >
+                {d.title}
+                <span className="block text-caption font-normal text-muted-foreground">
+                  Revisit was due {formatDate(d.revisitDate)} · governs {d.criticalComponents}{" "}
+                  critical component{d.criticalComponents === 1 ? "" : "s"}
+                </span>
+              </Link>
+              <Badge tone="danger">Stale critical decision</Badge>
             </li>
           ))}
           {goals.map((g) => (

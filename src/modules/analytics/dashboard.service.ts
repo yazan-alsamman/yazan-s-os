@@ -7,6 +7,7 @@ import { projectStatusSchema } from "@/modules/projects/project.schemas";
 import { toDateOnly } from "@/modules/shared/fields";
 import type { ServiceContext } from "@/modules/shared/service-context";
 
+import { createArchitectureAnalyticsService } from "./architecture-analytics.service";
 import type { DashboardFilters } from "./dashboard.schemas";
 import { createExperimentsAnalyticsService } from "./experiments-analytics.service";
 import { createGoalsAnalyticsService } from "./goals-analytics.service";
@@ -519,6 +520,7 @@ export function createDashboardService(db: PrismaClient) {
         skillIntel,
         goals,
         experiments,
+        architecture,
       ] = await Promise.all([
         projectSection(ctx, filters, period),
         evidenceSection(ctx, filters, period),
@@ -535,6 +537,8 @@ export function createDashboardService(db: PrismaClient) {
         createGoalsAnalyticsService(db, () => now).summary(ctx),
         // Phase 6: the same AI Lab analytics as the experiments pages (ADR 0038).
         createExperimentsAnalyticsService(db, () => now).summary(ctx),
+        // Phase 7: the same architecture analytics as the Architecture pages (ADR 0045).
+        createArchitectureAnalyticsService(db, () => now).summary(ctx),
       ]);
       const recordCounts = {
         projects: projects.base,
@@ -568,6 +572,7 @@ export function createDashboardService(db: PrismaClient) {
         skillIntel.criticalGaps,
         goals.active,
         experiments.active,
+        architecture.decisions,
         certifications.metrics.expiring,
       ];
       return {
@@ -599,6 +604,12 @@ export function createDashboardService(db: PrismaClient) {
           total: experiments.total,
           active: experiments.active,
           reproducibility: experiments.reproducibility,
+        },
+        architecture: {
+          decisions: architecture.decisions,
+          staleCritical: architecture.staleCritical,
+          revisitDue: architecture.revisitDue,
+          attention: architecture.attention,
         },
       };
     },
