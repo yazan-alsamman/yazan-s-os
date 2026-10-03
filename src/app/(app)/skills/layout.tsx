@@ -9,8 +9,20 @@ const TABS = [
     exact: true,
   },
   {
+    href: "/skills/intelligence",
+    label: "Intelligence",
+  },
+  {
+    href: "/skills/graph",
+    label: "Career graph",
+  },
+  {
     href: "/skills/technologies",
     label: "Technologies",
+  },
+  {
+    href: "/skills/level-models",
+    label: "Level models",
   },
 ];
 

@@ -261,6 +261,7 @@ export function EvidenceList() {
         { name: "dateTo", label: "Dated to" },
         { name: "dated", label: "Has a date", format: yesNo },
         { name: "projectId", label: "Linked to project", format: () => "this project" },
+        { name: "skillId", label: "Linked to skill", format: () => "this skill" },
       ]}
       searchPlaceholder="Title, description, source URL…"
       filters={[

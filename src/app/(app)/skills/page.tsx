@@ -10,7 +10,7 @@ export default function SkillsPage() {
     <>
       <PageHeader
         title="Skills"
-        description="Skills with target levels and linked evidence. Evidence-derived levels and gap analysis arrive in Phase 4."
+        description="Skills with target levels and linked evidence. Evidence-derived levels, gaps and freshness are under Intelligence."
       />
       <SkillsList />
     </>

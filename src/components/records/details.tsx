@@ -33,6 +33,7 @@ import {
   ProjectActivity,
   useProjectIntelligence,
 } from "@/components/projects/dossier";
+import { SkillIntelligence } from "@/components/skills/skill-dossier";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useApiItem, useApiMutation } from "@/lib/api/hooks";
@@ -442,109 +443,118 @@ export function SkillDetail({ id }: { id: string }) {
     "evidence",
     "certifications",
   ]);
-  const [picking, setPicking] = useState(false);
-  const setEvidence = useApiMutation<{ evidence: { evidenceId: string; strength?: string }[] }>(
+  const [picking, setPicking] = useState<"evidence" | "technologies" | null>(null);
+  const setEvidence = useApiMutation<{
+    evidence: { evidenceId: string; strength?: string; date?: string | null }[];
+  }>("PUT", `${path}/evidence`, invalidates);
+  const setTechnologies = useApiMutation<{ technologyIds: string[] }>(
     "PUT",
-    `${path}/evidence`,
-    invalidates,
+    `${path}/technologies`,
+    [...invalidates, "technologies"],
   );
 
   return (
-    <DetailFrame query={query} backHref="/skills" backLabel="All skills">
-      {(s) => (
-        <>
-          <DetailHeader
-            title={s.name}
-            subtitle={s.category ?? undefined}
-            badges={
-              <>
-                <Badge>{s.active ? "Active" : "Inactive"}</Badge>
-                <Badge>Target: {s.targetLevelLabel ?? "none"}</Badge>
-                <OriginBadge origin={s.origin} />
-              </>
-            }
-            actions={
-              <EditDeleteActions
-                label="skill"
-                fields={SKILL_FIELDS}
-                entity={s}
-                onSave={(payload) => update.mutateAsync(payload)}
-                onDelete={() => remove.mutateAsync()}
-                afterDelete="/skills"
-              />
-            }
-          />
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="flex flex-col gap-4 lg:col-span-2">
-              <Panel title="About">
-                <FieldGrid
-                  items={[
-                    { label: "Description", value: s.description, wide: true },
-                    {
-                      label: "Current level",
-                      value:
-                        "Derived from evidence in Phase 4 (skills & career intelligence). Not self-assessed.",
-                      wide: true,
-                    },
-                  ]}
+    <MetricDefinitionProvider>
+      <DetailFrame query={query} backHref="/skills" backLabel="All skills">
+        {(s) => (
+          <>
+            <DetailHeader
+              title={s.name}
+              subtitle={s.category ?? undefined}
+              badges={
+                <>
+                  <Badge>{s.active ? "Active" : "Inactive"}</Badge>
+                  <Badge>Target: {s.targetLevelLabel ?? "none"}</Badge>
+                  <OriginBadge origin={s.origin} />
+                </>
+              }
+              actions={
+                <EditDeleteActions
+                  label="skill"
+                  fields={SKILL_FIELDS}
+                  entity={s}
+                  onSave={(payload) => update.mutateAsync(payload)}
+                  onDelete={() => remove.mutateAsync()}
+                  afterDelete="/skills"
                 />
-              </Panel>
-              <RelationPanel
-                title="Evidence"
-                items={s.evidence.map((e) => ({
-                  ...evidenceItem(e),
-                  meta: <Badge>Strength: {labelOf(EVIDENCE_STRENGTH_OPTIONS, e.strength)}</Badge>,
-                }))}
-                emptyText="No evidence linked yet."
-                onManage={() => setPicking(true)}
-                manageLabel="Manage evidence"
-              />
-              <RelationPanel
-                title="Projects"
-                items={s.projects.map((p) => ({
-                  id: p.id,
-                  label: p.name,
-                  href: `/projects/${p.id}`,
-                  meta: <Badge>{labelOf(PROJECT_STATUS_OPTIONS, p.status)}</Badge>,
-                }))}
-                emptyText="No projects use this skill yet. Link it from a project."
-              />
-              <RelationPanel
-                title="Certifications"
-                items={s.certifications.map((c) => ({
-                  id: c.id,
-                  label: c.name,
-                  href: `/certifications/${c.id}`,
-                  meta: c.issuer,
-                }))}
-                emptyText="No certifications are related to this skill."
+              }
+            />
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <Panel title="About">
+                  <FieldGrid items={[{ label: "Description", value: s.description, wide: true }]} />
+                </Panel>
+              </div>
+              <ProvenancePanel provenance={s.provenance} />
+            </div>
+            <div className="mt-4">
+              <SkillIntelligence
+                skillId={s.id}
+                levelModelId={s.levelModelId}
+                onManageEvidence={() => setPicking("evidence")}
+                onManageTechnologies={() => setPicking("technologies")}
+                explicitTechnologies={
+                  s.technologies.length === 0 ? (
+                    <p className="text-muted-foreground">No technology is linked explicitly.</p>
+                  ) : (
+                    <ul className="flex flex-wrap gap-1" aria-label="Linked technologies">
+                      {s.technologies.map((t) => (
+                        <li key={t.id}>
+                          <Link
+                            href={`/skills/technologies/${t.id}` as never}
+                            className="inline-flex rounded-md border px-2 py-0.5 text-caption hover:bg-accent"
+                          >
+                            {t.version ? `${t.name} ${t.version}` : t.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                }
               />
             </div>
-            <ProvenancePanel provenance={s.provenance} />
-          </div>
-          <RelationPicker
-            open={picking}
-            onOpenChange={setPicking}
-            title="Skill evidence"
-            description="Select evidence that demonstrates this skill, and how strongly."
-            resource="evidence"
-            path="/api/v1/evidence"
-            optionLabel={(r) => String(r.title)}
-            initial={s.evidence.map((e) => ({ id: e.id, label: e.title, attribute: e.strength }))}
-            attribute={{
-              label: "Strength",
-              options: EVIDENCE_STRENGTH_OPTIONS,
-              defaultValue: "moderate",
-            }}
-            onSave={(items) =>
-              setEvidence.mutateAsync({
-                evidence: items.map((i) => ({ evidenceId: i.id, strength: i.attribute })),
-              })
-            }
-          />
-        </>
-      )}
-    </DetailFrame>
+            <RelationPicker
+              open={picking === "technologies"}
+              onOpenChange={(o) => !o && setPicking(null)}
+              title="Skill technologies"
+              description="Select the technologies this skill is applied with. These links are explicit and never inferred."
+              resource="technologies"
+              path="/api/v1/technologies"
+              optionLabel={(r) => String(r.name)}
+              initial={s.technologies.map((t) => ({ id: t.id, label: t.name }))}
+              onSave={(items) =>
+                setTechnologies.mutateAsync({ technologyIds: items.map((i) => i.id) })
+              }
+            />
+            <RelationPicker
+              open={picking === "evidence"}
+              onOpenChange={(o) => !o && setPicking(null)}
+              title="Skill evidence"
+              description="Select evidence that demonstrates this skill, and how strongly."
+              resource="evidence"
+              path="/api/v1/evidence"
+              optionLabel={(r) => String(r.title)}
+              initial={s.evidence.map((e) => ({ id: e.id, label: e.title, attribute: e.strength }))}
+              attribute={{
+                label: "Strength",
+                options: EVIDENCE_STRENGTH_OPTIONS,
+                defaultValue: "moderate",
+              }}
+              onSave={(items) =>
+                setEvidence.mutateAsync({
+                  // Keep each existing link's demonstration date: freshness depends on it.
+                  evidence: items.map((i) => ({
+                    evidenceId: i.id,
+                    strength: i.attribute,
+                    date: s.evidence.find((e) => e.id === i.id)?.linkDate ?? null,
+                  })),
+                })
+              }
+            />
+          </>
+        )}
+      </DetailFrame>
+    </MetricDefinitionProvider>
   );
 }
 

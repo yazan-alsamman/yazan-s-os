@@ -103,7 +103,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     icon: Target,
     summary: "Skills, technologies, targets and evidence links.",
     availability: "available",
-    plannedIn: "Records: Phase 1 (available). Skill intelligence: Phase 4.",
+    plannedIn: "Records: Phase 1. Skill intelligence: Phase 4 (available).",
     placement: "main",
     mobilePrimary: true,
   },

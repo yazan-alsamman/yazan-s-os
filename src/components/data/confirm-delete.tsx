@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/http/fetch-json";
+import { useReturnFocus } from "@/lib/ui/return-focus";
 
 /** Confirmation for destructive actions only (02 §11). */
 export function ConfirmDelete({
@@ -29,6 +30,7 @@ export function ConfirmDelete({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const returnFocus = useReturnFocus();
 
   return (
     <AlertDialog
@@ -38,7 +40,7 @@ export function ConfirmDelete({
         onOpenChange(next);
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent {...returnFocus}>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>{description}</AlertDialogDescription>
         {error && (

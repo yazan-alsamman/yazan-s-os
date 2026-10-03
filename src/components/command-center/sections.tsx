@@ -530,7 +530,7 @@ export function SkillSnapshot({
       title="Skill snapshot"
       interpretation={
         metric.state === "ok"
-          ? `${n(s.withEvidence.value ?? 0)} of ${n(s.total.value ?? 0)} skills have linked evidence. Levels are not shown: evidence-derived levels arrive in Phase 4.`
+          ? `${n(s.withEvidence.value ?? 0)} of ${n(s.total.value ?? 0)} skills have linked evidence. Evidence-derived levels, gaps and freshness are in Skills → Intelligence.`
           : null
       }
       meta={<Meta dashboard={dashboard} metric={metric} />}

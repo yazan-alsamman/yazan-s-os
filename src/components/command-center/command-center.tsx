@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { ErrorState, ListSkeleton } from "@/components/data/states";
 import { PageHeader } from "@/components/layout/page-header";
+import { percent } from "@/components/projects/dossier";
 import { Button } from "@/components/ui/button";
 import type { DashboardDto } from "@/modules/analytics/dashboard.service";
 
@@ -147,12 +148,18 @@ export function CommandCenter() {
                   key={metric.key}
                   metric={metric}
                   href={metricHref(metric.key, drill, dashboard.data.period)}
+                  format={metric.key === "skills.coverage" ? percent : undefined}
+                  detail={
+                    metric.key === "skills.coverage" && metric.breakdown
+                      ? `${metric.breakdown[0]!.value} of ${metric.breakdown[0]!.value + metric.breakdown[1]!.value} target skills demonstrated in the last 365 days`
+                      : null
+                  }
                 />
               ))}
             </div>
             <p className="mt-2 text-caption text-muted-foreground">
-              Goals, skill coverage, skill gaps, AI experiments, architecture decisions and
-              technical debt are specified KPIs that cannot be computed yet —{" "}
+              Goals, AI experiments, architecture decisions and technical debt are specified KPIs
+              that cannot be computed yet —{" "}
               <Link href="/command-center/metrics" className="underline underline-offset-4">
                 see why
               </Link>

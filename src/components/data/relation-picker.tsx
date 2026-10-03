@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useApiList } from "@/lib/api/hooks";
 import { errorMessage } from "@/lib/http/fetch-json";
+import { useReturnFocus } from "@/lib/ui/return-focus";
 
 import { ListSkeleton } from "./states";
 
@@ -46,9 +47,10 @@ interface RelationPickerProps {
 }
 
 export function RelationPicker(props: RelationPickerProps) {
+  const returnFocus = useReturnFocus();
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl" {...returnFocus}>
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>
           <DialogDescription>{props.description}</DialogDescription>

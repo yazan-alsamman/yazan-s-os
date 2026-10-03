@@ -79,7 +79,8 @@ export function EChart({ option, ariaLabel, height, dataKey, onSelect }: EChartP
         ...optionRef.current(readPalette()),
       });
       chart.on("click", (params) => {
-        if (typeof params.dataIndex === "number")
+        // Graph edges also carry a dataIndex; only nodes and data items drill down.
+        if (typeof params.dataIndex === "number" && params.dataType !== "edge")
           selectRef.current?.(params.dataIndex, params.seriesIndex ?? 0);
       });
       observer = new ResizeObserver(() => chart?.resize());
