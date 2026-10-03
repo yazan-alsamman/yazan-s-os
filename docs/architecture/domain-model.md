@@ -124,3 +124,21 @@ proficiency_evidence)`, `project_evidence`, `skill_evidence(strength, date)`,
 - Relationship **Project 1:N AIExperiment** (04). Composite FKs make cross-owner links impossible.
 - **Computed, never stored:** reproducibility state (ADR 0039), run comparison and all analytics.
   PEOS never executes a model; measurements are user-recorded (ADR 0040).
+
+## Phase 7 additions (Architecture Intelligence)
+
+- **ArchitectureDecision** (ADRs 0041–0042): `id`, `userId`, `title`, `context?`, `problem?`,
+  `constraints?`, `decision?`, `consequences?`, `status` (proposed · accepted · rejected ·
+  deprecated · superseded), `decidedAt?` (required unless proposed), `revisitDate?`,
+  `supersededById?` (composite self-FK, required ⇔ superseded, never self), timestamps.
+- **ArchitectureAlternative**: `id`, `userId`, `decisionId`, `name`, `pros?`, `cons?`,
+  `rejectedReason?` (04).
+- **DecisionProject**, **ArchitectureDecisionEvidence**, **DecisionComponent**: decision link
+  tables to Projects, Evidence (reused) and components.
+- **ArchitectureComponent** (ADR 0043): `id`, `userId`, `name`, `key` (unique per owner), `type`
+  (service · database · queue · external_api · ai_model · infrastructure), `purpose?`, `critical`.
+- **ComponentProject**, **ComponentTechnology** (existing Technology records), **ComponentDependency**
+  (`componentId` depends on `dependsOnComponentId`, never self).
+- All link tables use composite FKs with the owner and cascade only the link when either side is
+  deleted — decisions survive project and technology deletion.
+- **Computed, never stored:** revisit due, stale critical, documentation gaps, coverage, the map.

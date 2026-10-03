@@ -1,11 +1,11 @@
-# PEOS Metric Catalogue (Phases 2–6)
+# PEOS Metric Catalogue (Phases 2–7)
 
 Generated from `src/modules/analytics/metric-catalogue.ts`, which is the source of truth (ADR 0019).
 The catalogue is validated by a strict Zod schema when it is loaded, served read-only at
 `GET /api/v1/analytics/metrics`, and shown in the app at `/command-center/metrics` and in each
 metric's definition drawer.
 
-- **89 metrics**: 80 available, 9 unavailable (each with its reason and the phase or decision
+- **101 metrics**: 93 available, 8 unavailable (each with its reason and the phase or decision
   that unlocks it).
 - Phase 3 adds milestone, delivery, computed-health, portfolio, technology and project-evidence
   metrics (ADRs 0022–0025). `projects.delivery_rate` is now available (version 2).
@@ -20,6 +20,10 @@ metric's definition drawer.
   evaluation coverage, missing-evaluation/provenance, runs, per-month) and makes `ai.experiments`
   available (version 2; ADRs 0036–0040). No opaque "AI score"; cost/latency/token summaries are
   descriptive, not governed KPIs.
+- Phase 7 adds 12 architecture metrics (in force, status, revisit due, stale critical, evidence,
+  documentation gaps, decision timeline, project coverage, components by type, critical
+  components, components without decisions) and makes `architecture.decisions` available (version
+  2; ADRs 0041–0045). No architecture quality score; gaps are listed, never scored.
 - Every metric counts only records owned by the signed-in user.
 - Frequency: computed live on request. Nothing is cached, pre-aggregated or estimated.
 - Periods are whole UTC calendar days, inclusive. "Today" is the UTC calendar day.
@@ -30,97 +34,109 @@ metric's definition drawer.
 
 ## Summary
 
-| Key                                       | Name                                   | Availability                        | Drill-down                                                                                         |
-| ----------------------------------------- | -------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
-| projects.total                            | Projects                               | available                           | Projects list with the same filters                                                                |
-| projects.active                           | Active projects                        | available                           | Projects list filtered to the active lifecycle group                                               |
-| projects.production                       | Production systems                     | available                           | Projects list filtered to the production lifecycle group                                           |
-| projects.completed_in_period              | Projects completed                     | available                           | Projects list filtered to completion dates in the period                                           |
-| projects.health_distribution              | Project health                         | available                           | Projects list filtered to the selected health state                                                |
-| projects.lifecycle_distribution           | Projects by lifecycle status           | available                           | Projects list filtered to the selected status                                                      |
-| projects.delivery_rate                    | Delivery rate                          | available                           | Milestones list: completed (status=completed) and overdue (overdue=true)                           |
-| projects.milestones_total                 | Milestones                             | available                           | Milestones list (per project: projectId filter)                                                    |
-| projects.milestones_completed             | Completed milestones                   | available                           | Milestones list filtered to status=completed                                                       |
-| projects.milestones_completed_in_period   | Milestones completed                   | available                           | Milestones list filtered to completedFrom/completedTo                                              |
-| projects.milestones_overdue               | Overdue milestones                     | available                           | Milestones list filtered to overdue=true                                                           |
-| projects.milestones_blocked               | Blocked milestones                     | available                           | Milestones list filtered to status=blocked                                                         |
-| projects.milestone_completion_trend       | Milestone completions over time        | available                           | Milestones list filtered to the month's completion dates                                           |
-| projects.delivery_trend                   | Project delivery trend                 | available                           | Projects list filtered to the month's completion dates                                             |
-| projects.health_score                     | Computed project health                | available                           | Project dossier, Health section (component breakdown)                                              |
-| projects.health_component.schedule        | Health component: schedule             | available                           | Project dossier, Health section                                                                    |
-| projects.health_component.milestones      | Health component: milestone completion | available                           | Project dossier, Delivery section                                                                  |
-| projects.health_component.blockers        | Health component: blockers             | available                           | Milestones list filtered to the project and status=blocked                                         |
-| projects.health_component.recent_activity | Health component: recent activity      | available                           | Project dossier, Activity section                                                                  |
-| projects.health_component.scope_stability | Health component: scope stability      | Specification decision required     | —                                                                                                  |
-| projects.health_component.issue_severity  | Health component: issue severity       | Phase 9 — Engineering Analytics     | —                                                                                                  |
-| projects.computed_health_distribution     | Projects by computed health            | available                           | Computed health list filtered to the band                                                          |
-| projects.health_comparison                | Manual vs computed health              | available                           | Computed health list filtered to manual status and band                                            |
-| projects.technology_usage                 | Technology usage across projects       | available                           | Projects list filtered to the technology (technologyId)                                            |
-| projects.evidence_coverage                | Project evidence coverage              | available                           | Projects list filtered to hasEvidence=true / false                                                 |
-| projects.evidence_linked                  | Project evidence                       | available                           | Evidence list filtered to the project (projectId)                                                  |
-| projects.evidence_verified                | Verified project evidence              | available                           | Evidence list filtered to the project and verified=true                                            |
-| projects.evidence_by_type                 | Project evidence by type               | available                           | Evidence list filtered to the project and type                                                     |
-| projects.blocked_time                     | Blocked time                           | Specification decision required     | —                                                                                                  |
-| projects.portfolio_matrix                 | Project portfolio matrix               | Specification decision required     | —                                                                                                  |
-| projects.technology_heatmap               | Technology heatmap                     | Specification decision required     | —                                                                                                  |
-| evidence.total                            | Evidence items                         | available                           | Evidence list with the same filters                                                                |
-| evidence.verified                         | Verified evidence                      | available                           | Evidence list filtered to verified                                                                 |
-| evidence.velocity                         | Evidence velocity                      | available                           | Evidence list filtered to verified items dated in the period                                       |
-| evidence.undated                          | Undated evidence                       | available                           | Evidence list filtered to undated items                                                            |
-| skills.total                              | Skills                                 | available                           | Skills list                                                                                        |
-| skills.active                             | Active skills                          | available                           | Skills list filtered to active                                                                     |
-| skills.with_target                        | Skills with a target level             | available                           | Skills list filtered to skills with a target                                                       |
-| skills.with_evidence                      | Skills with evidence                   | available                           | Skills list filtered to skills with evidence                                                       |
-| skills.without_evidence                   | Active skills without evidence         | available                           | Skills list filtered to active skills without evidence                                             |
-| skills.by_category                        | Skills by category                     | available                           | Skills list filtered to the selected category                                                      |
-| certifications.total                      | Certifications                         | available                           | Certifications list                                                                                |
-| certifications.expiry_distribution        | Certification expiry                   | available                           | Certifications list filtered to the selected expiry state                                          |
-| certifications.expiring                   | Certifications expiring                | available                           | Certifications list filtered to expiring                                                           |
-| goals.active                              | Active goals                           | available                           | Goals list filtered to status=active                                                               |
-| goals.total                               | Goals                                  | available                           | Goals list                                                                                         |
-| goals.overdue                             | Overdue goals                          | available                           | Goals list filtered to overdue=true                                                                |
-| goals.completion_rate                     | Goal completion rate                   | available                           | Goals list filtered to status=completed (numerator); overdue=true adds the rest of the denominator |
-| goals.at_risk                             | Goals at risk                          | available                           | Goals list filtered to risk=at_risk                                                                |
-| goals.on_track                            | On-track goals                         | available                           | Goals list filtered to risk=on_track                                                               |
-| goals.risk_distribution                   | Open goals by risk state               | available                           | Goals list filtered to the risk state                                                              |
-| goals.status_distribution                 | Goals by lifecycle status              | available                           | Goals list filtered to the status                                                                  |
-| goals.target_attainment                   | Target attainment                      | available                           | Goals list filtered to committed=true&attainment=attained (numerator)                              |
-| goals.attainment_distribution             | Goals by target attainment             | available                           | Goals list filtered to committed=true and the attainment state                                     |
-| goals.without_deadline                    | Open goals without a deadline          | available                           | Goals list filtered to open=true&hasDeadline=false                                                 |
-| goals.without_projects                    | Open goals without projects            | available                           | Goals list filtered to open=true&hasProjects=false                                                 |
-| goals.without_skills                      | Open goals without skills              | available                           | Goals list filtered to open=true&hasSkills=false                                                   |
-| goals.with_skill_gaps                     | Open goals affected by skill gaps      | available                           | Goals list filtered to open=true&skillGap=true                                                     |
-| goals.deadline_load                       | Roadmap load by quarter                | available                           | Goals list filtered to the quarter's deadline range (open goals)                                   |
-| goals.milestone_progress                  | Goal milestone progress                | available                           | Goal dossier, Milestones section                                                                   |
-| goals.burndown                            | Goal burndown                          | available                           | Goal dossier, Measurements table                                                                   |
-| skills.coverage                           | Skill coverage                         | available                           | Skill intelligence list: active, with target, freshness = fresh (numerator)                        |
-| skills.critical_gaps                      | Critical skill gaps                    | available                           | Skill intelligence list filtered to critical=true                                                  |
-| skills.freshness                          | Skill freshness                        | available                           | Skill intelligence list filtered to the freshness state                                            |
-| skills.current_level                      | Evidence-derived skill level           | available                           | Skill dossier (rule-by-rule breakdown)                                                             |
-| skills.level_distribution                 | Skills by derived level                | available                           | Skill intelligence list filtered to the level                                                      |
-| skills.gap_distribution                   | Skills by gap state                    | available                           | Skill intelligence list filtered to the gap state                                                  |
-| skills.targets_without_evidence           | Targets without evidence               | available                           | Skill intelligence list filtered to targetWithoutEvidence=true                                     |
-| skills.growth                             | Skill demonstration trend              | available                           | Skill intelligence list filtered to the trend state                                                |
-| skills.production_evidence                | Skills with production evidence        | available                           | Skill intelligence list filtered to productionLinked=true                                          |
-| skills.radar                              | Skill radar                            | available                           | Skill dossier per axis; skill intelligence list                                                    |
-| skills.learning_velocity                  | Learning velocity                      | Specification decision required     | —                                                                                                  |
-| evidence.production_ratio                 | Production evidence ratio              | Specification decision required     | —                                                                                                  |
-| ai.experiments                            | AI experiments                         | available                           | Experiments list with the same filters                                                             |
-| ai.active_experiments                     | Active experiments                     | available                           | Experiments list filtered to open=true                                                             |
-| ai.completed_experiments                  | Completed experiments                  | available                           | Experiments list filtered to status=completed                                                      |
-| ai.abandoned_experiments                  | Abandoned experiments                  | available                           | Experiments list filtered to status=abandoned                                                      |
-| ai.runs_total                             | Experiment runs                        | available                           | Experiments list filtered to those with recorded runs                                              |
-| ai.experiments_by_status                  | Experiments by status                  | available                           | Experiments list filtered to the status                                                            |
-| ai.experiments_by_decision                | Experiments by decision                | available                           | Experiments list filtered to the decision (undecided has no list filter)                           |
-| ai.experiments_by_category                | Experiments by category                | available                           | Experiments list filtered to the category (uncategorised has no list filter)                       |
-| ai.reproducibility_distribution           | Reproducibility (recorded metadata)    | available                           | Experiments list filtered to the reproducibility state                                             |
-| ai.adoption_rate                          | Adoption rate                          | available                           | Experiments list filtered to decision=adopt (numerator)                                            |
-| ai.evaluation_coverage                    | Evaluation coverage                    | available                           | Experiments list filtered to hasEvaluation=true (numerator)                                        |
-| ai.experiments_missing_evaluation         | Experiments missing evaluation         | available                           | Experiments list filtered to hasRuns=true&hasEvaluation=false                                      |
-| ai.experiments_missing_provenance         | Experiments missing evidence           | available                           | Experiments list filtered to hasEvidence=false                                                     |
-| ai.experiments_per_month                  | Experiments per month                  | available                           | Experiments list filtered to the month the experiment was created (createdFrom/To)                 |
-| architecture.decisions                    | Architecture decisions                 | Phase 7 — Architecture Intelligence | —                                                                                                  |
-| engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics     | —                                                                                                  |
+| Key                                       | Name                                   | Availability                    | Drill-down                                                                                         |
+| ----------------------------------------- | -------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| projects.total                            | Projects                               | available                       | Projects list with the same filters                                                                |
+| projects.active                           | Active projects                        | available                       | Projects list filtered to the active lifecycle group                                               |
+| projects.production                       | Production systems                     | available                       | Projects list filtered to the production lifecycle group                                           |
+| projects.completed_in_period              | Projects completed                     | available                       | Projects list filtered to completion dates in the period                                           |
+| projects.health_distribution              | Project health                         | available                       | Projects list filtered to the selected health state                                                |
+| projects.lifecycle_distribution           | Projects by lifecycle status           | available                       | Projects list filtered to the selected status                                                      |
+| projects.delivery_rate                    | Delivery rate                          | available                       | Milestones list: completed (status=completed) and overdue (overdue=true)                           |
+| projects.milestones_total                 | Milestones                             | available                       | Milestones list (per project: projectId filter)                                                    |
+| projects.milestones_completed             | Completed milestones                   | available                       | Milestones list filtered to status=completed                                                       |
+| projects.milestones_completed_in_period   | Milestones completed                   | available                       | Milestones list filtered to completedFrom/completedTo                                              |
+| projects.milestones_overdue               | Overdue milestones                     | available                       | Milestones list filtered to overdue=true                                                           |
+| projects.milestones_blocked               | Blocked milestones                     | available                       | Milestones list filtered to status=blocked                                                         |
+| projects.milestone_completion_trend       | Milestone completions over time        | available                       | Milestones list filtered to the month's completion dates                                           |
+| projects.delivery_trend                   | Project delivery trend                 | available                       | Projects list filtered to the month's completion dates                                             |
+| projects.health_score                     | Computed project health                | available                       | Project dossier, Health section (component breakdown)                                              |
+| projects.health_component.schedule        | Health component: schedule             | available                       | Project dossier, Health section                                                                    |
+| projects.health_component.milestones      | Health component: milestone completion | available                       | Project dossier, Delivery section                                                                  |
+| projects.health_component.blockers        | Health component: blockers             | available                       | Milestones list filtered to the project and status=blocked                                         |
+| projects.health_component.recent_activity | Health component: recent activity      | available                       | Project dossier, Activity section                                                                  |
+| projects.health_component.scope_stability | Health component: scope stability      | Specification decision required | —                                                                                                  |
+| projects.health_component.issue_severity  | Health component: issue severity       | Phase 9 — Engineering Analytics | —                                                                                                  |
+| projects.computed_health_distribution     | Projects by computed health            | available                       | Computed health list filtered to the band                                                          |
+| projects.health_comparison                | Manual vs computed health              | available                       | Computed health list filtered to manual status and band                                            |
+| projects.technology_usage                 | Technology usage across projects       | available                       | Projects list filtered to the technology (technologyId)                                            |
+| projects.evidence_coverage                | Project evidence coverage              | available                       | Projects list filtered to hasEvidence=true / false                                                 |
+| projects.evidence_linked                  | Project evidence                       | available                       | Evidence list filtered to the project (projectId)                                                  |
+| projects.evidence_verified                | Verified project evidence              | available                       | Evidence list filtered to the project and verified=true                                            |
+| projects.evidence_by_type                 | Project evidence by type               | available                       | Evidence list filtered to the project and type                                                     |
+| projects.blocked_time                     | Blocked time                           | Specification decision required | —                                                                                                  |
+| projects.portfolio_matrix                 | Project portfolio matrix               | Specification decision required | —                                                                                                  |
+| projects.technology_heatmap               | Technology heatmap                     | Specification decision required | —                                                                                                  |
+| evidence.total                            | Evidence items                         | available                       | Evidence list with the same filters                                                                |
+| evidence.verified                         | Verified evidence                      | available                       | Evidence list filtered to verified                                                                 |
+| evidence.velocity                         | Evidence velocity                      | available                       | Evidence list filtered to verified items dated in the period                                       |
+| evidence.undated                          | Undated evidence                       | available                       | Evidence list filtered to undated items                                                            |
+| skills.total                              | Skills                                 | available                       | Skills list                                                                                        |
+| skills.active                             | Active skills                          | available                       | Skills list filtered to active                                                                     |
+| skills.with_target                        | Skills with a target level             | available                       | Skills list filtered to skills with a target                                                       |
+| skills.with_evidence                      | Skills with evidence                   | available                       | Skills list filtered to skills with evidence                                                       |
+| skills.without_evidence                   | Active skills without evidence         | available                       | Skills list filtered to active skills without evidence                                             |
+| skills.by_category                        | Skills by category                     | available                       | Skills list filtered to the selected category                                                      |
+| certifications.total                      | Certifications                         | available                       | Certifications list                                                                                |
+| certifications.expiry_distribution        | Certification expiry                   | available                       | Certifications list filtered to the selected expiry state                                          |
+| certifications.expiring                   | Certifications expiring                | available                       | Certifications list filtered to expiring                                                           |
+| goals.active                              | Active goals                           | available                       | Goals list filtered to status=active                                                               |
+| goals.total                               | Goals                                  | available                       | Goals list                                                                                         |
+| goals.overdue                             | Overdue goals                          | available                       | Goals list filtered to overdue=true                                                                |
+| goals.completion_rate                     | Goal completion rate                   | available                       | Goals list filtered to status=completed (numerator); overdue=true adds the rest of the denominator |
+| goals.at_risk                             | Goals at risk                          | available                       | Goals list filtered to risk=at_risk                                                                |
+| goals.on_track                            | On-track goals                         | available                       | Goals list filtered to risk=on_track                                                               |
+| goals.risk_distribution                   | Open goals by risk state               | available                       | Goals list filtered to the risk state                                                              |
+| goals.status_distribution                 | Goals by lifecycle status              | available                       | Goals list filtered to the status                                                                  |
+| goals.target_attainment                   | Target attainment                      | available                       | Goals list filtered to committed=true&attainment=attained (numerator)                              |
+| goals.attainment_distribution             | Goals by target attainment             | available                       | Goals list filtered to committed=true and the attainment state                                     |
+| goals.without_deadline                    | Open goals without a deadline          | available                       | Goals list filtered to open=true&hasDeadline=false                                                 |
+| goals.without_projects                    | Open goals without projects            | available                       | Goals list filtered to open=true&hasProjects=false                                                 |
+| goals.without_skills                      | Open goals without skills              | available                       | Goals list filtered to open=true&hasSkills=false                                                   |
+| goals.with_skill_gaps                     | Open goals affected by skill gaps      | available                       | Goals list filtered to open=true&skillGap=true                                                     |
+| goals.deadline_load                       | Roadmap load by quarter                | available                       | Goals list filtered to the quarter's deadline range (open goals)                                   |
+| goals.milestone_progress                  | Goal milestone progress                | available                       | Goal dossier, Milestones section                                                                   |
+| goals.burndown                            | Goal burndown                          | available                       | Goal dossier, Measurements table                                                                   |
+| skills.coverage                           | Skill coverage                         | available                       | Skill intelligence list: active, with target, freshness = fresh (numerator)                        |
+| skills.critical_gaps                      | Critical skill gaps                    | available                       | Skill intelligence list filtered to critical=true                                                  |
+| skills.freshness                          | Skill freshness                        | available                       | Skill intelligence list filtered to the freshness state                                            |
+| skills.current_level                      | Evidence-derived skill level           | available                       | Skill dossier (rule-by-rule breakdown)                                                             |
+| skills.level_distribution                 | Skills by derived level                | available                       | Skill intelligence list filtered to the level                                                      |
+| skills.gap_distribution                   | Skills by gap state                    | available                       | Skill intelligence list filtered to the gap state                                                  |
+| skills.targets_without_evidence           | Targets without evidence               | available                       | Skill intelligence list filtered to targetWithoutEvidence=true                                     |
+| skills.growth                             | Skill demonstration trend              | available                       | Skill intelligence list filtered to the trend state                                                |
+| skills.production_evidence                | Skills with production evidence        | available                       | Skill intelligence list filtered to productionLinked=true                                          |
+| skills.radar                              | Skill radar                            | available                       | Skill dossier per axis; skill intelligence list                                                    |
+| skills.learning_velocity                  | Learning velocity                      | Specification decision required | —                                                                                                  |
+| evidence.production_ratio                 | Production evidence ratio              | Specification decision required | —                                                                                                  |
+| ai.experiments                            | AI experiments                         | available                       | Experiments list with the same filters                                                             |
+| ai.active_experiments                     | Active experiments                     | available                       | Experiments list filtered to open=true                                                             |
+| ai.completed_experiments                  | Completed experiments                  | available                       | Experiments list filtered to status=completed                                                      |
+| ai.abandoned_experiments                  | Abandoned experiments                  | available                       | Experiments list filtered to status=abandoned                                                      |
+| ai.runs_total                             | Experiment runs                        | available                       | Experiments list filtered to those with recorded runs                                              |
+| ai.experiments_by_status                  | Experiments by status                  | available                       | Experiments list filtered to the status                                                            |
+| ai.experiments_by_decision                | Experiments by decision                | available                       | Experiments list filtered to the decision (undecided has no list filter)                           |
+| ai.experiments_by_category                | Experiments by category                | available                       | Experiments list filtered to the category (uncategorised has no list filter)                       |
+| ai.reproducibility_distribution           | Reproducibility (recorded metadata)    | available                       | Experiments list filtered to the reproducibility state                                             |
+| ai.adoption_rate                          | Adoption rate                          | available                       | Experiments list filtered to decision=adopt (numerator)                                            |
+| ai.evaluation_coverage                    | Evaluation coverage                    | available                       | Experiments list filtered to hasEvaluation=true (numerator)                                        |
+| ai.experiments_missing_evaluation         | Experiments missing evaluation         | available                       | Experiments list filtered to hasRuns=true&hasEvaluation=false                                      |
+| ai.experiments_missing_provenance         | Experiments missing evidence           | available                       | Experiments list filtered to hasEvidence=false                                                     |
+| ai.experiments_per_month                  | Experiments per month                  | available                       | Experiments list filtered to the month the experiment was created (createdFrom/To)                 |
+| architecture.decisions                    | Architecture decisions                 | available                       | Architecture decisions list                                                                        |
+| architecture.decisions_in_force           | Decisions in force                     | available                       | Decisions list filtered to inForce=true                                                            |
+| architecture.decisions_by_status          | Decisions by status                    | available                       | Decisions list filtered to the status                                                              |
+| architecture.revisit_due                  | Decisions due for revisit              | available                       | Decisions list filtered to revisitDue=true                                                         |
+| architecture.stale_critical_decisions     | Stale critical decisions               | available                       | Decisions list filtered to staleCritical=true                                                      |
+| architecture.decisions_without_evidence   | Decisions without evidence             | available                       | Decisions list filtered to hasEvidence=false                                                       |
+| architecture.decisions_with_gaps          | Decisions with documentation gaps      | available                       | Decisions list filtered to incomplete=true                                                         |
+| architecture.decision_timeline            | Architecture decision timeline         | available                       | Decisions list filtered to decidedFrom/To of the month                                             |
+| architecture.project_coverage             | Project architecture coverage          | available                       | Projects list filtered to hasArchitecture=true (numerator)                                         |
+| architecture.components                   | Architecture components                | available                       | Components list                                                                                    |
+| architecture.components_by_type           | Components by type                     | available                       | Components list filtered to the type                                                               |
+| architecture.critical_components          | Critical components                    | available                       | Components list filtered to critical=true                                                          |
+| architecture.components_without_decisions | Components without decisions           | available                       | Components list filtered to hasDecisions=false                                                     |
+| engineering.technical_debt_trend          | Technical debt trend                   | Phase 9 — Engineering Analytics | —                                                                                                  |
 
 ## Definitions
 
@@ -1779,22 +1795,250 @@ metric's definition drawer.
 
 #### `architecture.decisions` — Architecture decisions
 
-| Field                 | Value                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------------- |
-| Key                   | `architecture.decisions`                                                                           |
-| Name                  | Architecture decisions                                                                             |
-| Category              | architecture                                                                                       |
-| Definition            | Number of architecture decision records.                                                           |
-| Formula               | `COUNT(architecture_decisions)`                                                                    |
-| Source                | ArchitectureDecision (not yet modelled)                                                            |
-| Frequency             | On request — computed live from the database when the Command Center loads.                        |
-| Owner                 | PEOS Architecture domain (Phase 7)                                                                 |
-| Caveats               | ADRs inside PEOS do not exist yet.                                                                 |
-| Value type / temporal | count / point_in_time                                                                              |
-| Availability          | **Unavailable** — Phase 7 — Architecture Intelligence: Architecture Intelligence is not built yet. |
-| Drill-down target     | None                                                                                               |
-| Spec reference        | 00 §4 KPI strip — Architecture Decisions                                                           |
-| Version               | v1 (introduced 2026-10-02, revised 2026-10-02)                                                     |
+| Field                 | Value                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.decisions`                                                                                                    |
+| Name                  | Architecture decisions                                                                                                      |
+| Category              | architecture                                                                                                                |
+| Definition            | Number of architecture decision records documented by the owner (04 ArchitectureDecision).                                  |
+| Formula               | `COUNT(architecture_decisions)`                                                                                             |
+| Source                | ArchitectureDecision                                                                                                        |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                 |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                         |
+| Caveats               | Only records owned by the signed-in user are counted. • All statuses, including superseded and rejected history (ADR 0042). |
+| Value type / temporal | count / point_in_time                                                                                                       |
+| Availability          | Available                                                                                                                   |
+| Drill-down target     | Architecture decisions list                                                                                                 |
+| Spec reference        | 00 §4 KPI strip — Architecture Decisions; ADR 0041                                                                          |
+| Version               | v2 (introduced 2026-10-02, revised 2026-10-03)                                                                              |
+
+#### `architecture.decisions_in_force` — Decisions in force
+
+| Field                 | Value                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.decisions_in_force`                                                                                                           |
+| Name                  | Decisions in force                                                                                                                          |
+| Category              | architecture                                                                                                                                |
+| Definition            | Decisions whose status is accepted — the ones currently governing the architecture.                                                         |
+| Formula               | `COUNT(status = accepted)`                                                                                                                  |
+| Source                | ArchitectureDecision.status                                                                                                                 |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                 |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                         |
+| Caveats               | Only records owned by the signed-in user are counted. • Deprecated and superseded decisions remain visible as history but are not in force. |
+| Value type / temporal | count / point_in_time                                                                                                                       |
+| Availability          | Available                                                                                                                                   |
+| Drill-down target     | Decisions list filtered to inForce=true                                                                                                     |
+| Spec reference        | 01 §5 ADR status; ADR 0042                                                                                                                  |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                              |
+
+#### `architecture.decisions_by_status` — Decisions by status
+
+| Field                 | Value                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.decisions_by_status`                                                           |
+| Name                  | Decisions by status                                                                          |
+| Category              | architecture                                                                                 |
+| Definition            | Decision counts per lifecycle status (proposed, accepted, rejected, deprecated, superseded). |
+| Formula               | `COUNT(architecture_decisions) GROUP BY status`                                              |
+| Source                | ArchitectureDecision.status                                                                  |
+| Frequency             | On request — computed live from the database when the Command Center loads.                  |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                          |
+| Caveats               | Only records owned by the signed-in user are counted.                                        |
+| Value type / temporal | distribution / point_in_time                                                                 |
+| Availability          | Available                                                                                    |
+| Drill-down target     | Decisions list filtered to the status                                                        |
+| Spec reference        | 01 §5 ADR status; ADR 0042                                                                   |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                               |
+
+#### `architecture.revisit_due` — Decisions due for revisit
+
+| Field                 | Value                                                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.revisit_due`                                                                                                                                                                                    |
+| Name                  | Decisions due for revisit                                                                                                                                                                                     |
+| Category              | architecture                                                                                                                                                                                                  |
+| Definition            | Accepted decisions whose recorded revisit date is before today (UTC).                                                                                                                                         |
+| Formula               | `COUNT(status = accepted AND revisitDate < today)`                                                                                                                                                            |
+| Source                | ArchitectureDecision.revisitDate, ArchitectureDecision.status                                                                                                                                                 |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                   |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                                                                                           |
+| Caveats               | Only records owned by the signed-in user are counted. • Uses only the owner's recorded revisit date; age alone never makes a decision stale (ADR 0044). • Decisions without a revisit date are never counted. |
+| Value type / temporal | count / point_in_time                                                                                                                                                                                         |
+| Availability          | Available                                                                                                                                                                                                     |
+| Drill-down target     | Decisions list filtered to revisitDue=true                                                                                                                                                                    |
+| Spec reference        | 04 revisitDate; 10 Architecture — Revisit date; ADR 0044                                                                                                                                                      |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                |
+
+#### `architecture.stale_critical_decisions` — Stale critical decisions
+
+| Field                 | Value                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.stale_critical_decisions`                                                                                                     |
+| Name                  | Stale critical decisions                                                                                                                    |
+| Category              | architecture                                                                                                                                |
+| Definition            | Decisions due for revisit that govern at least one component the owner marked critical.                                                     |
+| Formula               | `COUNT(revisit due AND linked components with critical = true ≥ 1)`                                                                         |
+| Source                | ArchitectureDecision, DecisionComponent, ArchitectureComponent.critical                                                                     |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                 |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                         |
+| Caveats               | Only records owned by the signed-in user are counted. • Criticality is the owner's explicit flag on a component, never inferred (ADR 0044). |
+| Value type / temporal | count / point_in_time                                                                                                                       |
+| Availability          | Available                                                                                                                                   |
+| Drill-down target     | Decisions list filtered to staleCritical=true                                                                                               |
+| Spec reference        | 00 §4 Critical panel — Stale critical decision; ADR 0044                                                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                              |
+
+#### `architecture.decisions_without_evidence` — Decisions without evidence
+
+| Field                 | Value                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.decisions_without_evidence`                                                                                                          |
+| Name                  | Decisions without evidence                                                                                                                         |
+| Category              | architecture                                                                                                                                       |
+| Definition            | Decisions with no linked evidence record.                                                                                                          |
+| Formula               | `COUNT(decisions with 0 evidence links)`                                                                                                           |
+| Source                | ArchitectureDecisionEvidence                                                                                                                       |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                        |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                                |
+| Caveats               | Only records owned by the signed-in user are counted. • Missing evidence is shown as missing, not scored (00 §5 Architecture Decision → Evidence). |
+| Value type / temporal | count / point_in_time                                                                                                                              |
+| Availability          | Available                                                                                                                                          |
+| Drill-down target     | Decisions list filtered to hasEvidence=false                                                                                                       |
+| Spec reference        | 00 §5; ADR 0041                                                                                                                                    |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                     |
+
+#### `architecture.decisions_with_gaps` — Decisions with documentation gaps
+
+| Field                 | Value                                                                                                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.decisions_with_gaps`                                                                                                                                                                             |
+| Name                  | Decisions with documentation gaps                                                                                                                                                                              |
+| Category              | architecture                                                                                                                                                                                                   |
+| Definition            | Decisions missing at least one expected part: context, decision, consequences (decided records), alternatives, related project or evidence.                                                                    |
+| Formula               | `COUNT(decisions with documentation-gaps-v1 list non-empty)`                                                                                                                                                   |
+| Source                | ArchitectureDecision, ArchitectureAlternative, DecisionProject, ArchitectureDecisionEvidence                                                                                                                   |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                    |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                                                                                            |
+| Caveats               | Only records owned by the signed-in user are counted. • A list of missing parts per decision — there is no completeness score (ADR 0044). • Proposals are not expected to have a decision or consequences yet. |
+| Value type / temporal | count / point_in_time                                                                                                                                                                                          |
+| Availability          | Available                                                                                                                                                                                                      |
+| Drill-down target     | Decisions list filtered to incomplete=true                                                                                                                                                                     |
+| Spec reference        | 10 Architecture acceptance; ADR 0044                                                                                                                                                                           |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                 |
+
+#### `architecture.decision_timeline` — Architecture decision timeline
+
+| Field                 | Value                                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.decision_timeline`                                                                                                    |
+| Name                  | Architecture decision timeline                                                                                                      |
+| Category              | architecture                                                                                                                        |
+| Definition            | Decisions per UTC month of their recorded decision date.                                                                            |
+| Formula               | `COUNT(architecture_decisions WHERE decidedAt IS NOT NULL) GROUP BY to_char(decidedAt, 'YYYY-MM')`                                  |
+| Source                | ArchitectureDecision.decidedAt                                                                                                      |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                         |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                 |
+| Caveats               | Only records owned by the signed-in user are counted. • Proposals have no decision date and are excluded; dates are never inferred. |
+| Value type / temporal | distribution / point_in_time                                                                                                        |
+| Availability          | Available                                                                                                                           |
+| Drill-down target     | Decisions list filtered to decidedFrom/To of the month                                                                              |
+| Spec reference        | 00 §4 Required charts — Architecture decision timeline; 08 decision history                                                         |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                      |
+
+#### `architecture.project_coverage` — Project architecture coverage
+
+| Field                 | Value                                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Key                   | `architecture.project_coverage`                                                                                                                                                                                                      |
+| Name                  | Project architecture coverage                                                                                                                                                                                                        |
+| Category              | architecture                                                                                                                                                                                                                         |
+| Definition            | Projects with at least one linked architecture decision among all projects.                                                                                                                                                          |
+| Formula               | `COUNT(projects with ≥ 1 decision link) / COUNT(projects)`                                                                                                                                                                           |
+| Source                | Project, DecisionProject                                                                                                                                                                                                             |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                                                                                                          |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                                                                                                                  |
+| Caveats               | Only records owned by the signed-in user are counted. • Covered means a decision is explicitly linked; using technologies does not count as architecture (ADR 0045). • All projects are in the denominator, including archived ones. |
+| Value type / temporal | ratio / point_in_time                                                                                                                                                                                                                |
+| Availability          | Available                                                                                                                                                                                                                            |
+| Drill-down target     | Projects list filtered to hasArchitecture=true (numerator)                                                                                                                                                                           |
+| Spec reference        | 08 Phase 7 acceptance — projects expose architecture; ADR 0045                                                                                                                                                                       |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                                                                                                       |
+
+#### `architecture.components` — Architecture components
+
+| Field                 | Value                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.components`                                                                           |
+| Name                  | Architecture components                                                                             |
+| Category              | architecture                                                                                        |
+| Definition            | Components in the registry (services, databases, queues, external APIs, AI models, infrastructure). |
+| Formula               | `COUNT(architecture_components)`                                                                    |
+| Source                | ArchitectureComponent                                                                               |
+| Frequency             | On request — computed live from the database when the Command Center loads.                         |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                 |
+| Caveats               | Only records owned by the signed-in user are counted.                                               |
+| Value type / temporal | count / point_in_time                                                                               |
+| Availability          | Available                                                                                           |
+| Drill-down target     | Components list                                                                                     |
+| Spec reference        | 08 component registry; 01 §5 Architecture Map; ADR 0043                                             |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                      |
+
+#### `architecture.components_by_type` — Components by type
+
+| Field                 | Value                                                                       |
+| --------------------- | --------------------------------------------------------------------------- |
+| Key                   | `architecture.components_by_type`                                           |
+| Name                  | Components by type                                                          |
+| Category              | architecture                                                                |
+| Definition            | Component counts per 01 §5 node type.                                       |
+| Formula               | `COUNT(architecture_components) GROUP BY type`                              |
+| Source                | ArchitectureComponent.type                                                  |
+| Frequency             | On request — computed live from the database when the Command Center loads. |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                         |
+| Caveats               | Only records owned by the signed-in user are counted.                       |
+| Value type / temporal | distribution / point_in_time                                                |
+| Availability          | Available                                                                   |
+| Drill-down target     | Components list filtered to the type                                        |
+| Spec reference        | 01 §5 Architecture Map; ADR 0043                                            |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                              |
+
+#### `architecture.critical_components` — Critical components
+
+| Field                 | Value                                                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.critical_components`                                                                                                              |
+| Name                  | Critical components                                                                                                                             |
+| Category              | architecture                                                                                                                                    |
+| Definition            | Components the owner marked critical.                                                                                                           |
+| Formula               | `COUNT(critical = true)`                                                                                                                        |
+| Source                | ArchitectureComponent.critical                                                                                                                  |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                                                     |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                                             |
+| Caveats               | Only records owned by the signed-in user are counted. • An explicit owner flag (05 Architecture Network — critical components), never inferred. |
+| Value type / temporal | count / point_in_time                                                                                                                           |
+| Availability          | Available                                                                                                                                       |
+| Drill-down target     | Components list filtered to critical=true                                                                                                       |
+| Spec reference        | 05 Architecture Network; ADR 0043                                                                                                               |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                                                  |
+
+#### `architecture.components_without_decisions` — Components without decisions
+
+| Field                 | Value                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Key                   | `architecture.components_without_decisions`                                                                          |
+| Name                  | Components without decisions                                                                                         |
+| Category              | architecture                                                                                                         |
+| Definition            | Components not governed by any recorded architecture decision.                                                       |
+| Formula               | `COUNT(components with 0 decision links)`                                                                            |
+| Source                | DecisionComponent                                                                                                    |
+| Frequency             | On request — computed live from the database when the Command Center loads.                                          |
+| Owner                 | PEOS Architecture domain (src/modules/architecture)                                                                  |
+| Caveats               | Only records owned by the signed-in user are counted. • Shows missing architecture context; not a quality judgement. |
+| Value type / temporal | count / point_in_time                                                                                                |
+| Availability          | Available                                                                                                            |
+| Drill-down target     | Components list filtered to hasDecisions=false                                                                       |
+| Spec reference        | 01 §5 node detail — decisions; ADR 0045                                                                              |
+| Version               | v1 (introduced 2026-10-03, revised 2026-10-03)                                                                       |
 
 #### `engineering.technical_debt_trend` — Technical debt trend
 

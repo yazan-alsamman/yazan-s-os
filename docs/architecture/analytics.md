@@ -1,4 +1,4 @@
-# PEOS Analytics & Command Center Architecture (Phases 2–6)
+# PEOS Analytics & Command Center Architecture (Phases 2–7)
 
 Decisions: ADR 0018 (lifecycle groups), ADR 0019 (catalogue and result contract), ADR 0020
 (filters and drill-down), ADR 0021 (activity and timeline). The metric list is in
@@ -211,22 +211,57 @@ Dataset (one user): 1,000 experiments, 2,500 runs, 3,332 recorded evaluation met
 PostgreSQL 17.10, service layer, 1 warm-up + 10 timed runs; median = mean of runs 5 and 6. Cells
 are median / max ms.
 
-| Call                                   | Run a (`ANALYZE`) | Run b (no `ANALYZE`) | Run c (no `ANALYZE`) |
-| -------------------------------------- | ----------------- | -------------------- | -------------------- |
-| Experiment list (page 1, recent)       | 32.3 / 47.2       | 36.9 / 53.9          | 40.0 / 49.7          |
-| Experiment list (reproducibility)      | 30.5 / 40.8       | 35.2 / 38.6          | 36.9 / 49.4          |
-| Experiment dossier                     | 11.2 / 12.1       | 12.0 / 12.6          | 14.2 / 23.3          |
-| Run comparison                         | 8.3 / 9.5         | 7.3 / 9.5            | 9.7 / 12.1           |
-| AI Lab analytics                       | 40.4 / 45.4       | 46.1 / 56.7          | 53.7 / 60.3          |
-| Command Center dashboard (incl. AI Lab)| 68.9 / 86.2       | 85.9 / 99.8          | 83.6 / 96.1          |
+| Call                                    | Run a (`ANALYZE`) | Run b (no `ANALYZE`) | Run c (no `ANALYZE`) |
+| --------------------------------------- | ----------------- | -------------------- | -------------------- |
+| Experiment list (page 1, recent)        | 32.3 / 47.2       | 36.9 / 53.9          | 40.0 / 49.7          |
+| Experiment list (reproducibility)       | 30.5 / 40.8       | 35.2 / 38.6          | 36.9 / 49.4          |
+| Experiment dossier                      | 11.2 / 12.1       | 12.0 / 12.6          | 14.2 / 23.3          |
+| Run comparison                          | 8.3 / 9.5         | 7.3 / 9.5            | 9.7 / 12.1           |
+| AI Lab analytics                        | 40.4 / 45.4       | 46.1 / 56.7          | 53.7 / 60.3          |
+| Command Center dashboard (incl. AI Lab) | 68.9 / 86.2       | 85.9 / 99.8          | 83.6 / 96.1          |
 
 The AI Lab aggregates are small (two grouped run queries + one latest-run query + one evidence
 aggregate), so unlike the Phase 4/5 bulk loads there was **no stale-statistics outlier** — the
 no-`ANALYZE` runs track the `ANALYZE` run. Statistics still matter after very large imports, so
 bulk benchmarks should `ANALYZE` after loading.
 
-
 **Query strategy:** one experiment query + two run aggregates + one latest-run query + one evidence
 aggregate for any number of experiments (no N+1); the dossier adds bounded run/metric/evidence
 reads; comparison loads exactly two runs. Lists are paginated (≤ 100); runs ≤ 500 and metrics ≤ 100
 per parent. No caching; only the new tables' indexes were added.
+
+## Phase 7 — Architecture Intelligence
+
+- **Decisions** (`src/modules/architecture/architecture-intelligence.ts`): one decision query and
+  five grouped counts (projects, evidence, alternatives, components, critical components) for any
+  number of decisions; revisit, stale-critical and documentation gaps come from the pure rules.
+- **Components:** one component query and six grouped counts (projects, technologies, depends on,
+  used by, decisions, decisions in force).
+- **Map:** one node query (bounded, critical first), one edge query between included nodes and one
+  grouped decision count. Never an unbounded graph.
+- **Source lists:** decisions, components and projects (`hasArchitecture`); every metric and bucket
+  equals its list total (integration-tested).
+
+### Phase 7 performance
+
+Dataset (one user): 2,000 decisions, 1,000 components, 1,000 projects, 2,000 decision–project
+links, 4,000 decision–component links, 1,000 decision–evidence links, 2,000 alternatives, 2,000
+component dependencies, 1,000 component–project and 1,000 component–technology links, 50,000 audit
+rows. Service layer, 1 warm-up + 10 timed runs; cells are median / max ms.
+
+| Call                                          | Run a (`ANALYZE`) | Run b (no `ANALYZE`) | Run c (no `ANALYZE`) |
+| --------------------------------------------- | ----------------- | -------------------- | -------------------- |
+| Decision list (page 1)                        | 54.5 / 65.1       | 59.7 / 79.8          | 55.9 / 68.8          |
+| Decision list (stale critical)                | 51.2 / 59.4       | 52.0 / 58.6          | 51.1 / 60.3          |
+| Decision dossier (incl. history)              | 13.2 / 20.5       | 29.0 / 38.8          | 28.0 / 37.5          |
+| Component list (page 1)                       | 30.3 / 40.9       | 31.8 / 36.7          | 32.5 / 43.6          |
+| Component dossier                             | 12.4 / 18.9       | 17.2 / 30.3          | 17.5 / 23.8          |
+| Architecture map (100 nodes)                  | 8.2 / 9.4         | 8.7 / 10.1           | 8.6 / 10.2           |
+| Architecture map (150 nodes)                  | 9.2 / 9.8         | 10.0 / 12.5          | 9.7 / 10.7           |
+| Architecture analytics                        | 79.2 / 91.8       | 81.3 / 97.8          | 86.2 / 109.6         |
+| Command Center dashboard (incl. architecture) | 106.3 / 131.9     | 119.9 / 142.1        | 114.0 / 133.1        |
+
+**Planner statistics (verified).** The first map implementation used a per-row relation
+`_count` of decisions; without `ANALYZE` it measured 652–660 ms. A per-query breakdown in the same
+state showed that query at 646.5 ms while the plain node query took 3.6 ms and a grouped decision
+count over the same ids 3.8 ms. The map now uses the grouped count (8–10 ms in every run).

@@ -165,3 +165,16 @@ HTTP 503 only when the database (critical) is unavailable.
   `matchesExperimentQuery`, or list totals and metrics drift; the integration tests compare them.
 - **No execution/secrets:** never add a model-execution call or a credential field to experiments
   (ADR 0040); measurements are user-recorded and may be null (not zero).
+
+## Phase 7 notes
+
+- **Migration:** `pnpm db:deploy` adds nine architecture tables (additive).
+- **Pages:** `/architecture` (decisions), `/architecture/:id` (decision dossier),
+  `/architecture/components`, `/architecture/components/:id`, `/architecture/map`,
+  `/architecture/analytics`; the project dossier has an Architecture section.
+- **Rules:** `src/modules/architecture/architecture.rules.ts` (`decision-lifecycle-v1`,
+  `revisit-v1`, `documentation-gaps-v1`). Change them only with a new ADR and catalogue entries.
+- **Reconciliation:** a new decision/component filter must be added to `decisionWhere` /
+  `componentWhere` **and** `matchesDecisionQuery` / `matchesComponentQuery`.
+- **Prisma `_count` on paginated lists** can regress badly with stale statistics; prefer a grouped
+  count scoped to the page's ids (see the Phase 7 benchmark).

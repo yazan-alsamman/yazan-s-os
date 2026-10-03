@@ -125,3 +125,17 @@ New ambiguities found and decided in Phase 1:
 | P6-7 | AI Experiment Scatter Y axis = "quality" is undefined                     | Deferred (no invented composite)                                                  |
 | P6-8 | AIExperiment ↔ Skill/Technology not in `04`                               | Deferred; reached through the project link                                        |
 | P6-9 | `12_IMPLEMENTATION_GUIDE.md` absent                                       | Recorded, not fabricated; used `00`,`01`,`04`,`05`,`08` + conventions             |
+
+## Phase 7 specification gaps (ADRs 0041–0045)
+
+| Gap  | Detail                                                                | Handling                                                            |
+| ---- | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| P7-1 | Decision status values undefined                                      | proposed · accepted · rejected · deprecated · superseded (ADR 0042) |
+| P7-2 | `04` Project 1:N ADR vs `01` "Related projects" (plural)              | N:M link table; also preserves history on project delete (ADR 0041) |
+| P7-3 | "Stale critical decision" (00 §4) undefined; no criticality field     | Revisit due + governs an owner-marked critical component (ADR 0044) |
+| P7-4 | No decision date in `04`, but a decision timeline/history is required | `decidedAt` (recorded; required unless proposed) (ADR 0042)         |
+| P7-5 | Map node "owner" undefined in a single-user product                   | Not modelled                                                        |
+| P7-6 | Map node "incidents" — no incident entity                             | Deferred                                                            |
+| P7-7 | Decision ↔ Technology / Skill / AI experiment not in the specs        | Not modelled; technologies reached through governed components      |
+| P7-8 | Dated technology usage for a technology heatmap (P3-7)                | Still unavailable                                                   |
+| P7-9 | `12_IMPLEMENTATION_GUIDE.md` absent                                   | Recorded, not fabricated                                            |

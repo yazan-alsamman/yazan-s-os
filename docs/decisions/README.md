@@ -45,3 +45,8 @@ An accepted ADR is changed only by a new ADR that supersedes it.
 | [0038](0038-experiment-evaluation-analytics-and-comparison.md) | Evaluation, comparison, analytics and provenance (comparison-v1)             | Accepted |
 | [0039](0039-reproducibility-model.md)                          | Reproducibility model (reproducibility-v1)                                   | Accepted |
 | [0040](0040-no-execution-no-fabrication.md)                    | No model execution, no fabricated AI results, no secrets                     | Accepted |
+| [0041](0041-architecture-decision-domain.md)                   | Architecture decision record domain                                          | Accepted |
+| [0042](0042-decision-lifecycle-and-supersession.md)            | Decision lifecycle and supersession (decision-lifecycle-v1)                  | Accepted |
+| [0043](0043-component-registry-and-architecture-map.md)        | Component registry and architecture map                                      | Accepted |
+| [0044](0044-revisit-staleness-and-documentation-gaps.md)       | Revisit, stale critical decisions and documentation gaps                     | Accepted |
+| [0045](0045-architecture-analytics-and-coverage.md)            | Architecture analytics, project coverage and drill-down                      | Accepted |

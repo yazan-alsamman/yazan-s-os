@@ -1,4 +1,4 @@
-# PEOS HTTP API (`/api/v1`) — Phases 1–6
+# PEOS HTTP API (`/api/v1`) — Phases 1–7
 
 Conventions: ADR 0015.
 
@@ -142,6 +142,33 @@ experiments; it never executes models (ADR 0040).
 
 - The Command Center dashboard adds the `ai.active_experiments` KPI and `experiments: { total, active, reproducibility }`.
 - Experiment, run and metric mutations appear in `/analytics/activity`.
+
+### Phase 7 — Architecture Intelligence (ADRs 0041–0045)
+
+All endpoints require a session and are owner-scoped. Reads use the `analytics` rate limit;
+mutations use `mutation` plus the same-origin check. Malformed ids → 404; foreign relationship
+targets (project, evidence, technology, component, superseding decision) → 400. No endpoint accepts
+`userId`/`ownerId`. PEOS never generates or infers architecture decisions.
+
+| Method               | Path                                                                | Purpose                                                                                                                                                                                                                                                                                                             | Validation                                           |
+| -------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| GET · POST           | `/architecture/decisions`                                           | Source list for decision metrics (filters `q`, `status`, `inForce`, `projectId`, `componentId`, `hasProjects`, `hasEvidence`, `hasAlternatives`, `revisitDue`, `staleCritical`, `incomplete`, `decidedFrom/To`; sort decidedAt, revisitDate, title, status, updatedAt) · create (status proposed/accepted/rejected) | `listDecisionsQuerySchema`, `createDecisionSchema`   |
+| GET · PATCH · DELETE | `/architecture/decisions/:id`                                       | Read · update (lifecycle transitions, supersession) · delete (409 while it supersedes others)                                                                                                                                                                                                                       | `updateDecisionSchema`                               |
+| GET                  | `/architecture/decisions/:id/intelligence`                          | Dossier: counts, revisit state and explanation, gaps, projects, evidence, alternatives, components, supersession links, audit-based history                                                                                                                                                                         | —                                                    |
+| PUT                  | `/architecture/decisions/:id/{projects,evidence,components}`        | Replace a relationship set                                                                                                                                                                                                                                                                                          | `decision*Schema`                                    |
+| POST                 | `/architecture/decisions/:id/alternatives`                          | Record an alternative (≤ 50)                                                                                                                                                                                                                                                                                        | `alternativeSchema`                                  |
+| PATCH · DELETE       | `/architecture/decisions/:id/alternatives/:alternativeId`           | Update · delete an alternative                                                                                                                                                                                                                                                                                      | `updateAlternativeSchema`                            |
+| GET · POST           | `/architecture/components`                                          | Component registry (filters `q`, `type`, `critical`, `projectId`, `technologyId`, `hasDecisions`, `hasDependencies`) · create                                                                                                                                                                                       | `listComponentsQuerySchema`, `createComponentSchema` |
+| GET · PATCH · DELETE | `/architecture/components/:id`                                      | Read · update · delete (links only)                                                                                                                                                                                                                                                                                 | `updateComponentSchema`                              |
+| GET                  | `/architecture/components/:id/intelligence`                         | Node detail: projects, technologies, depends on, used by, decisions                                                                                                                                                                                                                                                 | —                                                    |
+| PUT                  | `/architecture/components/:id/{projects,technologies,dependencies}` | Replace a relationship set (no self-dependency)                                                                                                                                                                                                                                                                     | `component*Schema`                                   |
+| GET                  | `/architecture/map`                                                 | Bounded graph: `type`, `projectId`, `limit` (10–150, default 100); nodes, edges among them, total, truncated                                                                                                                                                                                                        | `mapQuerySchema`                                     |
+| GET                  | `/analytics/architecture`                                           | Architecture analytics and attention lists                                                                                                                                                                                                                                                                          | —                                                    |
+
+- `/projects` accepts `hasArchitecture=true|false` (projects with/without a linked decision).
+- The Command Center dashboard adds the `architecture.decisions` KPI and
+  `architecture: { decisions, staleCritical, revisitDue, attention }`.
+- Decision, alternative and component mutations appear in `/analytics/activity`.
 
 **Error codes:**
 

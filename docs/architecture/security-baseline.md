@@ -1,4 +1,4 @@
-# PEOS Security Baseline (Phases 0–6)
+# PEOS Security Baseline (Phases 0–7)
 
 Scope: controls that exist now. Threat model source: `07_SECURITY_PRIVACY.md`.
 
@@ -227,6 +227,28 @@ The E2E suite asserts zero console errors (CSP violations surface there) on ever
   and `experiment_metric.created/deleted`, all in-transaction. Analytics are not audited.
 - **Dependency audit (2026-10-03):** unchanged — `braces <=3.0.3` (dev-only lint tooling) remains
   open and accepted; `pnpm audit --prod` reports no known vulnerabilities.
+
+## Phase 7 controls (Architecture Intelligence)
+
+- **Sensitive engineering detail.** Decisions and components can describe internal systems; every
+  record, link, list, dossier, map and analytics query is owner-scoped by session identity and
+  composite FKs. Text renders through React; CSV export uses the shared formula-injection guard.
+- **Database ownership.** All nine new tables carry `user_id`; every link has composite FKs to both
+  owners; supersession is a composite self-FK. Cross-owner links are impossible in the database.
+- **IDOR.** `tests/integration/architecture-authz.int.test.ts` (HTTP, two real users): reading,
+  updating and deleting a foreign decision, alternative or component (404); replacing a foreign
+  record's relationships (404); linking a foreign project, evidence, component, technology or
+  superseding decision (400); injected `userId`/`ownerId` (ignored); lists, map and analytics
+  isolated; malformed ids 404; invalid input and an over-limit map 400.
+- **Bounds.** ≤ 2,000 decisions, ≤ 1,000 components per user; ≤ 50 alternatives per decision; map
+  ≤ 150 nodes; supersession cycle check visits each decision once; history ≤ 100 events.
+- **No generated content.** PEOS does not generate, infer, rank or recommend architecture decisions.
+- **Audit.** `architecture_decision.created/accepted/rejected/deprecated/superseded/restored/updated/
+deleted/relations_updated`, `architecture_alternative.created/updated/deleted`,
+  `architecture_component.created/updated/deleted/relations_updated` — in-transaction, id lists only.
+- **Rate limiting.** Unchanged (analytics 120 reads/min per user). The full single-user E2E suite
+  can reach it within one window (see the Phase 7 report); the limit was not relaxed.
+- **Dependency audit (2026-10-03):** unchanged — dev-only `braces <=3.0.3`; `pnpm audit --prod` clean.
 
 ## Not yet implemented (tracked)
 
