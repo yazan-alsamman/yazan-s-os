@@ -11,7 +11,7 @@ import { isoDate, optionalIsoDate, requiredText, uuidSchema } from "@/modules/sh
 
 export const milestoneStatusSchema = z.enum(MilestoneStatus);
 
-/** Fields of spec 04 Milestone (goalId deferred to Phase 5 — ADR 0022). No owner/project ids. */
+/** Fields of spec 04 Milestone. No owner/project ids; goalId is set only through the goal routes (ADR 0032). */
 const milestoneFields = {
   title: requiredText(200),
   dueDate: optionalIsoDate,

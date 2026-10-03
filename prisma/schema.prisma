@@ -40,6 +40,11 @@ model User {
   projects         Project[]
   milestones       Milestone[]
   skillLevelModels SkillLevelModel[]
+  goals            Goal[]
+  goalProjects     GoalProject[]
+  goalSkills       GoalSkill[]
+  goalDependencies GoalDependency[]
+  goalMeasurements GoalMeasurement[]
   technologySkills TechnologySkill[]
   evidence         Evidence[]
   importJobs       ImportJob[]
@@ -167,6 +172,35 @@ enum MilestoneStatus {
   cancelled
 
   @@map("milestone_status")
+}
+
+/// 01 §8 goal hierarchy levels (Milestone and Action are separate entities). ADR 0031.
+enum GoalType {
+  north_star
+  annual_objective
+  quarterly_goal
+
+  @@map("goal_type")
+}
+
+/// Goal lifecycle (ADR 0031). completed ⇔ completed_at IS NOT NULL (check constraint).
+enum GoalStatus {
+  draft
+  active
+  on_hold
+  completed
+  cancelled
+
+  @@map("goal_status")
+}
+
+/// 04 Goal.confidence — the user's own, manual confidence. Never derived (ADR 0033).
+enum GoalConfidence {
+  low
+  medium
+  high
+
+  @@map("goal_confidence")
 }
 
 enum CertificationStatus {
@@ -309,6 +343,7 @@ model Skill {
   evidence         SkillEvidence[]
   certifications   CertificationSkill[]
   technologies     TechnologySkill[]
+  goals            GoalSkill[]
   customLevelModel SkillLevelModel?     @relation(fields: [levelModelId, userId], references: [id, userId], onDelete: NoAction)
 
   @@unique([id, userId])
@@ -401,6 +436,7 @@ model Project {
   technologies TechnologyUsage[]
   evidence     ProjectEvidence[]
   milestones   Milestone[]
+  goals        GoalProject[]
 
   @@unique([id, userId])
   @@unique([userId, slug])
@@ -463,6 +499,8 @@ model Milestone {
   id          String          @id @default(uuid()) @db.Uuid
   userId      String          @map("user_id") @db.Uuid
   projectId   String          @map("project_id") @db.Uuid
+  /// 04 Milestone.goalId: the goal this milestone counts toward (Goal 1:N Milestone; ADR 0032).
+  goalId      String?         @map("goal_id") @db.Uuid
   title       String
   /// Planned date (spec "dueDate"). Optional: undated milestones are never overdue.
   dueDate     DateTime?       @map("due_date") @db.Date
@@ -473,8 +511,10 @@ model Milestone {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+  goal    Goal?   @relation(fields: [goalId, userId], references: [id, userId], onDelete: NoAction)
 
   @@unique([id, userId])
+  @@index([goalId])
   @@index([projectId, dueDate])
   @@index([userId, status, dueDate])
   @@index([userId, completedAt])
@@ -515,6 +555,114 @@ model TechnologySkill {
   @@id([technologyId, skillId])
   @@index([skillId])
   @@map("technology_skills")
+}
+
+/// A goal (spec 04 Goal + 01 §8; ADR 0031). Hierarchy by type rank; progress is derived (ADR 0033).
+model Goal {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @map("user_id") @db.Uuid
+  /// 04 Goal.parentId — same owner (composite FK); deletion refused while children exist.
+  parentId    String?         @map("parent_id") @db.Uuid
+  title       String
+  type        GoalType
+  description String?
+  /// 01 §8 "Outcome": the result the goal is meant to produce.
+  outcome     String?
+  /// 04 Goal.metric: what is measured (e.g. "p95 latency"). With unit, baseline and target.
+  metric      String?
+  unit        String?
+  baseline    Float?
+  target      Float?
+  /// Optional planned start (roadmap timeline); 04 defines only the deadline.
+  startDate   DateTime?       @map("start_date") @db.Date
+  /// 04 Goal.deadline — the target date (UTC calendar day).
+  deadline    DateTime?       @db.Date
+  status      GoalStatus      @default(draft)
+  completedAt DateTime?       @map("completed_at") @db.Date
+  confidence  GoalConfidence?
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Goal?             @relation("GoalHierarchy", fields: [parentId, userId], references: [id, userId], onDelete: NoAction)
+  children     Goal[]            @relation("GoalHierarchy")
+  projects     GoalProject[]
+  skills       GoalSkill[]
+  dependsOn    GoalDependency[]  @relation("GoalDependent")
+  dependents   GoalDependency[]  @relation("GoalDependency")
+  measurements GoalMeasurement[]
+  milestones   Milestone[]
+
+  @@unique([id, userId])
+  @@index([userId, status, deadline])
+  @@index([parentId])
+  @@map("goals")
+}
+
+/// Project N:M Goal (04 Relationships).
+model GoalProject {
+  userId    String   @map("user_id") @db.Uuid
+  goalId    String   @map("goal_id") @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal    Goal    @relation(fields: [goalId, userId], references: [id, userId], onDelete: Cascade)
+  project Project @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([goalId, projectId])
+  @@index([projectId])
+  @@map("goal_projects")
+}
+
+/// Goal → Skills (00 §5). The skill's own target level applies (no per-goal level; ADR 0032).
+model GoalSkill {
+  userId    String   @map("user_id") @db.Uuid
+  goalId    String   @map("goal_id") @db.Uuid
+  skillId   String   @map("skill_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal  Goal  @relation(fields: [goalId, userId], references: [id, userId], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([goalId, skillId])
+  @@index([skillId])
+  @@map("goal_skills")
+}
+
+/// 01 §8 "Dependencies" / 08 Phase 5: goal A depends on goal B. Acyclic (service-enforced).
+model GoalDependency {
+  userId          String   @map("user_id") @db.Uuid
+  goalId          String   @map("goal_id") @db.Uuid
+  dependsOnGoalId String   @map("depends_on_goal_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal      Goal @relation("GoalDependent", fields: [goalId, userId], references: [id, userId], onDelete: Cascade)
+  dependsOn Goal @relation("GoalDependency", fields: [dependsOnGoalId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([goalId, dependsOnGoalId])
+  @@index([dependsOnGoalId])
+  @@map("goal_dependencies")
+}
+
+/// A recorded value of the goal's metric on a date (05 "Goal Burndown"; ADR 0033).
+model GoalMeasurement {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  goalId    String   @map("goal_id") @db.Uuid
+  date      DateTime @db.Date
+  value     Float
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal Goal @relation(fields: [goalId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@unique([id, userId])
+  @@index([goalId, date])
+  @@map("goal_measurements")
 }
 
 model TechnologyUsage {

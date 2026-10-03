@@ -14,6 +14,8 @@ export type AuditEntity =
   | "project"
   | "milestone"
   | "skill_level_model"
+  | "goal"
+  | "goal_measurement"
   | "evidence"
   | "import_job"
   | "import_record"
