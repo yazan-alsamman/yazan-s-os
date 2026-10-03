@@ -221,10 +221,27 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
       return componentsList({ critical: "true" });
     case "architecture.components_without_decisions":
       return componentsList({ hasDecisions: "false" });
+    // Phase 9: the engineering-activity KPI drills to the Engineering Analytics detail for the period.
+    case "engineering.activity":
+      return href(
+        "/analytics",
+        period.from && period.to ? { range: "custom", from: period.from, to: period.to } : {},
+      );
     default:
       return null;
   }
 }
+
+/** Phase 9: the list page for one engineering-activity domain (period-filtered on the surface). */
+const ENGINEERING_DOMAIN_LIST: Record<string, string> = {
+  projects: "/projects",
+  milestones: "/projects/milestones",
+  evidence: "/evidence",
+  goals: "/goals",
+  architecture: "/architecture",
+  experiments: "/ai-lab",
+  certifications: "/certifications",
+};
 
 /** Drill-down for one bucket of a distribution metric. */
 export function bucketHref(key: string, bucket: string, f: DrillFilters): string | null {
@@ -313,6 +330,12 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
       const m = monthBounds(bucket);
       return m ? experimentsList({ createdFrom: m.from, createdTo: m.to }) : null;
     }
+    case "engineering.activity_trend": {
+      const m = monthBounds(bucket);
+      return m ? href("/analytics", { range: "custom", from: m.from, to: m.to }) : null;
+    }
+    case "engineering.activity_by_domain":
+      return ENGINEERING_DOMAIN_LIST[bucket] ?? null;
     default:
       return null;
   }

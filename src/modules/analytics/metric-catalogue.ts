@@ -66,6 +66,7 @@ const PHASE4 = { version: 1, introduced: "2026-10-03", revised: "2026-10-03" } a
 const PHASE5 = { version: 1, introduced: "2026-10-03", revised: "2026-10-03" } as const;
 const PHASE6 = { version: 1, introduced: "2026-10-03", revised: "2026-10-03" } as const;
 const PHASE7 = { version: 1, introduced: "2026-10-03", revised: "2026-10-03" } as const;
+const PHASE9 = { version: 1, introduced: "2026-10-03", revised: "2026-10-03" } as const;
 const ON_REQUEST = "On request — computed live from the database when the Command Center loads.";
 const OWNER = {
   projects: "PEOS Projects domain (src/modules/projects)",
@@ -75,12 +76,36 @@ const OWNER = {
   goals: "PEOS Goals domain (src/modules/goals)",
   ai: "PEOS AI Lab domain (src/modules/experiments)",
   architecture: "PEOS Architecture domain (src/modules/architecture)",
+  engineering:
+    "PEOS Engineering Analytics (src/modules/analytics/engineering-analytics.service.ts)",
 };
 const SCOPE = "Only records owned by the signed-in user are counted.";
 
 const AVAILABLE = { status: "available" } as const;
 const unavailable = (reason: string, plannedPhase: string) =>
   ({ status: "unavailable", reason, plannedPhase }) as const;
+
+/** The authoritative dated events counted as engineering activity (ADR 0051). */
+const ACTIVITY_SOURCES = [
+  "Project.completedAt",
+  "Milestone.completedAt",
+  "Evidence.date",
+  "Goal.completedAt",
+  "ArchitectureDecision.decidedAt",
+  "ExperimentRun.runAt",
+  "Certification.issueDate",
+];
+const ACTIVITY_CAVEATS = [
+  SCOPE,
+  "Counts recorded engineering outputs, not time spent — PEOS stores no time tracking.",
+  "Each event is counted once by its authoritative recorded date; skill demonstrations are represented by their evidence, never double-counted.",
+  "Period boundaries are whole calendar days in UTC.",
+  "Undated records are never counted and historical state is never inferred.",
+];
+/** Integration-dependent metrics have no data source in PEOS and are never fabricated. */
+const NO_INTEGRATION = "Future — requires an engineering integration (GitHub/CI/CD/issue tracker)";
+const NO_INTEGRATION_CAVEAT =
+  "05 Engineering Metrics: support DORA-style concepts only where data exists; do not fabricate metrics when integrations are unavailable.";
 
 const definitions: MetricDefinition[] = [
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -508,7 +533,7 @@ const definitions: MetricDefinition[] = [
     temporal: "point_in_time",
     specRef: "01 §3 — issue severity",
     drillDown: null,
-    availability: unavailable("PEOS has no issue tracking.", "Phase 9 — Engineering Analytics"),
+    availability: unavailable("PEOS has no issue tracking.", NO_INTEGRATION),
     ...PHASE3,
   },
   {
@@ -2087,6 +2112,140 @@ const definitions: MetricDefinition[] = [
     availability: AVAILABLE,
     ...PHASE7,
   },
+  // ── Engineering Analytics (Phase 9) ─────────────────────────────────────────
+  {
+    key: "engineering.activity",
+    name: "Engineering activity",
+    category: "engineering",
+    definition:
+      "Count of dated engineering events recorded in the selected period across all domains: project and milestone completions, evidence recorded, goals completed, architecture decisions, experiment runs completed, and certifications earned.",
+    formula:
+      "SUM over events of COUNT(event WHERE event_date BETWEEN period.start AND period.end), events = {Project.completedAt, Milestone.completedAt, Evidence.date, Goal.completedAt, ArchitectureDecision.decidedAt, ExperimentRun.completedAt, Certification.issueDate}",
+    source: ACTIVITY_SOURCES,
+    frequency: ON_REQUEST,
+    owner: OWNER.engineering,
+    caveats: ACTIVITY_CAVEATS,
+    valueType: "count",
+    temporal: "period",
+    specRef: "08 Phase 9 — Engineering Analytics; 05 Analytics UX — comparison period",
+    drillDown: "Per-domain record lists for the period (via engineering.activity_by_domain)",
+    availability: AVAILABLE,
+    ...PHASE9,
+  },
+  {
+    key: "engineering.activity_trend",
+    name: "Engineering activity trend",
+    category: "engineering",
+    definition:
+      "Dated engineering events per calendar month inside the selected period (continuous series; months with no events are real zeros).",
+    formula: "COUNT(events) GROUP BY month(event_date) WHERE event_date within period",
+    source: ACTIVITY_SOURCES,
+    frequency: ON_REQUEST,
+    owner: OWNER.engineering,
+    caveats: [
+      ...ACTIVITY_CAVEATS,
+      "Months without events are real zeros. At most 120 months are shown.",
+    ],
+    valueType: "distribution",
+    temporal: "period",
+    specRef: "05 Visualization Catalog — trends; 08 Phase 9",
+    drillDown:
+      "The month's engineering records, reached through each domain's list (see activity by domain) and the chart's data table",
+    availability: AVAILABLE,
+    ...PHASE9,
+  },
+  {
+    key: "engineering.activity_by_domain",
+    name: "Engineering activity by domain",
+    category: "engineering",
+    definition:
+      "Distribution of the period's dated engineering events across domains — the mix of recorded engineering output (engineering focus).",
+    formula: "COUNT(events in period) GROUP BY domain",
+    source: ACTIVITY_SOURCES,
+    frequency: ON_REQUEST,
+    owner: OWNER.engineering,
+    caveats: [
+      ...ACTIVITY_CAVEATS,
+      "A distribution of recorded output, not a measure of effort, importance or proficiency.",
+    ],
+    valueType: "distribution",
+    temporal: "period",
+    specRef: "08 Phase 9 — engineering focus and distribution",
+    drillDown: "Each domain drills into that domain's records dated in the period",
+    availability: AVAILABLE,
+    ...PHASE9,
+  },
+  {
+    key: "engineering.deployment_frequency",
+    name: "Deployment frequency",
+    category: "engineering",
+    definition: "How often changes are deployed to production (DORA).",
+    formula: "Requires a CI/CD or deployment integration",
+    source: ["Integrations (not yet built)"],
+    frequency: "Per integration sync",
+    owner: OWNER.engineering,
+    caveats: [NO_INTEGRATION_CAVEAT],
+    valueType: "count",
+    temporal: "period",
+    specRef: "05 Engineering Metrics — deployment frequency (DORA)",
+    drillDown: null,
+    availability: unavailable("PEOS has no deployment/CI integration.", NO_INTEGRATION),
+    ...PHASE9,
+  },
+  {
+    key: "engineering.lead_time",
+    name: "Lead time for changes",
+    category: "engineering",
+    definition: "Time from commit to production (DORA).",
+    formula: "Requires a version-control and deployment integration",
+    source: ["Integrations (not yet built)"],
+    frequency: "Per integration sync",
+    owner: OWNER.engineering,
+    caveats: [NO_INTEGRATION_CAVEAT],
+    valueType: "count",
+    temporal: "period",
+    specRef: "05 Engineering Metrics — lead time (DORA)",
+    drillDown: null,
+    availability: unavailable(
+      "PEOS has no version-control/deployment integration.",
+      NO_INTEGRATION,
+    ),
+    ...PHASE9,
+  },
+  {
+    key: "engineering.change_failure_rate",
+    name: "Change failure rate",
+    category: "engineering",
+    definition: "Share of deployments causing a failure in production (DORA).",
+    formula: "Requires deployment and incident integrations",
+    source: ["Integrations (not yet built)"],
+    frequency: "Per integration sync",
+    owner: OWNER.engineering,
+    caveats: [NO_INTEGRATION_CAVEAT],
+    valueType: "ratio",
+    temporal: "period",
+    specRef: "05 Engineering Metrics — change failure rate (DORA)",
+    drillDown: null,
+    availability: unavailable("PEOS has no deployment/incident integration.", NO_INTEGRATION),
+    ...PHASE9,
+  },
+  {
+    key: "engineering.time_to_restore",
+    name: "Time to restore service",
+    category: "engineering",
+    definition: "Time to recover from a production failure (DORA).",
+    formula: "Requires an incident-management integration",
+    source: ["Integrations (not yet built)"],
+    frequency: "Per integration sync",
+    owner: OWNER.engineering,
+    caveats: [NO_INTEGRATION_CAVEAT],
+    valueType: "count",
+    temporal: "period",
+    specRef: "05 Engineering Metrics — time to restore (DORA)",
+    drillDown: null,
+    availability: unavailable("PEOS has no incident-management integration.", NO_INTEGRATION),
+    ...PHASE9,
+  },
   {
     key: "engineering.technical_debt_trend",
     name: "Technical debt trend",
@@ -2095,17 +2254,14 @@ const definitions: MetricDefinition[] = [
     formula: "Requires an engineering data source",
     source: ["Integrations (not yet built)"],
     frequency: "Per integration sync",
-    owner: "PEOS Engineering Analytics (Phase 9)",
-    caveats: ["05: do not fabricate metrics when integrations are unavailable."],
+    owner: OWNER.engineering,
+    caveats: [NO_INTEGRATION_CAVEAT],
     valueType: "count",
     temporal: "period",
     specRef: "00 §4 KPI strip — Technical Debt Trend",
     drillDown: null,
-    availability: unavailable(
-      "No engineering integration exists yet.",
-      "Phase 9 — Engineering Analytics",
-    ),
-    ...PHASE2,
+    availability: unavailable("No engineering integration exists yet.", NO_INTEGRATION),
+    ...PHASE9,
   },
 ];
 

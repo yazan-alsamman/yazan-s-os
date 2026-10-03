@@ -15,6 +15,8 @@ const SAMPLE_BUCKET: Record<string, string> = {
   "goals.deadline_load": "2026-Q4",
   "ai.experiments_per_month": "2026-05",
   "architecture.decision_timeline": "2026-05",
+  "engineering.activity_trend": "2026-05",
+  "engineering.activity_by_domain": "projects",
 };
 
 describe("Command Center drill-down mapping", () => {
