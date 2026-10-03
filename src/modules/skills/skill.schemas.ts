@@ -8,6 +8,7 @@ import {
   sortSchema,
 } from "@/lib/http/pagination";
 import {
+  idSetSchema,
   optionalIsoDate,
   optionalLongText,
   optionalText,
@@ -25,6 +26,8 @@ export const skillFields = {
     .string()
     .refine((id) => Boolean(getLevelModel(id)), "Unknown level model")
     .optional(),
+  /** One of the caller's custom level models (ADR 0026); null returns to the default model. */
+  levelModelId: uuidSchema.nullable().optional(),
   targetLevel: z.number().int().min(0).max(10).nullable().optional(),
   active: z.boolean().optional(),
 };
@@ -71,6 +74,9 @@ export const listSkillsQuerySchema = paginationQuerySchema.extend({
   hasEvidence: booleanQuerySchema,
   sort: sortSchema(["name", "category", "targetLevel", "updatedAt", "createdAt"], "name"),
 });
+
+/** PUT /skills/:id/technologies — explicit Technology ↔ Skill links (ADR 0030). */
+export const skillTechnologiesSchema = z.object({ technologyIds: idSetSchema });
 
 export type CreateSkillInput = z.infer<typeof createSkillSchema>;
 export type UpdateSkillInput = z.infer<typeof updateSkillSchema>;

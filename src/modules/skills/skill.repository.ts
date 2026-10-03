@@ -26,6 +26,10 @@ export const skillDetailInclude = {
     include: { certification: { select: { id: true, name: true, issuer: true, status: true } } },
     orderBy: { certification: { name: "asc" } },
   },
+  technologies: {
+    include: { technology: { select: { id: true, name: true, version: true, category: true } } },
+    orderBy: { technology: { name: "asc" } },
+  },
 } satisfies Prisma.SkillInclude;
 
 type SkillDetailRecord = Prisma.SkillGetPayload<{ include: typeof skillDetailInclude }>;
@@ -91,6 +95,7 @@ export function toSkillDto(skill: Skill) {
     category: skill.category,
     description: skill.description,
     levelModel: skill.levelModel,
+    levelModelId: skill.levelModelId,
     targetLevel: skill.targetLevel,
     targetLevelLabel: levelLabel(skill.levelModel, skill.targetLevel),
     active: skill.active,
@@ -122,6 +127,7 @@ export function toSkillDetailDto(skill: SkillDetailRecord) {
       linkDate: toDateOnly(link.date),
     })),
     certifications: skill.certifications.map((link) => link.certification),
+    technologies: skill.technologies.map((link) => link.technology),
   };
 }
 

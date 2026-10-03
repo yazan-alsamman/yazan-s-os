@@ -31,17 +31,19 @@ model User {
   accounts  Account[]
   auditLogs AuditLog[]
 
-  profile         Profile?
-  experiences     Experience[]
-  education       Education[]
-  skills          Skill[]
-  technologies    Technology[]
-  certifications  Certification[]
-  projects        Project[]
-  milestones      Milestone[]
-  evidence        Evidence[]
-  importJobs      ImportJob[]
-  reviewedImports ImportRecord[]  @relation("ImportReviewer")
+  profile          Profile?
+  experiences      Experience[]
+  education        Education[]
+  skills           Skill[]
+  technologies     Technology[]
+  certifications   Certification[]
+  projects         Project[]
+  milestones       Milestone[]
+  skillLevelModels SkillLevelModel[]
+  technologySkills TechnologySkill[]
+  evidence         Evidence[]
+  importJobs       ImportJob[]
+  reviewedImports  ImportRecord[]    @relation("ImportReviewer")
 
   @@map("users")
 }
@@ -289,8 +291,11 @@ model Skill {
   key            String
   category       String?
   description    String?
-  /// Level model identifier (ADR 0013); "peos-default-v1" = levels 0–5 of 01 §6.
+  /// Level model identifier (ADR 0013): "peos-default-v1" (01 §6), or "custom" when
+  /// levelModelId points to one of the owner's custom models (ADR 0026).
   levelModel     String       @default("peos-default-v1") @map("level_model")
+  /// The owner's custom level model (labels/descriptions of the 0–5 scale), when levelModel = "custom".
+  levelModelId   String?      @map("level_model_id") @db.Uuid
   targetLevel    Int?         @map("target_level")
   active         Boolean      @default(true)
   origin         RecordOrigin @default(manual)
@@ -298,14 +303,17 @@ model Skill {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord   ImportRecord?        @relation("SkillImport", fields: [importRecordId], references: [id], onDelete: SetNull)
-  projects       ProjectSkill[]
-  evidence       SkillEvidence[]
-  certifications CertificationSkill[]
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord     ImportRecord?        @relation("SkillImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  projects         ProjectSkill[]
+  evidence         SkillEvidence[]
+  certifications   CertificationSkill[]
+  technologies     TechnologySkill[]
+  customLevelModel SkillLevelModel?     @relation(fields: [levelModelId, userId], references: [id, userId], onDelete: NoAction)
 
   @@unique([id, userId])
   @@unique([userId, key])
+  @@index([levelModelId])
   @@index([userId, category])
   @@index([importRecordId])
   @@map("skills")
@@ -327,6 +335,7 @@ model Technology {
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   importRecord ImportRecord?     @relation("TechnologyImport", fields: [importRecordId], references: [id], onDelete: SetNull)
   usages       TechnologyUsage[]
+  skills       TechnologySkill[]
 
   @@unique([id, userId])
   @@unique([userId, key])
@@ -470,6 +479,42 @@ model Milestone {
   @@index([userId, status, dueDate])
   @@index([userId, completedAt])
   @@map("milestones")
+}
+
+/// A user's custom names and descriptions for the canonical 0–5 skill scale (ADR 0026).
+/// levels = JSON array of exactly six {value 0..5, label, description}; validated in the service
+/// and bounded by a CHECK constraint. Evidence-derivation rules stay per canonical value.
+model SkillLevelModel {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  levels    Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills Skill[]
+
+  @@unique([id, userId])
+  @@unique([userId, name])
+  @@map("skill_level_models")
+}
+
+/// Technology ↔ Skill (00 §5, 01 §6 "Related technologies"; deferred by ADR 0017, built in Phase 4
+/// — ADR 0030). Explicit, user-maintained; never inferred from projects.
+model TechnologySkill {
+  userId       String   @map("user_id") @db.Uuid
+  technologyId String   @map("technology_id") @db.Uuid
+  skillId      String   @map("skill_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId, userId], references: [id, userId], onDelete: Cascade)
+  skill      Skill      @relation(fields: [skillId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([technologyId, skillId])
+  @@index([skillId])
+  @@map("technology_skills")
 }
 
 model TechnologyUsage {

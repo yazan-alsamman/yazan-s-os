@@ -13,6 +13,7 @@ export type AuditEntity =
   | "certification"
   | "project"
   | "milestone"
+  | "skill_level_model"
   | "evidence"
   | "import_job"
   | "import_record"
