@@ -31,28 +31,37 @@ model User {
   accounts  Account[]
   auditLogs AuditLog[]
 
-  profile            Profile?
-  experiences        Experience[]
-  education          Education[]
-  skills             Skill[]
-  technologies       Technology[]
-  certifications     Certification[]
-  projects           Project[]
-  milestones         Milestone[]
-  skillLevelModels   SkillLevelModel[]
-  goals              Goal[]
-  goalProjects       GoalProject[]
-  goalSkills         GoalSkill[]
-  goalDependencies   GoalDependency[]
-  goalMeasurements   GoalMeasurement[]
-  technologySkills   TechnologySkill[]
-  evidence           Evidence[]
-  aiExperiments      AIExperiment[]
-  experimentRuns     ExperimentRun[]
-  experimentMetrics  ExperimentMetric[]
-  experimentEvidence ExperimentEvidence[]
-  importJobs         ImportJob[]
-  reviewedImports    ImportRecord[]       @relation("ImportReviewer")
+  profile                      Profile?
+  experiences                  Experience[]
+  education                    Education[]
+  skills                       Skill[]
+  technologies                 Technology[]
+  certifications               Certification[]
+  projects                     Project[]
+  milestones                   Milestone[]
+  skillLevelModels             SkillLevelModel[]
+  goals                        Goal[]
+  goalProjects                 GoalProject[]
+  goalSkills                   GoalSkill[]
+  goalDependencies             GoalDependency[]
+  goalMeasurements             GoalMeasurement[]
+  technologySkills             TechnologySkill[]
+  evidence                     Evidence[]
+  aiExperiments                AIExperiment[]
+  experimentRuns               ExperimentRun[]
+  experimentMetrics            ExperimentMetric[]
+  experimentEvidence           ExperimentEvidence[]
+  architectureDecisions        ArchitectureDecision[]
+  architectureAlternatives     ArchitectureAlternative[]
+  architectureDecisionEvidence ArchitectureDecisionEvidence[]
+  architectureComponents       ArchitectureComponent[]
+  componentProjects            ComponentProject[]
+  componentDependencies        ComponentDependency[]
+  decisionComponents           DecisionComponent[]
+  decisionProjects             DecisionProject[]
+  componentTechnologies        ComponentTechnology[]
+  importJobs                   ImportJob[]
+  reviewedImports              ImportRecord[]                 @relation("ImportReviewer")
 
   @@map("users")
 }
@@ -371,9 +380,10 @@ model Technology {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord ImportRecord?     @relation("TechnologyImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?         @relation("TechnologyImport", fields: [importRecordId], references: [id], onDelete: SetNull)
   usages       TechnologyUsage[]
+  components   ComponentTechnology[]
   skills       TechnologySkill[]
 
   @@unique([id, userId])
@@ -434,14 +444,16 @@ model Project {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord  ImportRecord?     @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
-  skills        ProjectSkill[]
-  technologies  TechnologyUsage[]
-  evidence      ProjectEvidence[]
-  milestones    Milestone[]
-  goals         GoalProject[]
-  aiExperiments AIExperiment[]
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord          ImportRecord?      @relation("ProjectImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  skills                ProjectSkill[]
+  technologies          TechnologyUsage[]
+  evidence              ProjectEvidence[]
+  milestones            Milestone[]
+  goals                 GoalProject[]
+  aiExperiments         AIExperiment[]
+  architectureDecisions DecisionProject[]
+  components            ComponentProject[]
 
   @@unique([id, userId])
   @@unique([userId, slug])
@@ -467,13 +479,14 @@ model Evidence {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord   ImportRecord?           @relation("EvidenceImport", fields: [importRecordId], references: [id], onDelete: SetNull)
-  projects       ProjectEvidence[]
-  skills         SkillEvidence[]
-  certifications CertificationEvidence[]
-  experiences    ExperienceEvidence[]
-  aiExperiments  ExperimentEvidence[]
+  user                  User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord          ImportRecord?                  @relation("EvidenceImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  projects              ProjectEvidence[]
+  skills                SkillEvidence[]
+  certifications        CertificationEvidence[]
+  experiences           ExperienceEvidence[]
+  aiExperiments         ExperimentEvidence[]
+  architectureDecisions ArchitectureDecisionEvidence[]
 
   @@unique([id, userId])
   @@index([userId, type])
@@ -912,6 +925,213 @@ model ExperimentEvidence {
   @@id([experimentId, evidenceId])
   @@index([evidenceId])
   @@map("experiment_evidence")
+}
+
+// ── Architecture Intelligence (01 §5, 04 ArchitectureDecision/Alternative, 08 Phase 7) ──────
+
+/// ADR lifecycle (ADR 0042). Superseded and deprecated decisions stay as history; nothing is
+/// deleted by a transition.
+enum DecisionStatus {
+  proposed
+  accepted
+  rejected
+  deprecated
+  superseded
+
+  @@map("decision_status")
+}
+
+/// Architecture map node types — exactly the list in 01 §5 "Architecture Map" (ADR 0043).
+enum ComponentType {
+  service
+  database
+  queue
+  external_api
+  ai_model
+  infrastructure
+
+  @@map("component_type")
+}
+
+/// An architecture decision record (04 ArchitectureDecision + 01 §5 ADR Registry; ADR 0041).
+/// Documented by the owner — PEOS never generates or infers decisions.
+model ArchitectureDecision {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  title          String
+  context        String?
+  problem        String?
+  /// 01 §5 "Constraints".
+  constraints    String?
+  decision       String?
+  consequences   String?
+  status         DecisionStatus @default(proposed)
+  /// When the decision was made (accepted/rejected). Required for every status except proposed.
+  decidedAt      DateTime?      @map("decided_at") @db.Date
+  /// 04 revisitDate — when the decision should be reviewed; drives "revisit due" (ADR 0044).
+  revisitDate    DateTime?      @map("revisit_date") @db.Date
+  /// The decision that replaced this one; required while status = superseded (ADR 0042).
+  supersededById String?        @map("superseded_by_id") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supersededBy ArchitectureDecision?          @relation("DecisionSupersession", fields: [supersededById, userId], references: [id, userId], onDelete: NoAction)
+  supersedes   ArchitectureDecision[]         @relation("DecisionSupersession")
+  projects     DecisionProject[]
+  alternatives ArchitectureAlternative[]
+  evidence     ArchitectureDecisionEvidence[]
+  components   DecisionComponent[]
+
+  @@unique([id, userId])
+  @@index([userId, status])
+  @@index([userId, decidedAt])
+  @@index([supersededById])
+  @@map("architecture_decisions")
+}
+
+/// An option considered for a decision (04 ArchitectureAlternative; 01 "Options").
+model ArchitectureAlternative {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  decisionId     String   @map("decision_id") @db.Uuid
+  name           String
+  pros           String?
+  cons           String?
+  rejectedReason String?  @map("rejected_reason")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decision ArchitectureDecision @relation(fields: [decisionId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@index([decisionId])
+  @@map("architecture_alternatives")
+}
+
+/// Decision ↔ Evidence (00 §5 "Architecture Decision → Evidence"); reuses Evidence.
+model ArchitectureDecisionEvidence {
+  userId     String   @map("user_id") @db.Uuid
+  decisionId String   @map("decision_id") @db.Uuid
+  evidenceId String   @map("evidence_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decision ArchitectureDecision @relation(fields: [decisionId, userId], references: [id, userId], onDelete: Cascade)
+  evidence Evidence             @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([decisionId, evidenceId])
+  @@index([evidenceId])
+  @@map("architecture_decision_evidence")
+}
+
+/// A component of the architecture map / component registry (01 §5, 08; ADR 0043).
+model ArchitectureComponent {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  name      String
+  /// Normalised name for per-user uniqueness.
+  key       String
+  type      ComponentType
+  /// 01 §5 node detail "purpose".
+  purpose   String?
+  /// 05 "critical components": set by the owner, never inferred.
+  critical  Boolean       @default(false)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  technologies ComponentTechnology[]
+  projects     ComponentProject[]
+  dependsOn    ComponentDependency[] @relation("ComponentDependent")
+  dependents   ComponentDependency[] @relation("ComponentDependency")
+  decisions    DecisionComponent[]
+
+  @@unique([id, userId])
+  @@unique([userId, key])
+  @@index([userId, type])
+  @@map("architecture_components")
+}
+
+/// Decision ↔ Project (01 §5 "Related projects"; 04 Project 1:N ADR is the single-project case).
+/// A link table so deleting a project removes only the link — decision history survives (ADR 0041).
+model DecisionProject {
+  userId     String   @map("user_id") @db.Uuid
+  decisionId String   @map("decision_id") @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decision ArchitectureDecision @relation(fields: [decisionId, userId], references: [id, userId], onDelete: Cascade)
+  project  Project              @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([decisionId, projectId])
+  @@index([projectId])
+  @@map("decision_projects")
+}
+
+/// Component ↔ Technology (01 §5 node detail "technology"; existing Technology records only).
+/// A link table so deleting a technology removes only the link (Phase 1 deletion unchanged).
+model ComponentTechnology {
+  userId       String   @map("user_id") @db.Uuid
+  componentId  String   @map("component_id") @db.Uuid
+  technologyId String   @map("technology_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  component  ArchitectureComponent @relation(fields: [componentId, userId], references: [id, userId], onDelete: Cascade)
+  technology Technology            @relation(fields: [technologyId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([componentId, technologyId])
+  @@index([technologyId])
+  @@map("component_technologies")
+}
+
+/// Component ↔ Project (01 §5 node detail "projects").
+model ComponentProject {
+  userId      String   @map("user_id") @db.Uuid
+  componentId String   @map("component_id") @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  component ArchitectureComponent @relation(fields: [componentId, userId], references: [id, userId], onDelete: Cascade)
+  project   Project               @relation(fields: [projectId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([componentId, projectId])
+  @@index([projectId])
+  @@map("component_projects")
+}
+
+/// "component depends on component" (08 dependency visualization; 05 Architecture Network).
+model ComponentDependency {
+  userId               String   @map("user_id") @db.Uuid
+  componentId          String   @map("component_id") @db.Uuid
+  dependsOnComponentId String   @map("depends_on_component_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  component ArchitectureComponent @relation("ComponentDependent", fields: [componentId, userId], references: [id, userId], onDelete: Cascade)
+  dependsOn ArchitectureComponent @relation("ComponentDependency", fields: [dependsOnComponentId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([componentId, dependsOnComponentId])
+  @@index([dependsOnComponentId])
+  @@map("component_dependencies")
+}
+
+/// Decision ↔ Component (01 §5 node detail "decisions").
+model DecisionComponent {
+  userId      String   @map("user_id") @db.Uuid
+  decisionId  String   @map("decision_id") @db.Uuid
+  componentId String   @map("component_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decision  ArchitectureDecision  @relation(fields: [decisionId, userId], references: [id, userId], onDelete: Cascade)
+  component ArchitectureComponent @relation(fields: [componentId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([decisionId, componentId])
+  @@index([componentId])
+  @@map("decision_components")
 }
 
 // ── Import review queue (00 §9, 11_DATA_IMPORT_PROFILE.md, ADR 0014) ─────────
