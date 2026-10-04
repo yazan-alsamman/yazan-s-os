@@ -46,3 +46,83 @@ export const listActivityQuerySchema = z.object({ page, perPage });
 
 export const linkProjectSchema = z.object({ projectId: z.uuid() });
 export type LinkProjectInput = z.infer<typeof linkProjectSchema>;
+
+// ── Google: Gmail ─────────────────────────────────────────────────────────────
+const isoDateTime = z
+  .string()
+  .min(10)
+  .max(40)
+  .refine((s) => !Number.isNaN(Date.parse(s)), "Invalid date-time");
+const gmailId = z.string().trim().min(1).max(128);
+const labelId = z.string().trim().min(1).max(128);
+
+export const listThreadsQuerySchema = z.object({
+  label: z.string().trim().min(1).max(64).optional(),
+  q: z.string().trim().min(1).max(400).optional(),
+  pageToken: z.string().trim().min(1).max(4096).optional(),
+  maxResults: z.coerce.number().int().min(1).max(25).default(15),
+});
+
+export const modifyMessageSchema = z.object({
+  star: z.boolean().optional(),
+  read: z.boolean().optional(),
+  archive: z.boolean().optional(),
+  addLabelIds: z.array(labelId).max(20).optional(),
+  removeLabelIds: z.array(labelId).max(20).optional(),
+});
+
+export const sendEmailSchema = z.object({
+  to: z.string().trim().min(3).max(400),
+  cc: z.string().trim().max(400).optional(),
+  subject: z.string().trim().max(500).default(""),
+  body: z.string().max(100_000).default(""),
+  inReplyTo: z.string().trim().max(400).optional(),
+  references: z.string().trim().max(4000).optional(),
+  // Explicit-confirmation guard: a send never happens without it (ADR 0053).
+  confirm: z.literal(true),
+});
+
+export const draftSchema = z.object({
+  to: z.string().trim().max(400).default(""),
+  cc: z.string().trim().max(400).optional(),
+  subject: z.string().trim().max(500).default(""),
+  body: z.string().max(100_000).default(""),
+  threadId: gmailId.optional(),
+});
+
+// ── Google: Drive ─────────────────────────────────────────────────────────────
+export const listFilesQuerySchema = z.object({
+  folderId: z.string().trim().min(1).max(128).optional(),
+  q: z.string().trim().min(1).max(200).optional(),
+  shared: booleanQuerySchema,
+  recent: booleanQuerySchema,
+  pageToken: z.string().trim().min(1).max(4096).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).default(30),
+});
+
+// ── Google: Calendar ──────────────────────────────────────────────────────────
+export const listEventsQuerySchema = z.object({
+  calendarId: z.string().trim().min(1).max(256).optional(),
+  timeMin: isoDateTime,
+  timeMax: isoDateTime,
+  pageToken: z.string().trim().min(1).max(4096).optional(),
+  maxResults: z.coerce.number().int().min(1).max(250).default(100),
+});
+
+export const eventBodySchema = z.object({
+  calendarId: z.string().trim().min(1).max(256).default("primary"),
+  summary: z.string().trim().min(1).max(500),
+  description: z.string().max(10_000).optional(),
+  start: isoDateTime,
+  end: isoDateTime,
+  timeZone: z.string().trim().max(64).optional(),
+  location: z.string().trim().max(500).optional(),
+  attendees: z.array(z.string().trim().email().max(320)).max(50).optional(),
+  allDay: z.boolean().optional(),
+  confirm: z.literal(true),
+});
+
+export const cancelEventSchema = z.object({
+  calendarId: z.string().trim().min(1).max(256).default("primary"),
+  confirm: z.literal(true),
+});

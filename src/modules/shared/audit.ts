@@ -28,7 +28,9 @@ export type AuditEntity =
   | "export"
   | "copilot_conversation"
   | "integration_connection"
-  | "integration_resource_link";
+  | "integration_resource_link"
+  | "email"
+  | "calendar";
 
 export type AuditVerb =
   | "created"
@@ -52,7 +54,14 @@ export type AuditVerb =
   | "sync_completed"
   | "sync_failed"
   | "linked"
-  | "unlinked";
+  | "unlinked"
+  | "sent"
+  | "draft_created"
+  | "archived"
+  | "modified"
+  | "event_created"
+  | "event_updated"
+  | "event_cancelled";
 
 /**
  * Write a domain audit entry inside the caller's transaction, so a mutation and its audit record
