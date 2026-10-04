@@ -82,7 +82,7 @@ and rate limits, with no direct DB or token access. MCP tool responses are untru
 | `INTEGRATION_ENCRYPTION_KEY`           | base64 32-byte AES-256 key for token encryption (required for any connector) |
 | `GITHUB_INTEGRATION_CLIENT_ID`         | GitHub OAuth app client id (scopes `read:user`, `repo`)                      |
 | `GITHUB_INTEGRATION_CLIENT_SECRET`     | GitHub OAuth app client secret                                               |
-| `GITHUB_INTEGRATION_REDIRECT_URI`      | `<APP_URL>/api/v1/integrations/github/callback`                              |
+| `GITHUB_INTEGRATION_REDIRECT_URI`      | `<APP_URL>/api/v1/integrations/callback/github`                              |
 | `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` | Google OAuth (deferred; Gmail scopes need a verified consent screen)         |
 
 Generate a key: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
@@ -90,7 +90,7 @@ Generate a key: `node -e "console.log(require('crypto').randomBytes(32).toString
 ## Local development setup
 
 1. Register a GitHub OAuth app (Settings → Developer settings → OAuth Apps). Authorization callback
-   URL = `http://localhost:3100/api/v1/integrations/github/callback`. Scopes are requested at connect
+   URL = `http://localhost:3100/api/v1/integrations/callback/github`. Scopes are requested at connect
    time (`read:user`, `repo`).
 2. Put `GITHUB_INTEGRATION_*` and `INTEGRATION_ENCRYPTION_KEY` in `.env`.
 3. `pnpm db:deploy`, start the app, open `/settings/integrations`, Connect GitHub.

@@ -61,17 +61,17 @@ if ! grep -q 'PEOS_INTEGRATION_OAUTH_TEMPLATE' "$ENV_FILE"; then
 
 # ── PEOS_INTEGRATION_OAUTH_TEMPLATE (Phase 9.5) ───────────────────────────────
 # GitHub OAuth app (Settings → Developer settings → OAuth Apps). Callback:
-#   ${APP_URL}/api/v1/integrations/github/callback
+#   ${APP_URL}/api/v1/integrations/callback/github
 # Uncomment and set ALL THREE together (never a redirect alone), then rerun deploy.sh:
 # GITHUB_INTEGRATION_CLIENT_ID=
 # GITHUB_INTEGRATION_CLIENT_SECRET=
-# GITHUB_INTEGRATION_REDIRECT_URI=${APP_URL}/api/v1/integrations/github/callback
+# GITHUB_INTEGRATION_REDIRECT_URI=${APP_URL}/api/v1/integrations/callback/github
 #
 # Google OAuth (Gmail/Drive/Calendar — connectors are deferred; Gmail scopes need a verified
-# consent screen). Callback: ${APP_URL}/api/v1/integrations/google/callback
+# consent screen). Callback: ${APP_URL}/api/v1/integrations/callback/google
 # GOOGLE_CLIENT_ID=
 # GOOGLE_CLIENT_SECRET=
-# GOOGLE_REDIRECT_URI=${APP_URL}/api/v1/integrations/google/callback
+# GOOGLE_REDIRECT_URI=${APP_URL}/api/v1/integrations/callback/google
 EOF
   log "Appended commented OAuth template to .env (fill in to enable connectors)"
 fi

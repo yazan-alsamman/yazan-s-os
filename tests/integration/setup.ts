@@ -34,7 +34,7 @@ Object.assign(process.env, {
   INTEGRATION_ENCRYPTION_KEY: randomBytes(32).toString("base64"),
   GITHUB_INTEGRATION_CLIENT_ID: "test-github-client",
   GITHUB_INTEGRATION_CLIENT_SECRET: "test-github-secret",
-  GITHUB_INTEGRATION_REDIRECT_URI: "http://localhost:3100/api/v1/integrations/github/callback",
+  GITHUB_INTEGRATION_REDIRECT_URI: "http://localhost:3100/api/v1/integrations/callback/github",
   AUTH_ALLOW_SIGNUP: "true",
   AUTH_GITHUB_CLIENT_ID: "",
   AUTH_GITHUB_CLIENT_SECRET: "",
