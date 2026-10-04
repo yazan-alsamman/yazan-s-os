@@ -60,8 +60,9 @@ describe("connector registry", () => {
     expect(gh.scopes.map((s) => s.scope)).toEqual(["read:user", "repo"]);
     expect(gh.mutations).toEqual([]);
   });
-  it("declares Google as scaffolded (deferred)", () => {
-    expect(PROVIDERS.google.status).toBe("scaffolded");
+  it("declares Google as available with Gmail/Drive/Calendar resources", () => {
+    expect(PROVIDERS.google.status).toBe("available");
+    expect(PROVIDERS.google.resources).toEqual(["gmail", "drive", "calendar"]);
     expect(getProviderDefinition("nope")).toBeNull();
   });
 });

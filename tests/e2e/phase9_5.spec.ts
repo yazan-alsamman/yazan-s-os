@@ -48,4 +48,16 @@ test.describe("signed in", () => {
     });
     await expectNoAxeViolations(page);
   });
+
+  test("Email, Drive and Calendar show honest not-connected states (no fake data)", async ({
+    page,
+  }) => {
+    for (const path of ["/email", "/drive", "/calendar"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { name: "Google is not connected." })).toBeVisible({
+        timeout: 15_000,
+      });
+    }
+    await expectNoAxeViolations(page);
+  });
 });
