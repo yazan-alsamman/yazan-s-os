@@ -20,6 +20,7 @@ import {
   SyncStatusBanner,
   TrendCard,
 } from "./common";
+import { GithubEvidenceButton } from "./github-evidence-button";
 import {
   useGithubPullRequestList,
   useGithubPullRequests,
@@ -83,6 +84,14 @@ function PrList({ repo }: { repo: string }) {
                     ? ` · closed ${shortDate(pr.closedDate)}`
                     : ""}
               </p>
+              <div>
+                <GithubEvidenceButton
+                  resourceType="pull_request"
+                  repoExternalId={pr.repoExternalId}
+                  resourceId={String(pr.number)}
+                  label="Save as evidence"
+                />
+              </div>
             </li>
           ))}
         </ul>

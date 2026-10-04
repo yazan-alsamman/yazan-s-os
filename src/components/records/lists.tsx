@@ -7,6 +7,7 @@ import type { CertificationListItem } from "@/modules/certifications/certificati
 import type { EducationDto } from "@/modules/education/education.service";
 import type { EvidenceListItem } from "@/modules/evidence/evidence.repository";
 import type { ExperienceListItem } from "@/modules/experiences/experience.repository";
+import type { OpportunityListItem } from "@/modules/opportunities/opportunity.repository";
 import type { ProjectListItem } from "@/modules/projects/project.dto";
 import type { SkillListItem } from "@/modules/skills/skill.repository";
 import type { TechnologyListItem } from "@/modules/technologies/technology.repository";
@@ -16,6 +17,7 @@ import {
   EDUCATION_FIELDS,
   EVIDENCE_FIELDS,
   EXPERIENCE_FIELDS,
+  OPPORTUNITY_FIELDS,
   PROJECT_FIELDS,
   SKILL_FIELDS,
   TECHNOLOGY_FIELDS,
@@ -25,6 +27,9 @@ import {
   EVIDENCE_TYPE_OPTIONS,
   EXPIRY_OPTIONS,
   labelOf,
+  OPPORTUNITY_PRIORITY_OPTIONS,
+  OPPORTUNITY_STATUS_OPTIONS,
+  OPPORTUNITY_TYPE_OPTIONS,
   ORIGIN_OPTIONS,
   PROJECT_HEALTH_OPTIONS,
   PROJECT_STATUS_OPTIONS,
@@ -43,6 +48,7 @@ const EXPIRY_TONE = {
   expired: "danger",
   no_expiry: "neutral",
 } as const;
+const PRIORITY_TONE = { high: "danger", medium: "warning", low: "neutral" } as const;
 
 const yesNo = (value: string) => (value === "true" ? "yes" : "no");
 
@@ -300,6 +306,66 @@ export function EvidenceList() {
           ),
         },
         { header: "Origin", cell: (e) => <OriginBadge origin={e.origin} /> },
+      ]}
+    />
+  );
+}
+
+export function OpportunitiesList() {
+  return (
+    <ResourceList<OpportunityListItem>
+      resource="opportunities"
+      path="/api/v1/opportunities"
+      singular="opportunity"
+      plural="opportunities"
+      rowLabel={(o) => o.title}
+      detailHref={(o) => `/opportunities/${o.id}`}
+      searchPlaceholder="Title, organization, requirement…"
+      filters={[
+        { name: "status", label: "Stage", options: OPPORTUNITY_STATUS_OPTIONS },
+        { name: "type", label: "Type", options: OPPORTUNITY_TYPE_OPTIONS },
+        { name: "priority", label: "Priority", options: OPPORTUNITY_PRIORITY_OPTIONS },
+      ]}
+      sortOptions={[
+        { value: "-updatedAt", label: "Recently updated" },
+        { value: "title", label: "Title A–Z" },
+        { value: "deadline", label: "Deadline" },
+        { value: "priority", label: "Priority" },
+        { value: "status", label: "Stage" },
+      ]}
+      defaultSort="-updatedAt"
+      fields={OPPORTUNITY_FIELDS}
+      empty={{
+        title: "No opportunities yet.",
+        body: "Track a role, consulting lead, speaking slot or partnership. Add structured requirements and map your evidence to see a transparent fit — never a fabricated score.",
+      }}
+      columns={[
+        { header: "Opportunity", cell: (o) => o.title },
+        { header: "Organization", cell: (o) => o.organization ?? "—" },
+        { header: "Type", cell: (o) => labelOf(OPPORTUNITY_TYPE_OPTIONS, o.type) },
+        { header: "Stage", cell: (o) => labelOf(OPPORTUNITY_STATUS_OPTIONS, o.status) },
+        {
+          header: "Priority",
+          cell: (o) => (
+            <Badge tone={PRIORITY_TONE[o.priority]}>
+              {labelOf(OPPORTUNITY_PRIORITY_OPTIONS, o.priority)}
+            </Badge>
+          ),
+        },
+        {
+          header: "Deadline",
+          cell: (o) => formatDate(o.deadline) ?? "—",
+          className: "tabular",
+        },
+        {
+          header: "Requirements",
+          cell: (o) => (
+            <span className="text-caption text-muted-foreground tabular">
+              {o.counts.requirements}
+            </span>
+          ),
+        },
+        { header: "Origin", cell: (o) => <OriginBadge origin={o.origin} /> },
       ]}
     />
   );

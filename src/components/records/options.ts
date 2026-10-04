@@ -4,6 +4,13 @@ import { certificationStatusSchema } from "@/modules/certifications/certificatio
 import { evidenceTypeSchema } from "@/modules/evidence/evidence.schemas";
 import { milestoneStatusSchema } from "@/modules/milestones/milestone.schemas";
 import {
+  opportunityPrioritySchema,
+  opportunityStatusSchema,
+  opportunityTypeSchema,
+  requirementImportanceSchema,
+  requirementKindSchema,
+} from "@/modules/opportunities/opportunity.schemas";
+import {
   projectHealthSchema,
   projectStatusSchema,
   technologyUsageTypeSchema,
@@ -39,6 +46,13 @@ export const YES_NO_OPTIONS: FieldOption[] = [
   { value: "true", label: "Yes" },
   { value: "false", label: "No" },
 ];
+export const OPPORTUNITY_TYPE_OPTIONS = fromValues(opportunityTypeSchema.options);
+export const OPPORTUNITY_STATUS_OPTIONS = fromValues(opportunityStatusSchema.options);
+export const OPPORTUNITY_PRIORITY_OPTIONS = fromValues(opportunityPrioritySchema.options);
+export const REQUIREMENT_IMPORTANCE_OPTIONS = fromValues(requirementImportanceSchema.options);
+export const REQUIREMENT_KIND_OPTIONS = fromValues(requirementKindSchema.options, {
+  ai_ml: "AI / ML",
+});
 export const ORIGIN_OPTIONS: FieldOption[] = [
   { value: "manual", label: "Entered manually" },
   { value: "import", label: "Imported" },

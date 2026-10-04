@@ -4,8 +4,13 @@ import {
   CERTIFICATION_STATUS_OPTIONS,
   EVIDENCE_TYPE_OPTIONS,
   LEVEL_OPTIONS,
+  OPPORTUNITY_PRIORITY_OPTIONS,
+  OPPORTUNITY_STATUS_OPTIONS,
+  OPPORTUNITY_TYPE_OPTIONS,
   PROJECT_HEALTH_OPTIONS,
   PROJECT_STATUS_OPTIONS,
+  REQUIREMENT_IMPORTANCE_OPTIONS,
+  REQUIREMENT_KIND_OPTIONS,
 } from "./options";
 
 /** Form descriptors per Phase 1 entity. Limits mirror the server schemas. */
@@ -118,6 +123,52 @@ export const EVIDENCE_FIELDS: readonly FieldDescriptor[] = [
     wide: true,
   },
   { name: "description", label: "Description", kind: "textarea", maxLength: 10_000 },
+];
+
+export const OPPORTUNITY_FIELDS: readonly FieldDescriptor[] = [
+  { name: "title", label: "Title", kind: "text", required: true, maxLength: 200, wide: true },
+  { name: "organization", label: "Organization", kind: "text", maxLength: 200 },
+  { name: "type", label: "Type", kind: "select", options: OPPORTUNITY_TYPE_OPTIONS, defaultValue: "role" },
+  {
+    name: "status",
+    label: "Stage",
+    kind: "select",
+    options: OPPORTUNITY_STATUS_OPTIONS,
+    defaultValue: "identified",
+  },
+  {
+    name: "priority",
+    label: "Priority",
+    kind: "select",
+    options: OPPORTUNITY_PRIORITY_OPTIONS,
+    defaultValue: "medium",
+  },
+  { name: "deadline", label: "Deadline", kind: "date" },
+  { name: "source", label: "Source", kind: "text", maxLength: 200 },
+  { name: "sourceUrl", label: "Source URL", kind: "url" },
+  { name: "location", label: "Location", kind: "text", maxLength: 200 },
+  { name: "nextAction", label: "Next action", kind: "text", maxLength: 300, wide: true },
+  { name: "description", label: "Description", kind: "textarea", maxLength: 10_000 },
+  { name: "notes", label: "Notes", kind: "textarea", maxLength: 10_000 },
+];
+
+export const REQUIREMENT_FIELDS: readonly FieldDescriptor[] = [
+  { name: "label", label: "Requirement", kind: "text", required: true, maxLength: 200, wide: true },
+  {
+    name: "kind",
+    label: "Kind",
+    kind: "select",
+    options: REQUIREMENT_KIND_OPTIONS,
+    defaultValue: "skill",
+  },
+  {
+    name: "importance",
+    label: "Importance",
+    kind: "select",
+    options: REQUIREMENT_IMPORTANCE_OPTIONS,
+    defaultValue: "required",
+  },
+  { name: "description", label: "Description", kind: "textarea", maxLength: 1_000 },
 ];
 
 export const EXPERIENCE_FIELDS: readonly FieldDescriptor[] = [

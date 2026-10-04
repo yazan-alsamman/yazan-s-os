@@ -12,6 +12,7 @@ import {
   optionalHttpUrl,
   optionalIsoDate,
   optionalLongText,
+  optionalText,
   requiredText,
   uuidSchema,
 } from "@/modules/shared/fields";
@@ -52,6 +53,22 @@ export const listEvidenceQuerySchema = paginationQuerySchema.extend({
   sort: sortSchema(["title", "date", "type", "updatedAt", "createdAt"], "-date"),
 });
 
+/**
+ * Controlled GitHub → Evidence linking (Phase 10, ADR 0056). Never automatic: the user chooses one
+ * synchronized GitHub resource; PEOS reads the real projection to fill title/url/date and keeps the
+ * provenance. `resourceId` is the provider-native key for the type: the repository id (repository),
+ * the number (pull_request/issue), the release id (release) or the commit sha (commit).
+ */
+export const githubEvidenceSchema = z.object({
+  resourceType: z.enum(["repository", "pull_request", "issue", "release", "commit"]),
+  repoExternalId: z.string().trim().regex(/^\d{1,20}$/),
+  resourceId: z.string().trim().min(1).max(100),
+  /** Optional title override; defaults to the GitHub object's own title. */
+  title: optionalText(300),
+  type: evidenceTypeSchema.optional(),
+});
+
 export type CreateEvidenceInput = z.infer<typeof createEvidenceSchema>;
 export type UpdateEvidenceInput = z.infer<typeof updateEvidenceSchema>;
 export type ListEvidenceQuery = z.infer<typeof listEvidenceQuerySchema>;
+export type GithubEvidenceInput = z.infer<typeof githubEvidenceSchema>;

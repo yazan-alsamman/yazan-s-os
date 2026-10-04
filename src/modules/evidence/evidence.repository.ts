@@ -28,6 +28,18 @@ export const evidenceDetailInclude = {
     include: { experience: { select: { id: true, title: true, organization: true } } },
     orderBy: { experience: { startDate: "desc" } },
   },
+  requirementLinks: {
+    include: {
+      requirement: {
+        select: {
+          id: true,
+          label: true,
+          importance: true,
+          opportunity: { select: { id: true, title: true } },
+        },
+      },
+    },
+  },
 } satisfies Prisma.EvidenceInclude;
 
 type EvidenceDetailRecord = Prisma.EvidenceGetPayload<{ include: typeof evidenceDetailInclude }>;
@@ -86,6 +98,10 @@ export function toEvidenceDto(evidence: Evidence) {
     verified: evidence.verified,
     verifiedAt: evidence.verifiedAt?.toISOString() ?? null,
     origin: evidence.origin,
+    github:
+      evidence.githubResourceType !== null
+        ? { resourceType: evidence.githubResourceType, resourceId: evidence.githubResourceId }
+        : null,
     createdAt: evidence.createdAt.toISOString(),
     updatedAt: evidence.updatedAt.toISOString(),
   };
@@ -113,6 +129,13 @@ export function toEvidenceDetailDto(evidence: EvidenceDetailRecord) {
     })),
     certifications: evidence.certifications.map((link) => link.certification),
     experiences: evidence.experiences.map((link) => link.experience),
+    requirements: evidence.requirementLinks.map((link) => ({
+      requirementId: link.requirement.id,
+      label: link.requirement.label,
+      importance: link.requirement.importance,
+      opportunityId: link.requirement.opportunity.id,
+      opportunityTitle: link.requirement.opportunity.title,
+    })),
   };
 }
 

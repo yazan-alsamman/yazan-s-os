@@ -17,6 +17,8 @@ export type AuditEntity =
   | "goal"
   | "goal_measurement"
   | "evidence"
+  | "opportunity"
+  | "opportunity_requirement"
   | "ai_experiment"
   | "experiment_run"
   | "experiment_metric"

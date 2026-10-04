@@ -74,6 +74,9 @@ model User {
   componentTechnologies        ComponentTechnology[]
   importJobs                   ImportJob[]
   reviewedImports              ImportRecord[]                 @relation("ImportReviewer")
+  opportunities                Opportunity[]
+  opportunityRequirements      OpportunityRequirement[]
+  requirementEvidence          RequirementEvidence[]
 
   @@map("users")
 }
@@ -271,6 +274,62 @@ enum EvidenceStrength {
   @@map("evidence_strength")
 }
 
+/// Opportunity category (01 §11). Only categories the spec supports.
+enum OpportunityType {
+  role
+  consulting
+  freelance
+  speaking
+  partnership
+  other
+
+  @@map("opportunity_type")
+}
+
+/// Opportunity lifecycle / stage (01 §11). `closed` = no longer active (declined/withdrawn/lost);
+/// the reason lives in notes. `archived` = kept for record only.
+enum OpportunityStatus {
+  identified
+  applied
+  interviewing
+  offer
+  closed
+  archived
+
+  @@map("opportunity_status")
+}
+
+enum OpportunityPriority {
+  low
+  medium
+  high
+
+  @@map("opportunity_priority")
+}
+
+/// Whether an opportunity requirement is mandatory or nice-to-have (01 §11 fit matrix).
+enum RequirementImportance {
+  required
+  preferred
+
+  @@map("requirement_importance")
+}
+
+/// The kind of thing a requirement asks for. A requirement MAY be linked to a concrete owned record
+/// (skill/technology/certification) of the matching kind; `label` always carries the human text.
+enum RequirementKind {
+  skill
+  technology
+  certification
+  experience
+  domain
+  architecture
+  ai_ml
+  other
+
+  @@map("requirement_kind")
+}
+
 /// Profile — 1:1 with User. Name, timezone and locale live on User (spec 04 User).
 model Profile {
   id                    String       @id @default(uuid()) @db.Uuid
@@ -362,14 +421,15 @@ model Skill {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord     ImportRecord?        @relation("SkillImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord     ImportRecord?            @relation("SkillImport", fields: [importRecordId], references: [id], onDelete: SetNull)
   projects         ProjectSkill[]
   evidence         SkillEvidence[]
   certifications   CertificationSkill[]
   technologies     TechnologySkill[]
   goals            GoalSkill[]
-  customLevelModel SkillLevelModel?     @relation(fields: [levelModelId, userId], references: [id, userId], onDelete: NoAction)
+  requirements     OpportunityRequirement[]
+  customLevelModel SkillLevelModel?         @relation(fields: [levelModelId, userId], references: [id, userId], onDelete: NoAction)
 
   @@unique([id, userId])
   @@unique([userId, key])
@@ -392,11 +452,12 @@ model Technology {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord ImportRecord?         @relation("TechnologyImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?            @relation("TechnologyImport", fields: [importRecordId], references: [id], onDelete: SetNull)
   usages       TechnologyUsage[]
   components   ComponentTechnology[]
   skills       TechnologySkill[]
+  requirements OpportunityRequirement[]
 
   @@unique([id, userId])
   @@unique([userId, key])
@@ -422,10 +483,11 @@ model Certification {
   createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord ImportRecord?           @relation("CertificationImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?            @relation("CertificationImport", fields: [importRecordId], references: [id], onDelete: SetNull)
   skills       CertificationSkill[]
   evidence     CertificationEvidence[]
+  requirements OpportunityRequirement[]
 
   @@unique([id, userId])
   @@index([userId, status])
@@ -477,20 +539,26 @@ model Project {
 }
 
 model Evidence {
-  id             String       @id @default(uuid()) @db.Uuid
-  userId         String       @map("user_id") @db.Uuid
-  type           EvidenceType
-  title          String
-  description    String?
-  sourceUrl      String?      @map("source_url")
-  fileUrl        String?      @map("file_url")
-  date           DateTime?    @db.Date
-  verified       Boolean      @default(false)
-  verifiedAt     DateTime?    @map("verified_at") @db.Timestamptz(3)
-  origin         RecordOrigin @default(manual)
-  importRecordId String?      @map("import_record_id") @db.Uuid
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             String       @map("user_id") @db.Uuid
+  type               EvidenceType
+  title              String
+  description        String?
+  sourceUrl          String?      @map("source_url")
+  fileUrl            String?      @map("file_url")
+  date               DateTime?    @db.Date
+  verified           Boolean      @default(false)
+  verifiedAt         DateTime?    @map("verified_at") @db.Timestamptz(3)
+  origin             RecordOrigin @default(manual)
+  importRecordId     String?      @map("import_record_id") @db.Uuid
+  /// GitHub provenance (Phase 10, ADR 0056): set when this evidence was linked from a GitHub
+  /// resource. `githubResourceType` is repository|pull_request|issue|release|commit;
+  /// `githubResourceId` is the provider-native id/number. Non-null ⇒ "GitHub-derived" in the UI.
+  /// `sourceUrl` holds the navigable GitHub URL. Never populated by automatic extraction.
+  githubResourceType String?      @map("github_resource_type")
+  githubResourceId   String?      @map("github_resource_id")
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user                  User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   importRecord          ImportRecord?                  @relation("EvidenceImport", fields: [importRecordId], references: [id], onDelete: SetNull)
@@ -500,6 +568,7 @@ model Evidence {
   experiences           ExperienceEvidence[]
   aiExperiments         ExperimentEvidence[]
   architectureDecisions ArchitectureDecisionEvidence[]
+  requirementLinks      RequirementEvidence[]
 
   @@unique([id, userId])
   @@index([userId, type])
@@ -1371,6 +1440,7 @@ model ImportRecord {
   certifications Certification[] @relation("CertificationImport")
   projects       Project[]       @relation("ProjectImport")
   evidence       Evidence[]      @relation("EvidenceImport")
+  opportunities  Opportunity[]   @relation("OpportunityImport")
 
   @@unique([id, userId])
   @@index([jobId, reviewStatus])
@@ -1662,4 +1732,96 @@ model GitHubContributor {
   @@index([userId, repoExternalId])
   @@index([userId, login])
   @@map("github_contributors")
+}
+
+// ── Phase 10 — Opportunities & evidence matching (ADR 0056) ──────────────────
+
+/// A professional opportunity the owner is tracking (01 §11). Manually created (or imported with
+/// provenance); PEOS never invents external listings. Structured requirements drive a transparent
+/// evidence-to-requirement fit matrix — never an opaque "fit score".
+model Opportunity {
+  id             String              @id @default(uuid()) @db.Uuid
+  userId         String              @map("user_id") @db.Uuid
+  title          String
+  organization   String?
+  type           OpportunityType     @default(role)
+  status         OpportunityStatus   @default(identified)
+  priority       OpportunityPriority @default(medium)
+  description    String?
+  source         String?
+  sourceUrl      String?             @map("source_url")
+  location       String?
+  /// Application/decision deadline (date-only; undated opportunities are never "overdue").
+  deadline       DateTime?           @db.Date
+  nextAction     String?             @map("next_action")
+  notes          String?
+  origin         RecordOrigin        @default(manual)
+  importRecordId String?             @map("import_record_id") @db.Uuid
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord ImportRecord?            @relation("OpportunityImport", fields: [importRecordId], references: [id], onDelete: SetNull)
+  requirements OpportunityRequirement[]
+
+  @@unique([id, userId])
+  @@index([userId, status])
+  @@index([userId, type])
+  @@index([userId, deadline])
+  @@index([importRecordId])
+  @@map("opportunities")
+}
+
+/// One structured requirement of an opportunity (01 §11). Optionally linked to a concrete owned
+/// record (skill/technology/certification) of the matching kind — the link is the basis for
+/// suggesting supporting evidence; it never fabricates experience. Mapped evidence is explicit.
+model OpportunityRequirement {
+  id              String                @id @default(uuid()) @db.Uuid
+  userId          String                @map("user_id") @db.Uuid
+  opportunityId   String                @map("opportunity_id") @db.Uuid
+  kind            RequirementKind       @default(other)
+  label           String
+  description     String?
+  importance      RequirementImportance @default(required)
+  /// Optional concrete links (same owner enforced by composite FK). At most one is set in practice.
+  skillId         String?               @map("skill_id") @db.Uuid
+  technologyId    String?               @map("technology_id") @db.Uuid
+  certificationId String?               @map("certification_id") @db.Uuid
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity           @relation(fields: [opportunityId, userId], references: [id, userId], onDelete: Cascade)
+  /// Optional concrete links by id (same-owner enforced in the service). SetNull on delete keeps the
+  /// requirement but drops the dangling reference — a deleted skill never deletes a requirement.
+  skill         Skill?                @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  technology    Technology?           @relation(fields: [technologyId], references: [id], onDelete: SetNull)
+  certification Certification?        @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  evidenceLinks RequirementEvidence[]
+
+  @@unique([id, userId])
+  @@index([opportunityId])
+  @@index([userId, kind])
+  @@index([skillId])
+  @@index([technologyId])
+  @@index([certificationId])
+  @@map("opportunity_requirements")
+}
+
+/// Explicit mapping of one evidence item to one requirement (01 §11 fit matrix). The sole basis for
+/// "supported" — matching is never inferred from free text. Same-owner enforced by composite FKs.
+model RequirementEvidence {
+  userId        String   @map("user_id") @db.Uuid
+  requirementId String   @map("requirement_id") @db.Uuid
+  evidenceId    String   @map("evidence_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requirement OpportunityRequirement @relation(fields: [requirementId, userId], references: [id, userId], onDelete: Cascade)
+  evidence    Evidence               @relation(fields: [evidenceId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@id([requirementId, evidenceId])
+  @@index([evidenceId])
+  @@index([userId])
+  @@map("requirement_evidence")
 }

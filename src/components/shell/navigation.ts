@@ -220,8 +220,8 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: "/opportunities",
     icon: Boxes,
     summary: "Professional opportunities with transparent requirement-to-evidence fit.",
-    availability: "planned",
-    plannedIn: "Phase 10 — Evidence Vault & Opportunities",
+    availability: "available",
+    plannedIn: "Phase 10 — Evidence Vault & Opportunities (available)",
     placement: "main",
   },
   {

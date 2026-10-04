@@ -757,6 +757,7 @@ export function EvidenceDetail({ id }: { id: string }) {
                 ) : (
                   <Badge>Unverified</Badge>
                 )}
+                {e.github && <Badge tone="info">GitHub: {e.github.resourceType.replace("_", " ")}</Badge>}
                 <OriginBadge origin={e.origin} />
               </>
             }
@@ -819,6 +820,23 @@ export function EvidenceDetail({ id }: { id: string }) {
                   href: `/career/experience/${x.id}`,
                 }))}
                 emptyText="Not linked to any experience."
+              />
+              <RelationPanel
+                title="Opportunities"
+                items={e.requirements.map((r) => ({
+                  id: r.requirementId,
+                  label: r.opportunityTitle,
+                  href: `/opportunities/${r.opportunityId}`,
+                  meta: (
+                    <>
+                      <span className="text-muted-foreground">satisfies “{r.label}”</span>
+                      <Badge tone={r.importance === "required" ? "warning" : "neutral"}>
+                        {r.importance}
+                      </Badge>
+                    </>
+                  ),
+                }))}
+                emptyText="Not mapped to any opportunity requirement yet."
               />
             </div>
             <ProvenancePanel provenance={e.provenance} />
