@@ -22,8 +22,16 @@ PEOS
 A connector = a `providers.ts` entry + an adapter. The hub does not change when a connector is added.
 
 **Status:** GitHub — **available** (read-only: repositories, commits, activity; explicit
-repository↔project linking). Google (Gmail, Drive, Calendar) and MCP — **scaffolded** at the
-architecture boundary, **deferred** (no adapter/UI yet).
+repository↔project linking). Google — **available**: Gmail (inbox/threads/search, HTML-sanitized
+reader, and explicit mutations: star/read/archive/labels, drafts, send), Drive (read-only file/folder
+browse + search), Calendar (agenda across day/week/month + explicit create/update/cancel). MCP —
+**scaffolded** at the architecture boundary, **deferred**.
+
+> **Live Google use is gated on Google verification.** Gmail scopes (`gmail.modify`, `gmail.send`)
+> are _restricted_ and Drive/Calendar scopes are _sensitive_; a Google Cloud **OAuth consent screen**
+> plus Google's security/verification review is required before non–test-user accounts can connect.
+> Until then, only accounts added as **test users** can authorize, and users see an "unverified app"
+> screen. PEOS's code is complete and mock-tested; it was **not** validated against live Google here.
 
 ## OAuth flow
 

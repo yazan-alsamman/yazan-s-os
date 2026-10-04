@@ -229,6 +229,26 @@ ignored. Reads/syncs use the `integration` rate limit. Tokens are never returned
 - OAuth callback errors never leak provider internals; the user lands on an explained settings state.
 - `:id` for GitHub resources is the provider-native repository id (not a UUID).
 
+### Phase 9.5+ — Google connectors (Gmail / Drive / Calendar)
+
+Owner-scoped; the shared Google client refreshes the access token transparently. Reads need no
+confirmation; **mutations require `confirm: true`** in the body and are audited (`email.*`,
+`calendar.*`). HTML email is sanitized server-side before it is returned.
+
+| Method               | Path                                    | Purpose                                                                   |
+| -------------------- | --------------------------------------- | ------------------------------------------------------------------------- |
+| GET                  | `/email/threads` · `/email/threads/:id` | Gmail threads (label/search) · one thread (messages, sanitized HTML)      |
+| GET                  | `/email/labels`                         | Gmail labels                                                              |
+| POST                 | `/email/messages/:id/modify`            | Star / mark read / archive / labels (explicit)                            |
+| POST                 | `/email/drafts` · `/email/send`         | Save a draft · send (both explicit; send needs `confirm:true`)            |
+| GET                  | `/drive/files` · `/drive/files/:id`     | Drive files/folders (My Drive, folder, recent, shared, search) · one file |
+| GET                  | `/calendar/calendars`                   | The account's calendars                                                   |
+| GET · POST           | `/calendar/events`                      | Events in a `timeMin`/`timeMax` range · create (`confirm:true`)           |
+| GET · PATCH · DELETE | `/calendar/events/:id`                  | One event (`?calendarId=`) · update · cancel (both `confirm:true`)        |
+
+- No email is ever sent, archived or modified, and no event created/updated/cancelled, except by an
+  explicit user action carrying `confirm:true`. The AI Copilot has no access to these mutations.
+
 **Error codes:**
 
 | Code                                                                                      | HTTP status |

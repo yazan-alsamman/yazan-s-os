@@ -232,3 +232,13 @@ HTTP 503 only when the database (critical) is unavailable.
   ADR if architectural. Never log/return tokens; never trust provider payloads (normalize first).
 - **UI:** Settings → Integrations (connector cards) and Settings → Integrations → GitHub (explorer).
 - **Live provider validation** requires real OAuth apps/secrets; not run in CI (mock adapters only).
+
+## Phase 9.5+ notes (Google connectors)
+
+- Gmail/Drive/Calendar live in `src/modules/integrations/google/*` on a shared authorized
+  `google.client.ts` (token refresh). UI: `/email`, `/drive`, `/calendar`. No new tables.
+- **HTML email is sanitized** via `sanitize-html` (`sanitize.ts`) before returning; render only
+  sanitized HTML. External mutations require `confirm:true` and are audited; never automatic.
+- **Live Google** needs a verified OAuth consent screen (Gmail/Calendar/Drive are restricted/sensitive
+  scopes). Set `GOOGLE_*` + `INTEGRATION_ENCRYPTION_KEY`; callback `…/api/v1/integrations/callback/google`.
+- Tests use a mocked Google adapter (`google.int.test.ts`); live not validated in CI.

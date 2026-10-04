@@ -311,9 +311,21 @@ deleted/relations_updated`, `architecture_alternative.created/updated/deleted`,
   Integration endpoints use the `integration` limiter (60/min); existing PEOS limits are unchanged.
 - **Audit.** connect / reauthorize / disconnect / sync_completed / sync_failed / link / unlink — never
   with tokens.
-- **Read-only providers this phase.** No external-provider mutation is implemented; the only mutation
-  is the owner-controlled PEOS-side repository↔project link. The Copilot is unchanged (no integration
-  tools, no autonomous external actions).
+- **Google connectors (Gmail/Drive/Calendar).** Access tokens are refreshed server-side via the
+  encrypted refresh token; refresh tokens never leave the server. **HTML email is sanitized**
+  (`sanitize-html`) before it is returned — scripts, event handlers, inline styles, forms, iframes
+  and `javascript:` URLs are removed; links are forced to `target="_blank" rel="noopener noreferrer
+nofollow"`; images are limited to https. Rendered with `dangerouslySetInnerHTML` only after
+  sanitization. Unit-tested (XSS payloads stripped).
+- **External mutations are explicit and confirmed.** Gmail send/modify/archive/draft and Calendar
+  create/update/cancel require an explicit user action; send and all calendar writes additionally
+  require `confirm:true` server-side (ADR 0053) and are audited (`email.*`, `calendar.*`). Nothing is
+  sent/modified as a side effect of reading. The GitHub repository↔project link is the only PEOS-side
+  mutation. **The AI Copilot has no access to any integration mutation** (its fixed twelve-tool set
+  is unchanged); no autonomous external actions exist.
+- **Google verification gate.** Live Google use requires a verified OAuth consent screen + Google's
+  review of the restricted/sensitive scopes; the code is complete and mock-tested but was not
+  validated against live Google here.
 - **Live validation unavailable.** No OAuth apps/secrets are configured in CI; automated tests use
   mocked provider adapters. Live provider validation is reported as not performed (never mocked
   success).

@@ -169,3 +169,52 @@ and tested against mocked adapters. The conditions are: (1) **live provider vali
 real OAuth apps/secrets + `INTEGRATION_ENCRYPTION_KEY` (and Google consent-screen verification for
 Gmail); (2) Google (Gmail/Drive/Calendar) and MCP connectors are **deferred**. No functionality is
 hidden behind mock success.
+
+---
+
+## Addendum — Google connectors (Gmail, Drive, Calendar) with mutations
+
+Following the platform + GitHub pass, the Google connectors were implemented to the same bar
+(credential-less + mock-tested). **Registry: Google → available.**
+
+**Gmail** — threads (label + search), thread reader with **HTML sanitization** (`sanitize-html`),
+labels; explicit mutations: star / mark read / archive / labels, save draft, **send** (requires
+`confirm:true`). Audited `email.sent/draft_created/archived/modified`. Bodies are fetched live, never
+cached. UI: `/email` (mailboxes, thread list, reader with formatted/plain toggle, compose + reply
+with a review-and-confirm step).
+
+**Drive** — read-only file/folder metadata (My Drive, folder navigation, recent, shared, search);
+opens in Google. UI: `/drive`.
+
+**Calendar** — calendars, events in a time range (agenda grouped by day across Today/Week/Month);
+explicit **create / update / cancel**, each with a confirmation step and `confirm:true`. Audited
+`calendar.event_created/updated/cancelled`. UI: `/calendar`.
+
+**Shared Google client** — transparent access-token refresh via the encrypted refresh token;
+provider errors map to connection health; injectable fetch for tests.
+
+**Security additions:** HTML-email sanitization (XSS); refresh tokens encrypted + server-only;
+every external mutation explicit + confirmed + audited; the Copilot has no access to these mutations.
+
+**Nav:** `Email`, `Drive`, `Calendar` added (available). **No database changes** (Google reuses the
+integration tables; connections store the encrypted Google tokens).
+
+**Tests (updated totals):** Unit **307** (+Google 6: sanitization, Gmail parse/buildRaw, Drive/Calendar
+normalization). Integration **198** (+`google.int.test.ts` 7: OAuth connect + token refresh, Gmail
+read + send/modify, Drive read, Calendar read + create/cancel, audit, isolation). E2E **115** (+Email/
+Drive/Calendar honest not-connected states + axe in `phase9_5.spec.ts`). Typecheck / Lint / Format /
+Build: **PASS**. Migration: unchanged (no new tables). Audit: no vulnerabilities; token-leak grep over
+the Google module clean. One pre-existing "h1 not found" E2E flake recurred on an unrelated dark-theme
+test and passed on rerun.
+
+**Live Google validation:** **not performed** — no Google OAuth app/secret/verified consent screen in
+this environment; Gmail/Calendar/Drive scopes require Google's verification review. The code is
+complete and mock-tested. To go live: create a Google Cloud project + OAuth consent screen, add the
+scopes, set `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` (callback `…/api/v1/integrations/callback/google`)
+
+- `INTEGRATION_ENCRYPTION_KEY`, add yourself as a test user (until verified), and connect from
+  Settings → Integrations.
+
+**Updated verdict:** still **READY WITH CONDITIONS** — Gmail/Drive/Calendar (with mutations) are
+implemented, secured and mock-tested; live use is conditional on your Google OAuth consent-screen
+verification. MCP remains the only deferred item.
