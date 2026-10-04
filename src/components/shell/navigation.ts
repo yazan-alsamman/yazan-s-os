@@ -93,6 +93,16 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     placement: "main",
   },
   {
+    id: "github",
+    label: "GitHub",
+    href: "/github",
+    icon: GitBranch,
+    summary: "Repository intelligence: repositories, commits, activity, languages and analytics.",
+    availability: "available",
+    plannedIn: "Phase 9.6 — GitHub Repository Intelligence",
+    placement: "main",
+  },
+  {
     id: "email",
     label: "Email",
     href: "/email",

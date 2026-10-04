@@ -130,7 +130,7 @@ function ProviderCard({ p }: { p: ProviderStatus }) {
           <>
             {p.provider === "github" && (
               <Button asChild size="sm" variant="outline">
-                <Link href="/settings/integrations/github">Explore repositories</Link>
+                <Link href="/github">Open GitHub</Link>
               </Button>
             )}
             {p.provider === "github" && (

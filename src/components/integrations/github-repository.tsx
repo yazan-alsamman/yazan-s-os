@@ -182,7 +182,13 @@ function ProjectLinks({ id }: { id: string }) {
   );
 }
 
-export function GitHubRepository({ id }: { id: string }) {
+export function GitHubRepository({
+  id,
+  backHref = "/settings/integrations/github",
+}: {
+  id: string;
+  backHref?: string;
+}) {
   const [tab, setTab] = useState<"commits" | "activity">("commits");
   const detail = useRepository(id);
 
@@ -202,7 +208,7 @@ export function GitHubRepository({ id }: { id: string }) {
       return (
         <p className="p-4 text-muted-foreground">
           This repository is not in your synchronized list.{" "}
-          <Link href="/settings/integrations/github" className="underline underline-offset-4">
+          <Link href={backHref} className="underline underline-offset-4">
             Back to repositories
           </Link>
         </p>
@@ -215,10 +221,7 @@ export function GitHubRepository({ id }: { id: string }) {
   const r = detail.data.repository;
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href="/settings/integrations/github"
-        className="text-caption underline underline-offset-4"
-      >
+      <Link href={backHref} className="text-caption underline underline-offset-4">
         ← Repositories
       </Link>
       <section className="rounded-lg border bg-surface p-4">
