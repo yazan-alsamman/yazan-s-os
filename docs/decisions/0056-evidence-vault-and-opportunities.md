@@ -11,8 +11,8 @@ with **structured requirements** and a **transparent evidence-to-requirement fit
 evidence portfolio, and controlled GitHub-derived evidence — without duplicating the existing evidence
 model or the Phase 9.x GitHub projections.
 
-The spec is explicit (01 §11): the fit is a matrix — *Requirement · Evidence · Strength · Missing* —
-and must **never** be an opaque "you are 87% fit" score. Phase 13 owns *automatic* evidence
+The spec is explicit (01 §11): the fit is a matrix — _Requirement · Evidence · Strength · Missing_ —
+and must **never** be an opaque "you are 87% fit" score. Phase 13 owns _automatic_ evidence
 extraction and opportunity intelligence, so Phase 10 keeps all evidence creation user-initiated.
 
 ## Decision
@@ -24,9 +24,9 @@ extraction and opportunity intelligence, so Phase 10 keeps all evidence creation
    - `OpportunityRequirement` (kind, label, description, importance required|preferred, and an optional
      concrete link to one owned skill/technology/certification).
    - `RequirementEvidence` (explicit map of an owned evidence item to a requirement).
-   Composite FKs `(id, userId)` enforce same-owner opportunity↔requirement↔evidence links; the optional
-   concrete links are single-column FKs with `SetNull` (a deleted skill never deletes a requirement),
-   with same-owner validated in the service.
+     Composite FKs `(id, userId)` enforce same-owner opportunity↔requirement↔evidence links; the optional
+     concrete links are single-column FKs with `SetNull` (a deleted skill never deletes a requirement),
+     with same-owner validated in the service.
 
 2. **Matching counts only explicit maps, and is decomposable.** A requirement is `supported` only with
    ≥1 **verified** mapped evidence item, `partial` with mapped-but-unverified evidence, `unsupported`

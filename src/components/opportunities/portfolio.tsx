@@ -26,7 +26,13 @@ interface FitRequirement {
 }
 interface Fit {
   calculatedAt: string;
-  opportunity: { id: string; title: string; organization: string | null; status: string; type: string };
+  opportunity: {
+    id: string;
+    title: string;
+    organization: string | null;
+    status: string;
+    type: string;
+  };
   coverage: {
     required: { total: number; supported: number; partial: number; unsupported: number };
     preferred: { total: number; supported: number; partial: number; unsupported: number };
@@ -35,13 +41,19 @@ interface Fit {
   requirements: FitRequirement[];
 }
 
-const STATUS_LABEL = { supported: "Supported", partial: "Partial", unsupported: "Not yet evidenced" } as const;
+const STATUS_LABEL = {
+  supported: "Supported",
+  partial: "Partial",
+  unsupported: "Not yet evidenced",
+} as const;
 
 function toMarkdown(fit: Fit): string {
   const lines: string[] = [];
   lines.push(`# Evidence portfolio — ${fit.opportunity.title}`);
   if (fit.opportunity.organization) lines.push(`**Organization:** ${fit.opportunity.organization}`);
-  lines.push(`_Generated ${new Date(fit.calculatedAt).toLocaleString()} from verified PEOS records._`);
+  lines.push(
+    `_Generated ${new Date(fit.calculatedAt).toLocaleString()} from verified PEOS records._`,
+  );
   const c = fit.coverage;
   lines.push(
     `\n**Required coverage:** ${c.requiredCoverage === null ? "n/a" : `${Math.round(c.requiredCoverage * 100)}%`} ` +
@@ -79,7 +91,10 @@ function download(fit: Fit) {
 }
 
 export function OpportunityPortfolio({ id }: { id: string }) {
-  const q = useApiGet<{ data: Fit }>(["opportunities", "fit", id], `/api/v1/opportunities/${id}/fit`);
+  const q = useApiGet<{ data: Fit }>(
+    ["opportunities", "fit", id],
+    `/api/v1/opportunities/${id}/fit`,
+  );
   if (q.isPending) return <DetailSkeleton />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   const fit = q.data.data;
@@ -106,14 +121,15 @@ export function OpportunityPortfolio({ id }: { id: string }) {
             <p className="text-muted-foreground">{fit.opportunity.organization}</p>
           )}
           <p className="mt-1 text-caption text-muted-foreground">
-            Generated {new Date(fit.calculatedAt).toLocaleString()} from your PEOS records. Every item
-            below links to real, owner-held evidence — nothing is fabricated or rephrased into claims.
+            Generated {new Date(fit.calculatedAt).toLocaleString()} from your PEOS records. Every
+            item below links to real, owner-held evidence — nothing is fabricated or rephrased into
+            claims.
           </p>
           <p className="mt-2 text-caption">
             <b>Required coverage:</b>{" "}
             {c.requiredCoverage === null ? "n/a" : `${Math.round(c.requiredCoverage * 100)}%`} —{" "}
-            {c.required.supported}/{c.required.total} required supported, {c.required.partial} partial,{" "}
-            {c.required.unsupported} missing.
+            {c.required.supported}/{c.required.total} required supported, {c.required.partial}{" "}
+            partial, {c.required.unsupported} missing.
           </p>
         </header>
 
@@ -125,9 +141,17 @@ export function OpportunityPortfolio({ id }: { id: string }) {
               <li key={r.id}>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-h4 font-semibold">{r.label}</h2>
-                  <Badge tone={r.importance === "required" ? "warning" : "neutral"}>{r.importance}</Badge>
+                  <Badge tone={r.importance === "required" ? "warning" : "neutral"}>
+                    {r.importance}
+                  </Badge>
                   <Badge
-                    tone={r.status === "supported" ? "success" : r.status === "partial" ? "warning" : "danger"}
+                    tone={
+                      r.status === "supported"
+                        ? "success"
+                        : r.status === "partial"
+                          ? "warning"
+                          : "danger"
+                    }
                   >
                     {STATUS_LABEL[r.status]}
                   </Badge>

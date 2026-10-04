@@ -18,7 +18,9 @@ const db = getDb();
 const DAY = 86_400_000;
 const NOW = new Date("2026-06-15T12:00:00.000Z");
 const ago = (d: number, hour = 12) =>
-  new Date(NOW.getTime() - d * DAY).toISOString().replace(/T\d\d/, `T${String(hour).padStart(2, "0")}`);
+  new Date(NOW.getTime() - d * DAY)
+    .toISOString()
+    .replace(/T\d\d/, `T${String(hour).padStart(2, "0")}`);
 const json = (b: unknown) =>
   new Response(JSON.stringify(b), { status: 200, headers: { "content-type": "application/json" } });
 
@@ -79,7 +81,11 @@ const commit = (sha: string, date: string, login = "octo") => ({
   committer: { login },
 });
 const COMMITS: Record<string, ReturnType<typeof commit>[]> = {
-  "octo/alpha": [commit("a1", ago(5, 9)), commit("a2", ago(20, 14)), commit("a3", ago(15, 9), "mona")],
+  "octo/alpha": [
+    commit("a1", ago(5, 9)),
+    commit("a2", ago(20, 14)),
+    commit("a3", ago(15, 9), "mona"),
+  ],
   "octo/beta": [commit("b1", ago(8, 10))],
 };
 
@@ -95,27 +101,120 @@ const pr = (over: Record<string, unknown>) => ({
 });
 const PULLS: Record<string, ReturnType<typeof pr>[]> = {
   "octo/alpha": [
-    pr({ number: 1, title: "merged pr", state: "closed", created_at: ago(30), updated_at: ago(18), closed_at: ago(18), merged_at: ago(18) }),
-    pr({ number: 2, title: "open pr", state: "open", created_at: ago(12), updated_at: ago(12), closed_at: null, merged_at: null }),
-    pr({ number: 3, title: "closed pr", state: "closed", created_at: ago(25), updated_at: ago(20), closed_at: ago(20), merged_at: null }),
+    pr({
+      number: 1,
+      title: "merged pr",
+      state: "closed",
+      created_at: ago(30),
+      updated_at: ago(18),
+      closed_at: ago(18),
+      merged_at: ago(18),
+    }),
+    pr({
+      number: 2,
+      title: "open pr",
+      state: "open",
+      created_at: ago(12),
+      updated_at: ago(12),
+      closed_at: null,
+      merged_at: null,
+    }),
+    pr({
+      number: 3,
+      title: "closed pr",
+      state: "closed",
+      created_at: ago(25),
+      updated_at: ago(20),
+      closed_at: ago(20),
+      merged_at: null,
+    }),
   ],
   "octo/beta": [
-    pr({ number: 4, title: "beta merged", state: "closed", created_at: ago(22), updated_at: ago(16), closed_at: ago(16), merged_at: ago(16) }),
+    pr({
+      number: 4,
+      title: "beta merged",
+      state: "closed",
+      created_at: ago(22),
+      updated_at: ago(16),
+      closed_at: ago(16),
+      merged_at: ago(16),
+    }),
   ],
 };
 const ISSUES: Record<string, Record<string, unknown>[]> = {
   "octo/alpha": [
-    { id: 50, number: 10, title: "open issue", user: { login: "mona" }, state: "open", comments: 2, labels: [{ name: "bug" }, "docs"], assignees: [{ login: "octo" }], milestone: { title: "v1" }, created_at: ago(10), updated_at: ago(10), closed_at: null, html_url: "https://github.com/octo/alpha/issues/10" },
-    { id: 51, number: 11, title: "closed issue", user: { login: "octo" }, state: "closed", comments: 0, labels: ["bug"], assignees: [], milestone: null, created_at: ago(20), updated_at: ago(5), closed_at: ago(5), html_url: "https://github.com/octo/alpha/issues/11" },
+    {
+      id: 50,
+      number: 10,
+      title: "open issue",
+      user: { login: "mona" },
+      state: "open",
+      comments: 2,
+      labels: [{ name: "bug" }, "docs"],
+      assignees: [{ login: "octo" }],
+      milestone: { title: "v1" },
+      created_at: ago(10),
+      updated_at: ago(10),
+      closed_at: null,
+      html_url: "https://github.com/octo/alpha/issues/10",
+    },
+    {
+      id: 51,
+      number: 11,
+      title: "closed issue",
+      user: { login: "octo" },
+      state: "closed",
+      comments: 0,
+      labels: ["bug"],
+      assignees: [],
+      milestone: null,
+      created_at: ago(20),
+      updated_at: ago(5),
+      closed_at: ago(5),
+      html_url: "https://github.com/octo/alpha/issues/11",
+    },
     // A pull request returned by the issues endpoint — must be excluded from issue analytics.
-    { id: 1001, number: 1, title: "merged pr", user: { login: "octo" }, state: "closed", pull_request: { url: "x" }, labels: [], assignees: [], created_at: ago(30), updated_at: ago(18), closed_at: ago(18), html_url: "https://github.com/octo/alpha/pull/1" },
+    {
+      id: 1001,
+      number: 1,
+      title: "merged pr",
+      user: { login: "octo" },
+      state: "closed",
+      pull_request: { url: "x" },
+      labels: [],
+      assignees: [],
+      created_at: ago(30),
+      updated_at: ago(18),
+      closed_at: ago(18),
+      html_url: "https://github.com/octo/alpha/pull/1",
+    },
   ],
   "octo/beta": [],
 };
 const RELEASES: Record<string, Record<string, unknown>[]> = {
   "octo/alpha": [
-    { id: 900, tag_name: "v1.0.0", name: "v1", author: { login: "octo" }, draft: false, prerelease: false, created_at: ago(31), published_at: ago(30), html_url: "https://github.com/octo/alpha/releases/v1" },
-    { id: 901, tag_name: "v1.1.0-rc", name: "v1.1 rc", author: { login: "octo" }, draft: false, prerelease: true, created_at: ago(11), published_at: ago(10), html_url: "https://github.com/octo/alpha/releases/v1.1" },
+    {
+      id: 900,
+      tag_name: "v1.0.0",
+      name: "v1",
+      author: { login: "octo" },
+      draft: false,
+      prerelease: false,
+      created_at: ago(31),
+      published_at: ago(30),
+      html_url: "https://github.com/octo/alpha/releases/v1",
+    },
+    {
+      id: 901,
+      tag_name: "v1.1.0-rc",
+      name: "v1.1 rc",
+      author: { login: "octo" },
+      draft: false,
+      prerelease: true,
+      created_at: ago(11),
+      published_at: ago(10),
+      html_url: "https://github.com/octo/alpha/releases/v1.1",
+    },
   ],
   "octo/beta": [],
 };
@@ -127,11 +226,15 @@ const CONTRIBUTORS: Record<string, Record<string, unknown>[]> = {
   "octo/beta": [{ login: "octo", contributions: 5, html_url: "https://github.com/octo" }],
 };
 
-function makeFetch(extra: Partial<{ rateLimitPulls: boolean; extraPullAlpha: ReturnType<typeof pr> }> = {}) {
+function makeFetch(
+  extra: Partial<{ rateLimitPulls: boolean; extraPullAlpha: ReturnType<typeof pr> }> = {},
+) {
   return (async (input: string | URL) => {
     const url = typeof input === "string" ? input : input.toString();
-    if (url.includes("login/oauth/access_token")) return json({ access_token: "gho_x", scope: "repo" });
-    if (url.endsWith("/user")) return json({ id: 7, login: "octo", name: "Octo", email: "o@e", html_url: "u" });
+    if (url.includes("login/oauth/access_token"))
+      return json({ access_token: "gho_x", scope: "repo" });
+    if (url.endsWith("/user"))
+      return json({ id: 7, login: "octo", name: "Octo", email: "o@e", html_url: "u" });
     if (url.includes("/user/repos")) {
       const page = Number(new URL(url).searchParams.get("page") ?? "1");
       return json(page === 1 ? REPOS : []);
@@ -141,13 +244,18 @@ function makeFetch(extra: Partial<{ rateLimitPulls: boolean; extraPullAlpha: Ret
     if (m) {
       const [, repo, kind] = m;
       if (kind === "pulls" && extra.rateLimitPulls) {
-        return new Response("rate limited", { status: 403, headers: { "x-ratelimit-remaining": "0" } });
+        return new Response("rate limited", {
+          status: 403,
+          headers: { "x-ratelimit-remaining": "0" },
+        });
       }
       if (page > 1) return json([]);
       if (kind === "commits") return json(COMMITS[repo!] ?? []);
       if (kind === "pulls") {
         const base = PULLS[repo!] ?? [];
-        return json(repo === "octo/alpha" && extra.extraPullAlpha ? [extra.extraPullAlpha, ...base] : base);
+        return json(
+          repo === "octo/alpha" && extra.extraPullAlpha ? [extra.extraPullAlpha, ...base] : base,
+        );
       }
       if (kind === "issues") return json(ISSUES[repo!] ?? []);
       if (kind === "releases") return json(RELEASES[repo!] ?? []);
@@ -186,7 +294,14 @@ describe("Phase 9.7 GitHub Intelligence Expansion (service + database)", () => {
     expect(status.completeness).toBe("complete");
     const types = status.resources.map((r) => r.resourceType).sort();
     expect(types).toEqual(
-      ["github_commit", "github_contributor", "github_issue", "github_pull_request", "github_release", "repository"].sort(),
+      [
+        "github_commit",
+        "github_contributor",
+        "github_issue",
+        "github_pull_request",
+        "github_release",
+        "repository",
+      ].sort(),
     );
     expect(await db.gitHubPullRequest.count({ where: { userId: alice.userId } })).toBe(4);
     expect(await db.gitHubRelease.count({ where: { userId: alice.userId } })).toBe(2);
@@ -276,7 +391,15 @@ describe("Phase 9.7 GitHub Intelligence Expansion (service + database)", () => {
 
   it("is incremental and idempotent — a new PR appears, existing rows are not duplicated", async () => {
     const f2 = makeFetch({
-      extraPullAlpha: pr({ number: 5, title: "new pr", state: "open", created_at: ago(2), updated_at: ago(2), closed_at: null, merged_at: null }),
+      extraPullAlpha: pr({
+        number: 5,
+        title: "new pr",
+        state: "open",
+        created_at: ago(2),
+        updated_at: ago(2),
+        closed_at: null,
+        merged_at: null,
+      }),
     });
     await createGitHubSyncService(db, deps(f2)).sync(alice);
     expect(await db.gitHubPullRequest.count({ where: { userId: alice.userId } })).toBe(5);
@@ -299,7 +422,9 @@ describe("Phase 9.7 GitHub Intelligence Expansion (service + database)", () => {
   it("isolates every new domain by owner", async () => {
     await connect(bob, f);
     await expect(
-      insights(f).pullRequests(bob, { range: "90d" }).then((p) => p.kpis.opened.value),
+      insights(f)
+        .pullRequests(bob, { range: "90d" })
+        .then((p) => p.kpis.opened.value),
     ).resolves.toBeNull(); // connected, not synced → no_data
     expect(await db.gitHubPullRequest.count({ where: { userId: bob.userId } })).toBe(0);
     expect(await db.gitHubIssue.count({ where: { userId: bob.userId } })).toBe(0);

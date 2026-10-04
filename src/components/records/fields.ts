@@ -128,7 +128,13 @@ export const EVIDENCE_FIELDS: readonly FieldDescriptor[] = [
 export const OPPORTUNITY_FIELDS: readonly FieldDescriptor[] = [
   { name: "title", label: "Title", kind: "text", required: true, maxLength: 200, wide: true },
   { name: "organization", label: "Organization", kind: "text", maxLength: 200 },
-  { name: "type", label: "Type", kind: "select", options: OPPORTUNITY_TYPE_OPTIONS, defaultValue: "role" },
+  {
+    name: "type",
+    label: "Type",
+    kind: "select",
+    options: OPPORTUNITY_TYPE_OPTIONS,
+    defaultValue: "role",
+  },
   {
     name: "status",
     label: "Stage",

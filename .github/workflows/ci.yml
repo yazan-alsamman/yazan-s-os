@@ -15,6 +15,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Deterministic secret scan (Phase 12, ADR 0059). Fails the build if a credential is committed.
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history so historical commits are scanned too
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+
   verify:
     name: Lint · Typecheck · Unit · Build · Audit
     runs-on: ubuntu-latest

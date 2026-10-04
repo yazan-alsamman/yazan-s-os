@@ -61,7 +61,10 @@ export const listEvidenceQuerySchema = paginationQuerySchema.extend({
  */
 export const githubEvidenceSchema = z.object({
   resourceType: z.enum(["repository", "pull_request", "issue", "release", "commit"]),
-  repoExternalId: z.string().trim().regex(/^\d{1,20}$/),
+  repoExternalId: z
+    .string()
+    .trim()
+    .regex(/^\d{1,20}$/),
   resourceId: z.string().trim().min(1).max(100),
   /** Optional title override; defaults to the GitHub object's own title. */
   title: optionalText(300),

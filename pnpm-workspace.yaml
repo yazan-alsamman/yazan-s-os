@@ -14,3 +14,14 @@ allowBuilds:
 overrides:
   mysql2: ">=3.23.1 <4"
   deepmerge-ts: ">=8.0.0 <9"
+
+# Documented audit exceptions (Phase 12 dependency hardening, ADR 0058). Each entry is a
+# dev/CI-only transitive with no published fix and no runtime-bundle exposure. Reviewed and
+# re-evaluated whenever `pnpm audit` surfaces a new advisory.
+auditConfig:
+  ignoreGhsas:
+    # GHSA-vfj7-8cjw-p6xm — ReDoS in `braces`, reachable only through eslint-config-next's glob
+    # tooling (@next/eslint-plugin-next → fast-glob → micromatch → braces). Dev/CI only, operates on
+    # trusted repository paths, not shipped in the application bundle. Latest published braces is
+    # 3.0.3, so there is no upgrade to apply. Re-check when a patched braces is released.
+    - GHSA-vfj7-8cjw-p6xm

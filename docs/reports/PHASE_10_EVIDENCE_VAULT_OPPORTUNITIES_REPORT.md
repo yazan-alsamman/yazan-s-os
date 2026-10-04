@@ -41,10 +41,10 @@ Migration `20261004140337_opportunities_and_evidence_matching` (additive; dev + 
 validate` passes):
 
 - **Opportunity** — `title, organization?, type, status, priority, description?, source?, sourceUrl?,
-  location?, deadline?, nextAction?, notes?, origin, importRecordId?`; indexes `(userId,status)`,
+location?, deadline?, nextAction?, notes?, origin, importRecordId?`; indexes `(userId,status)`,
   `(userId,type)`, `(userId,deadline)`; `@@unique([id,userId])`.
 - **OpportunityRequirement** — `opportunityId, kind, label, description?, importance, skillId?,
-  technologyId?, certificationId?`; composite FK to Opportunity `(id,userId)`; single-column
+technologyId?, certificationId?`; composite FK to Opportunity `(id,userId)`; single-column
   `SetNull` FKs to skill/technology/certification; indexes on `opportunityId`, `(userId,kind)` and
   each concrete id; `@@unique([id,userId])`.
 - **RequirementEvidence** — `(requirementId, evidenceId)` PK; composite FKs to requirement and
@@ -149,26 +149,26 @@ benchmark was captured this phase.
 
 ## 16. Acceptance matrix
 
-| Requirement | Status | Evidence |
-|-------------|--------|----------|
-| Evidence first-class with provenance & review state | met (pre-existing, preserved) | `Evidence` model, Vault UI |
-| Evidence justified relationships + search/filter | met | detail panels incl. opportunities; `/evidence` filters |
-| Opportunities persisted with lifecycle & provenance | met | `Opportunity` model; `opportunities.int.test.ts` |
-| Structured requirements with relationships | met | `OpportunityRequirement` (+ concrete links) |
-| Evidence↔requirement mapping, transparent, no invention | met | `RequirementEvidence`; `getFit`; matching tests |
-| Unsupported requirements visible; inspectable match | met | fit matrix status/strength + evidence list |
-| No opaque fit score | met | coverage shown only with full breakdown |
-| Reuse Phase 9.x GitHub; no bulk/auto evidence | met | `github-evidence.service.ts` (one resource, explicit) |
-| GitHub-derived evidence keeps provenance | met | `githubResourceType/Id` + sourceUrl; integration test |
-| Owner isolation enforced & tested | met | cross-owner NOT_FOUND/VALIDATION_FAILED tests |
-| External URLs validated; content escaped | met | `optionalHttpUrl` + safe link component |
-| UX states (loading/empty/error/not-found) | met | dossier, list, portfolio |
-| Responsive + design system reused | met | shared `ResourceList`/detail kit |
-| Accessibility tested (automated) | met | Phase 10 axe E2E |
-| Exportable portfolio from real data | met | `/opportunities/[id]/portfolio` + Markdown |
-| Unit / integration / E2E / lint / typecheck / build / prisma | met | §14 |
-| No fake data | met | empty states; nothing seeded |
-| Manual screen-reader testing | not done | condition |
+| Requirement                                                  | Status                        | Evidence                                               |
+| ------------------------------------------------------------ | ----------------------------- | ------------------------------------------------------ |
+| Evidence first-class with provenance & review state          | met (pre-existing, preserved) | `Evidence` model, Vault UI                             |
+| Evidence justified relationships + search/filter             | met                           | detail panels incl. opportunities; `/evidence` filters |
+| Opportunities persisted with lifecycle & provenance          | met                           | `Opportunity` model; `opportunities.int.test.ts`       |
+| Structured requirements with relationships                   | met                           | `OpportunityRequirement` (+ concrete links)            |
+| Evidence↔requirement mapping, transparent, no invention      | met                           | `RequirementEvidence`; `getFit`; matching tests        |
+| Unsupported requirements visible; inspectable match          | met                           | fit matrix status/strength + evidence list             |
+| No opaque fit score                                          | met                           | coverage shown only with full breakdown                |
+| Reuse Phase 9.x GitHub; no bulk/auto evidence                | met                           | `github-evidence.service.ts` (one resource, explicit)  |
+| GitHub-derived evidence keeps provenance                     | met                           | `githubResourceType/Id` + sourceUrl; integration test  |
+| Owner isolation enforced & tested                            | met                           | cross-owner NOT_FOUND/VALIDATION_FAILED tests          |
+| External URLs validated; content escaped                     | met                           | `optionalHttpUrl` + safe link component                |
+| UX states (loading/empty/error/not-found)                    | met                           | dossier, list, portfolio                               |
+| Responsive + design system reused                            | met                           | shared `ResourceList`/detail kit                       |
+| Accessibility tested (automated)                             | met                           | Phase 10 axe E2E                                       |
+| Exportable portfolio from real data                          | met                           | `/opportunities/[id]/portfolio` + Markdown             |
+| Unit / integration / E2E / lint / typecheck / build / prisma | met                           | §14                                                    |
+| No fake data                                                 | met                           | empty states; nothing seeded                           |
+| Manual screen-reader testing                                 | not done                      | condition                                              |
 
 ## 17. Final status
 

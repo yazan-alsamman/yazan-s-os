@@ -67,7 +67,12 @@ const DAY = 86_400_000;
 interface SyncMarkers {
   [resource: string]: string | undefined;
 }
-type RepoRow = { externalId: string; fullName: string; archived: boolean; pushedDate: string | null };
+type RepoRow = {
+  externalId: string;
+  fullName: string;
+  archived: boolean;
+  pushedDate: string | null;
+};
 
 export interface ResourceSyncResult {
   resource: string;
@@ -370,17 +375,12 @@ export function createGitHubSyncService(db: PrismaClient, deps: IntegrationDeps 
         const { stoppedForRateLimit } = await pageThrough(
           connId,
           MAX_REPO_PAGES,
-          (page) => client.listRepositories({ page, perPage: 100, sort: "pushed", visibility: "all" }),
+          (page) =>
+            client.listRepositories({ page, perPage: 100, sort: "pushed", visibility: "all" }),
           async (items) => {
             for (const raw of items) {
               const r = normalizeRepo(raw, started);
-              await cacheRepo(
-                ctx,
-                connId,
-                r,
-                started,
-                existing.markers.get(r.externalId) ?? {},
-              );
+              await cacheRepo(ctx, connId, r, started, existing.markers.get(r.externalId) ?? {});
               repoCount++;
             }
             return true;
@@ -699,8 +699,7 @@ export function createGitHubSyncService(db: PrismaClient, deps: IntegrationDeps 
       );
 
       const completed = now();
-      const anyPartial =
-        repoStoppedForRateLimit || results.some((r) => r.status !== "success");
+      const anyPartial = repoStoppedForRateLimit || results.some((r) => r.status !== "success");
       const anyFailed = results.some((r) => r.status === "failed");
       await db.integrationConnection.update({
         where: { id: connId },

@@ -23,7 +23,13 @@ import {
   type ContributorRow,
 } from "./use-github";
 
-function ContributorTable({ repo, authenticatedLogin }: { repo: string; authenticatedLogin: string | null }) {
+function ContributorTable({
+  repo,
+  authenticatedLogin,
+}: {
+  repo: string;
+  authenticatedLogin: string | null;
+}) {
   const [page, setPage] = useState(1);
   const q = useGithubContributorList({ repo: repo || undefined, page });
   const rows = q.data?.data ?? [];
@@ -33,8 +39,8 @@ function ContributorTable({ repo, authenticatedLogin }: { repo: string; authenti
         Contributors
       </h2>
       <p className="text-caption text-muted-foreground">
-        Contribution counts are GitHub&rsquo;s own commit attribution per repository — evidence, never
-        a ranking or quality score.
+        Contribution counts are GitHub&rsquo;s own commit attribution per repository — evidence,
+        never a ranking or quality score.
       </p>
       {q.isPending ? (
         <ListSkeleton rows={5} />
@@ -45,12 +51,20 @@ function ContributorTable({ repo, authenticatedLogin }: { repo: string; authenti
       ) : (
         <div className="overflow-x-auto rounded-lg border bg-surface">
           <table className="w-full text-body">
-            <caption className="sr-only">Contributors by repository with contribution counts</caption>
+            <caption className="sr-only">
+              Contributors by repository with contribution counts
+            </caption>
             <thead className="text-caption text-muted-foreground">
               <tr className="border-b text-left">
-                <th scope="col" className="px-3 py-2 font-medium">Contributor</th>
-                <th scope="col" className="px-3 py-2 font-medium">Repository</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">Contributions</th>
+                <th scope="col" className="px-3 py-2 font-medium">
+                  Contributor
+                </th>
+                <th scope="col" className="px-3 py-2 font-medium">
+                  Repository
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  Contributions
+                </th>
               </tr>
             </thead>
             <tbody>

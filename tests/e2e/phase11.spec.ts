@@ -29,7 +29,9 @@ test.describe("signed in", () => {
     await page.getByRole("link", { name: "E2E Palette Project" }).click();
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+$/);
     // Wait for the detail to render so the recently-viewed recorder has run.
-    await expect(page.getByRole("heading", { name: "E2E Palette Project", level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "E2E Palette Project", level: 1 }),
+    ).toBeVisible();
 
     // Open the palette with the keyboard and confirm recently-viewed + a working create action.
     await page.goto("/command-center");

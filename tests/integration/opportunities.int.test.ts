@@ -48,11 +48,18 @@ describe("Phase 10 opportunities & matching", () => {
   afterAll(truncateAll);
 
   it("creates, lists, updates and deletes opportunities with provenance", async () => {
-    const created = await svc.create(alice, mkOpp({ title: "Staff Engineer", organization: "Acme", type: "role" }));
+    const created = await svc.create(
+      alice,
+      mkOpp({ title: "Staff Engineer", organization: "Acme", type: "role" }),
+    );
     expect(created.origin).toBe("manual");
     expect(created.status).toBe("identified");
 
-    const listed = await svc.list(alice, { page: 1, pageSize: 20, sort: [{ updatedAt: "desc" }] } as never);
+    const listed = await svc.list(alice, {
+      page: 1,
+      pageSize: 20,
+      sort: [{ updatedAt: "desc" }],
+    } as never);
     expect(listed.data).toHaveLength(1);
 
     const updated = await svc.update(alice, created.id, { status: "applied", priority: "high" });
@@ -68,12 +75,16 @@ describe("Phase 10 opportunities & matching", () => {
     const aliceSkill = await makeSkill(alice.userId, "PostgreSQL");
     const bobSkill = await makeSkill(bob.userId, "PostgreSQL");
 
-    const req = await svc.addRequirement(alice, opp.id, mkReq({
-      kind: "skill",
-      label: "Advanced PostgreSQL",
-      importance: "required",
-      skillId: aliceSkill.id,
-    }));
+    const req = await svc.addRequirement(
+      alice,
+      opp.id,
+      mkReq({
+        kind: "skill",
+        label: "Advanced PostgreSQL",
+        importance: "required",
+        skillId: aliceSkill.id,
+      }),
+    );
     expect(req.skill?.id).toBe(aliceSkill.id);
 
     // Linking another user's skill is rejected as if it does not exist (no cross-owner leak).
@@ -84,9 +95,21 @@ describe("Phase 10 opportunities & matching", () => {
 
   it("maps evidence to requirements and computes transparent coverage", async () => {
     const opp = await svc.create(alice, mkOpp({ title: "Role" }));
-    const r1 = await svc.addRequirement(alice, opp.id, mkReq({ kind: "skill", label: "PostgreSQL", importance: "required" }));
-    const r2 = await svc.addRequirement(alice, opp.id, mkReq({ kind: "other", label: "Kubernetes 5y", importance: "required" }));
-    await svc.addRequirement(alice, opp.id, mkReq({ kind: "other", label: "Nice to have", importance: "preferred" }));
+    const r1 = await svc.addRequirement(
+      alice,
+      opp.id,
+      mkReq({ kind: "skill", label: "PostgreSQL", importance: "required" }),
+    );
+    const r2 = await svc.addRequirement(
+      alice,
+      opp.id,
+      mkReq({ kind: "other", label: "Kubernetes 5y", importance: "required" }),
+    );
+    await svc.addRequirement(
+      alice,
+      opp.id,
+      mkReq({ kind: "other", label: "Nice to have", importance: "preferred" }),
+    );
 
     const verified = await makeEvidence(alice.userId, "Prod PostgreSQL deployment", true);
     const unverified = await makeEvidence(alice.userId, "Draft note", false);
@@ -95,7 +118,12 @@ describe("Phase 10 opportunities & matching", () => {
     await svc.replaceRequirementEvidence(alice, r2.id, [unverified.id]); // evidence exists but unverified
 
     const fit = await svc.getFit(alice, opp.id);
-    expect(fit.coverage.required).toMatchObject({ total: 2, supported: 1, partial: 1, unsupported: 0 });
+    expect(fit.coverage.required).toMatchObject({
+      total: 2,
+      supported: 1,
+      partial: 1,
+      unsupported: 0,
+    });
     expect(fit.coverage.preferred).toMatchObject({ total: 1, unsupported: 1 });
     expect(fit.coverage.requiredCoverage).toBe(0.5);
 
@@ -117,10 +145,16 @@ describe("Phase 10 opportunities & matching", () => {
   it("suggests grounded evidence from a requirement's linked skill (never fabricated)", async () => {
     const opp = await svc.create(alice, mkOpp({ title: "Role" }));
     const skill = await makeSkill(alice.userId, "PostgreSQL");
-    const req = await svc.addRequirement(alice, opp.id, mkReq({ kind: "skill", label: "PostgreSQL", skillId: skill.id }));
+    const req = await svc.addRequirement(
+      alice,
+      opp.id,
+      mkReq({ kind: "skill", label: "PostgreSQL", skillId: skill.id }),
+    );
 
     const linked = await makeEvidence(alice.userId, "PostgreSQL talk", true);
-    await db.skillEvidence.create({ data: { userId: alice.userId, skillId: skill.id, evidenceId: linked.id } });
+    await db.skillEvidence.create({
+      data: { userId: alice.userId, skillId: skill.id, evidenceId: linked.id },
+    });
     const alsoLinkedButMapped = await makeEvidence(alice.userId, "Already mapped", true);
     await db.skillEvidence.create({
       data: { userId: alice.userId, skillId: skill.id, evidenceId: alsoLinkedButMapped.id },
@@ -177,30 +211,42 @@ describe("Phase 10 opportunities & matching", () => {
       },
     });
 
-    const repoEvidence = await ghEvidence.create(alice, mkGh({
-      resourceType: "repository",
-      repoExternalId: "100",
-      resourceId: "100",
-    }));
+    const repoEvidence = await ghEvidence.create(
+      alice,
+      mkGh({
+        resourceType: "repository",
+        repoExternalId: "100",
+        resourceId: "100",
+      }),
+    );
     expect(repoEvidence.github).toMatchObject({ resourceType: "repository", resourceId: "100" });
     expect(repoEvidence.verified).toBe(false); // GitHub-derived starts pending review
     expect(repoEvidence.sourceUrl).toBe("https://github.com/octo/alpha");
 
-    const prEvidence = await ghEvidence.create(alice, mkGh({
-      resourceType: "pull_request",
-      repoExternalId: "100",
-      resourceId: "42",
-    }));
+    const prEvidence = await ghEvidence.create(
+      alice,
+      mkGh({
+        resourceType: "pull_request",
+        repoExternalId: "100",
+        resourceId: "42",
+      }),
+    );
     expect(prEvidence.title).toContain("Add connection pooling");
     expect(prEvidence.github).toMatchObject({ resourceType: "pull_request", resourceId: "42" });
 
     // A resource the owner has not synchronized is "not found" — nothing is fabricated.
     await expect(
-      ghEvidence.create(alice, mkGh({ resourceType: "pull_request", repoExternalId: "100", resourceId: "999" })),
+      ghEvidence.create(
+        alice,
+        mkGh({ resourceType: "pull_request", repoExternalId: "100", resourceId: "999" }),
+      ),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     // Bob cannot link Alice's GitHub resource.
     await expect(
-      ghEvidence.create(bob, mkGh({ resourceType: "repository", repoExternalId: "100", resourceId: "100" })),
+      ghEvidence.create(
+        bob,
+        mkGh({ resourceType: "repository", repoExternalId: "100", resourceId: "100" }),
+      ),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
@@ -209,10 +255,16 @@ describe("Phase 10 opportunities & matching", () => {
     await svc.addRequirement(alice, opp.id, mkReq({ kind: "other", label: "X" }));
 
     await expect(svc.get(bob, opp.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
-    await expect(svc.update(bob, opp.id, { status: "applied" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(svc.update(bob, opp.id, { status: "applied" })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
     await expect(svc.delete(bob, opp.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(svc.getFit(bob, opp.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
-    const bobList = await svc.list(bob, { page: 1, pageSize: 20, sort: [{ updatedAt: "desc" }] } as never);
+    const bobList = await svc.list(bob, {
+      page: 1,
+      pageSize: 20,
+      sort: [{ updatedAt: "desc" }],
+    } as never);
     expect(bobList.data).toHaveLength(0);
   });
 });

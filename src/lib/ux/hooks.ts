@@ -4,18 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOwnerScope } from "@/components/providers/owner-scope";
 
-import {
-  readRecent,
-  writeRecent,
-  type RecentEntity,
-} from "./recently-viewed";
-import {
-  readViews,
-  removeView,
-  upsertView,
-  writeViews,
-  type SavedView,
-} from "./saved-views";
+import { readRecent, writeRecent, type RecentEntity } from "./recently-viewed";
+import { readViews, removeView, upsertView, writeViews, type SavedView } from "./saved-views";
 
 function storage(): Storage | undefined {
   try {

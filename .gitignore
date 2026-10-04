@@ -40,3 +40,8 @@ Thumbs.db
 # local secrets / keys
 *.pem
 *.key
+
+# Phase 12: database backup artifacts must never be committed (contain personal data).
+/backups/
+*.dump
+*.sql.gz

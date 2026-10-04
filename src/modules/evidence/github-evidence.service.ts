@@ -23,10 +23,7 @@ interface ResolvedResource {
  * resource is not in the owner's synchronized data, nothing is created.
  */
 export function createGithubEvidenceService(db: PrismaClient) {
-  async function resolve(
-    userId: string,
-    input: GithubEvidenceInput,
-  ): Promise<ResolvedResource> {
+  async function resolve(userId: string, input: GithubEvidenceInput): Promise<ResolvedResource> {
     const { repoExternalId, resourceId } = input;
     switch (input.resourceType) {
       case "repository": {

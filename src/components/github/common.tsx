@@ -130,12 +130,7 @@ export function ExternalLink({ url, children }: { url: string | null; children: 
   const href = safeUrl(url);
   if (!href) return <span>{children}</span>;
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer nofollow"
-      className="hover:underline"
-    >
+    <a href={href} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
       {children}
     </a>
   );
@@ -143,11 +138,18 @@ export function ExternalLink({ url, children }: { url: string | null; children: 
 
 /** Short, locale date for a nullable ISO timestamp. */
 export const shortDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  iso
+    ? new Date(iso).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "—";
 
 /** Percentage / hours formatters for ratio & duration KPIs. */
 export const asPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
-export const asHours = (v: number) => (v >= 48 ? `${Math.round(v / 24)}d` : `${Math.round(v * 10) / 10}h`);
+export const asHours = (v: number) =>
+  v >= 48 ? `${Math.round(v / 24)}d` : `${Math.round(v * 10) / 10}h`;
 
 /** "All repositories" + one option per synced repository (filters analytics to a single repo). */
 export function RepoFilter({
@@ -290,11 +292,21 @@ export function SyncStatusPanel() {
         <caption className="sr-only">Synchronization status by resource type</caption>
         <thead className="text-muted-foreground">
           <tr className="border-b text-left">
-            <th scope="col" className="px-3 py-2 font-medium">Resource</th>
-            <th scope="col" className="px-3 py-2 font-medium">Status</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Records</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Pending repos</th>
-            <th scope="col" className="px-3 py-2 font-medium">Completed</th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Resource
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Status
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">
+              Records
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">
+              Pending repos
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Completed
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -456,14 +468,24 @@ export function DistributionCard({
           option={(p) => ({
             grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
             tooltip: { trigger: "axis" },
-            xAxis: { type: "category", data: buckets.map((b) => b.label), axisLabel: { color: p.mutedText } },
+            xAxis: {
+              type: "category",
+              data: buckets.map((b) => b.label),
+              axisLabel: { color: p.mutedText },
+            },
             yAxis: {
               type: "value",
               minInterval: 1,
               axisLabel: { color: p.mutedText },
               splitLine: { lineStyle: { color: p.grid } },
             },
-            series: [{ type: "bar", data: buckets.map((b) => b.value), itemStyle: { color: color(p, "") } }],
+            series: [
+              {
+                type: "bar",
+                data: buckets.map((b) => b.value),
+                itemStyle: { color: color(p, "") },
+              },
+            ],
           })}
         />
       )}
@@ -497,7 +519,11 @@ export function TrendCard({ metric, title }: { metric: MetricResult; title: stri
         option={(p) => ({
           grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
           tooltip: { trigger: "axis" },
-          xAxis: { type: "category", data: buckets.map((b) => b.label), axisLabel: { color: p.mutedText } },
+          xAxis: {
+            type: "category",
+            data: buckets.map((b) => b.label),
+            axisLabel: { color: p.mutedText },
+          },
           yAxis: {
             type: "value",
             minInterval: 1,
@@ -540,7 +566,9 @@ export function Heatmap({ metric, max }: { metric: MetricResult; max: number }) 
       table={hasData ? distributionTable(metric, () => null) : null}
       empty={
         hasData ? undefined : (
-          <div className="p-4 text-muted-foreground">{metric.stateReason ?? "No commit activity in this period."}</div>
+          <div className="p-4 text-muted-foreground">
+            {metric.stateReason ?? "No commit activity in this period."}
+          </div>
         )
       }
     >

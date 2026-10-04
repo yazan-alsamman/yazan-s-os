@@ -26,7 +26,7 @@ or 9.6.
    (`@@unique(userId, repoExternalId, number)`), `GitHubRelease`
    (`@@unique(userId, repoExternalId, externalId)`) and `GitHubContributor`
    (`@@unique(userId, repoExternalId, login)`). Nullable code-size fields are nullable on purpose —
-   the PR *list* endpoint omits additions/deletions, so they are left null, never fabricated. GitHub
+   the PR _list_ endpoint omits additions/deletions, so they are left null, never fabricated. GitHub
    returns PRs through the issues endpoint; those are excluded at sync time so issue analytics never
    double-count pull requests. Releases are explicit GitHub objects — never inferred from commits or
    tags. Migration `20261004105501_github_intelligence_expansion`.

@@ -70,12 +70,20 @@ interface CoverageBucket {
 }
 interface Fit {
   calculatedAt: string;
-  coverage: { required: CoverageBucket; preferred: CoverageBucket; requiredCoverage: number | null };
+  coverage: {
+    required: CoverageBucket;
+    preferred: CoverageBucket;
+    requiredCoverage: number | null;
+  };
   requirements: FitRequirement[];
 }
 
 const STATUS_TONE = { supported: "success", partial: "warning", unsupported: "danger" } as const;
-const STATUS_LABEL = { supported: "Supported", partial: "Partial", unsupported: "Missing" } as const;
+const STATUS_LABEL = {
+  supported: "Supported",
+  partial: "Partial",
+  unsupported: "Missing",
+} as const;
 const PRIORITY_TONE = { high: "danger", medium: "warning", low: "neutral" } as const;
 
 const asPercent = (v: number) => `${Math.round(v * 1000) / 10}%`;
@@ -143,7 +151,7 @@ function EvidenceChip({ e }: { e: FitEvidence }) {
       ) : (
         <Badge tone="neutral">unverified</Badge>
       )}
-      <span className="truncate max-w-48">{e.title}</span>
+      <span className="max-w-48 truncate">{e.title}</span>
       {e.github && <span className="text-muted-foreground">· GitHub</span>}
     </Link>
   );
@@ -158,7 +166,11 @@ export function OpportunityDossier({ id }: { id: string }) {
 
   const update = useApiMutation<Record<string, unknown>>("PATCH", path, invalidates);
   const remove = useApiMutation<void>("DELETE", path, invalidates);
-  const addReq = useApiMutation<Record<string, unknown>>("POST", `${path}/requirements`, invalidates);
+  const addReq = useApiMutation<Record<string, unknown>>(
+    "POST",
+    `${path}/requirements`,
+    invalidates,
+  );
   const updateReq = useApiMutation<{ reqId: string } & Record<string, unknown>>(
     "PATCH",
     (b) => `${path}/requirements/${b.reqId}`,
@@ -177,7 +189,9 @@ export function OpportunityDossier({ id }: { id: string }) {
 
   const [editingOpp, setEditingOpp] = useState(false);
   const [deletingOpp, setDeletingOpp] = useState(false);
-  const [reqForm, setReqForm] = useState<{ mode: "new" } | { mode: "edit"; req: FitRequirement } | null>(null);
+  const [reqForm, setReqForm] = useState<
+    { mode: "new" } | { mode: "edit"; req: FitRequirement } | null
+  >(null);
   const [evidencePicker, setEvidencePicker] = useState<FitRequirement | null>(null);
   const [linkPicker, setLinkPicker] = useState<FitRequirement | null>(null);
   const [deletingReq, setDeletingReq] = useState<FitRequirement | null>(null);
@@ -188,7 +202,9 @@ export function OpportunityDossier({ id }: { id: string }) {
       return (
         <div role="alert" className="rounded-lg border bg-surface p-6">
           <h1 className="text-h2 font-semibold">Not found</h1>
-          <p className="mt-1 text-muted-foreground">This opportunity does not exist or was deleted.</p>
+          <p className="mt-1 text-muted-foreground">
+            This opportunity does not exist or was deleted.
+          </p>
         </div>
       );
     }
@@ -199,16 +215,29 @@ export function OpportunityDossier({ id }: { id: string }) {
 
   const concreteResource =
     linkPicker?.kind === "technology"
-      ? { resource: "technologies", pathUrl: "/api/v1/technologies", field: "technologyId" as const }
+      ? {
+          resource: "technologies",
+          pathUrl: "/api/v1/technologies",
+          field: "technologyId" as const,
+        }
       : linkPicker?.kind === "certification"
-        ? { resource: "certifications", pathUrl: "/api/v1/certifications", field: "certificationId" as const }
+        ? {
+            resource: "certifications",
+            pathUrl: "/api/v1/certifications",
+            field: "certificationId" as const,
+          }
         : { resource: "skills", pathUrl: "/api/v1/skills", field: "skillId" as const };
 
   const currentLink = (r: FitRequirement) => r.skill ?? r.technology ?? r.certification;
 
   return (
     <div>
-      <RecordRecentView type="opportunity" id={o.id} title={o.title} href={`/opportunities/${o.id}`} />
+      <RecordRecentView
+        type="opportunity"
+        id={o.id}
+        title={o.title}
+        href={`/opportunities/${o.id}`}
+      />
       <BackLink href="/opportunities" label="All opportunities" />
       <DetailHeader
         title={o.title}
@@ -273,8 +302,8 @@ export function OpportunityDossier({ id }: { id: string }) {
                 <p className="text-muted-foreground">Loading fit…</p>
               ) : fit.requirements.length === 0 ? (
                 <p className="rounded-md border border-dashed p-6 text-center text-muted-foreground">
-                  No requirements yet. Add the opportunity&rsquo;s requirements, then map your evidence
-                  to each one to see a transparent fit — PEOS never invents a match.
+                  No requirements yet. Add the opportunity&rsquo;s requirements, then map your
+                  evidence to each one to see a transparent fit — PEOS never invents a match.
                 </p>
               ) : (
                 <ul className="flex flex-col gap-3">
@@ -287,28 +316,39 @@ export function OpportunityDossier({ id }: { id: string }) {
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
                               <span className="font-medium">{r.label}</span>
-                              <Badge tone="neutral">{labelOf(REQUIREMENT_KIND_OPTIONS, r.kind)}</Badge>
+                              <Badge tone="neutral">
+                                {labelOf(REQUIREMENT_KIND_OPTIONS, r.kind)}
+                              </Badge>
                               <Badge tone={r.importance === "required" ? "warning" : "neutral"}>
                                 {labelOf(REQUIREMENT_IMPORTANCE_OPTIONS, r.importance)}
                               </Badge>
                             </div>
                             {r.description && (
-                              <p className="mt-1 text-caption text-muted-foreground">{r.description}</p>
+                              <p className="mt-1 text-caption text-muted-foreground">
+                                {r.description}
+                              </p>
                             )}
                             {link && (
                               <p className="mt-1 text-caption text-muted-foreground">
-                                Linked {r.skill ? "skill" : r.technology ? "technology" : "certification"}:{" "}
+                                Linked{" "}
+                                {r.skill ? "skill" : r.technology ? "technology" : "certification"}:{" "}
                                 <span className="text-foreground">{link.name}</span>
                               </p>
                             )}
                           </div>
                           <div className="flex shrink-0 gap-1">
-                            {r.kind === "skill" || r.kind === "technology" || r.kind === "certification" ? (
+                            {r.kind === "skill" ||
+                            r.kind === "technology" ||
+                            r.kind === "certification" ? (
                               <Button size="sm" variant="ghost" onClick={() => setLinkPicker(r)}>
                                 Link {r.kind}
                               </Button>
                             ) : null}
-                            <Button size="sm" variant="ghost" onClick={() => setReqForm({ mode: "edit", req: r })}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setReqForm({ mode: "edit", req: r })}
+                            >
                               <Pencil aria-hidden />
                               <span className="sr-only">Edit requirement</span>
                             </Button>
@@ -323,11 +363,17 @@ export function OpportunityDossier({ id }: { id: string }) {
                           <div className="flex flex-wrap items-center gap-1">
                             <span className="text-caption text-muted-foreground">Evidence:</span>
                             {r.evidence.length === 0 ? (
-                              <span className="text-caption text-muted-foreground">none mapped</span>
+                              <span className="text-caption text-muted-foreground">
+                                none mapped
+                              </span>
                             ) : (
                               r.evidence.map((e) => <EvidenceChip key={e.id} e={e} />)
                             )}
-                            <Button size="sm" variant="outline" onClick={() => setEvidencePicker(r)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEvidencePicker(r)}
+                            >
                               Map evidence
                             </Button>
                           </div>
@@ -335,7 +381,13 @@ export function OpportunityDossier({ id }: { id: string }) {
                           {r.suggestions.length > 0 && (
                             <div className="mt-1 flex flex-wrap items-center gap-1">
                               <span className="text-caption text-muted-foreground">
-                                Suggested (linked to {r.skill ? "this skill" : r.technology ? "this technology" : "this certification"}):
+                                Suggested (linked to{" "}
+                                {r.skill
+                                  ? "this skill"
+                                  : r.technology
+                                    ? "this technology"
+                                    : "this certification"}
+                                ):
                               </span>
                               {r.suggestions.map((s) => (
                                 <button
@@ -395,7 +447,9 @@ export function OpportunityDossier({ id }: { id: string }) {
           onOpenChange={(open) => !open && setReqForm(null)}
           title={reqForm.mode === "new" ? "Add requirement" : "Edit requirement"}
           fields={REQUIREMENT_FIELDS}
-          initial={reqForm.mode === "edit" ? (reqForm.req as unknown as Record<string, unknown>) : {}}
+          initial={
+            reqForm.mode === "edit" ? (reqForm.req as unknown as Record<string, unknown>) : {}
+          }
           submitLabel={reqForm.mode === "new" ? "Add requirement" : "Save changes"}
           onSubmit={async (payload) => {
             if (reqForm.mode === "new") await addReq.mutateAsync(payload);
@@ -429,7 +483,10 @@ export function OpportunityDossier({ id }: { id: string }) {
           optionLabel={(r) => String(r.title)}
           initial={evidencePicker.evidence.map((e) => ({ id: e.id, label: e.title }))}
           onSave={(items) =>
-            mapEvidence.mutateAsync({ reqId: evidencePicker.id, evidenceIds: items.map((i) => i.id) })
+            mapEvidence.mutateAsync({
+              reqId: evidencePicker.id,
+              evidenceIds: items.map((i) => i.id),
+            })
           }
         />
       )}

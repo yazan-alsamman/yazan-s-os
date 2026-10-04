@@ -2529,7 +2529,8 @@ const definitions: MetricDefinition[] = [
     key: "github.pull_request_time_to_merge",
     name: "Median time to merge",
     category: "github",
-    definition: "Median hours from a pull request's creation to its merge, for PRs merged in the period.",
+    definition:
+      "Median hours from a pull request's creation to its merge, for PRs merged in the period.",
     formula: "MEDIAN(merged_at − gh_created_at) over PRs merged in period, in hours",
     source: ["GitHub /repos/:repo/pulls.created_at", "GitHub /repos/:repo/pulls.merged_at"],
     frequency: GH_SYNC,
@@ -2585,7 +2586,8 @@ const definitions: MetricDefinition[] = [
     key: "github.pull_requests_by_state",
     name: "Pull requests by state",
     category: "github",
-    definition: "Distribution of pull requests opened in the period by resolution: open, merged, closed.",
+    definition:
+      "Distribution of pull requests opened in the period by resolution: open, merged, closed.",
     formula: "COUNT(GitHubPullRequest) GROUP BY (open|merged|closed)",
     source: ["GitHubPullRequest.state", "GitHubPullRequest.merged"],
     frequency: GH_SYNC,
@@ -2727,12 +2729,17 @@ const definitions: MetricDefinition[] = [
     key: "github.issue_labels",
     name: "Issues by label",
     category: "github",
-    definition: "Distribution of issues opened in the period across their labels (an issue may count in several).",
+    definition:
+      "Distribution of issues opened in the period across their labels (an issue may count in several).",
     formula: "COUNT(GitHubIssue) GROUP BY unnest(labels)",
     source: ["GitHubIssue.labels"],
     frequency: GH_SYNC,
     owner: OWNER.github,
-    caveats: [GH_SCOPE, GH_CAVEAT, "An issue with multiple labels appears under each; totals may exceed issue count."],
+    caveats: [
+      GH_SCOPE,
+      GH_CAVEAT,
+      "An issue with multiple labels appears under each; totals may exceed issue count.",
+    ],
     valueType: "distribution",
     temporal: "period",
     specRef: "09.7 — labels distribution where useful",
@@ -2750,7 +2757,11 @@ const definitions: MetricDefinition[] = [
     source: ["GitHub /repos/:repo/releases (GitHubRelease projection)"],
     frequency: GH_SYNC,
     owner: OWNER.github,
-    caveats: [GH_SCOPE, GH_CAVEAT, "Explicit GitHub releases, never inferred from commits or tags."],
+    caveats: [
+      GH_SCOPE,
+      GH_CAVEAT,
+      "Explicit GitHub releases, never inferred from commits or tags.",
+    ],
     valueType: "count",
     temporal: "period",
     specRef: "09.7 — release intelligence",
@@ -2836,7 +2847,8 @@ const definitions: MetricDefinition[] = [
     key: "github.contributor_activity",
     name: "Contribution distribution",
     category: "github",
-    definition: "GitHub-attributed contribution counts per contributor across synced repositories (top contributors).",
+    definition:
+      "GitHub-attributed contribution counts per contributor across synced repositories (top contributors).",
     formula: "SUM(contributions) GROUP BY login",
     source: ["GitHubContributor.contributions"],
     frequency: GH_SYNC,
@@ -2859,7 +2871,8 @@ const definitions: MetricDefinition[] = [
     name: "Your commits",
     category: "github",
     definition: "Commits authored by the connected GitHub account in the period.",
-    formula: "COUNT(GitHubCommit WHERE author_login = connected login AND authored_at within period)",
+    formula:
+      "COUNT(GitHubCommit WHERE author_login = connected login AND authored_at within period)",
     source: ["GitHubCommit.authorLogin"],
     frequency: GH_SYNC,
     owner: OWNER.github,
@@ -2880,7 +2893,8 @@ const definitions: MetricDefinition[] = [
     name: "Your pull requests",
     category: "github",
     definition: "Pull requests opened by the connected GitHub account in the period.",
-    formula: "COUNT(GitHubPullRequest WHERE author_login = connected login AND gh_created_at within period)",
+    formula:
+      "COUNT(GitHubPullRequest WHERE author_login = connected login AND gh_created_at within period)",
     source: ["GitHubPullRequest.authorLogin"],
     frequency: GH_SYNC,
     owner: OWNER.github,
@@ -2897,7 +2911,8 @@ const definitions: MetricDefinition[] = [
     name: "Your issues",
     category: "github",
     definition: "Issues opened by the connected GitHub account in the period.",
-    formula: "COUNT(GitHubIssue WHERE author_login = connected login AND gh_created_at within period)",
+    formula:
+      "COUNT(GitHubIssue WHERE author_login = connected login AND gh_created_at within period)",
     source: ["GitHubIssue.authorLogin"],
     frequency: GH_SYNC,
     owner: OWNER.github,
@@ -2913,8 +2928,10 @@ const definitions: MetricDefinition[] = [
     key: "github.personal_repositories",
     name: "Repositories you committed to",
     category: "github",
-    definition: "Distinct repositories with a commit authored by the connected account in the period.",
-    formula: "COUNT(DISTINCT repo) WHERE author_login = connected login AND authored_at within period",
+    definition:
+      "Distinct repositories with a commit authored by the connected account in the period.",
+    formula:
+      "COUNT(DISTINCT repo) WHERE author_login = connected login AND authored_at within period",
     source: ["GitHubCommit.authorLogin", "GitHubCommit.repoExternalId"],
     frequency: GH_SYNC,
     owner: OWNER.github,
@@ -2948,7 +2965,8 @@ const definitions: MetricDefinition[] = [
     key: "github.activity",
     name: "GitHub activity events",
     category: "github",
-    definition: "Total observed GitHub events in the period: commits, PR opened/merged/closed, issue opened/closed, releases.",
+    definition:
+      "Total observed GitHub events in the period: commits, PR opened/merged/closed, issue opened/closed, releases.",
     formula: "COUNT(union of dated commit/PR/issue/release events within period)",
     source: [
       "GitHubCommit.authoredAt",
@@ -2991,7 +3009,8 @@ const definitions: MetricDefinition[] = [
     key: "github.activity_heatmap",
     name: "Daily commit heatmap",
     category: "github",
-    definition: "Commits authored per UTC calendar day in the period (one explicit metric — commits only, not a blended score).",
+    definition:
+      "Commits authored per UTC calendar day in the period (one explicit metric — commits only, not a blended score).",
     formula: "COUNT(GitHubCommit) GROUP BY day(authored_at), one cell per day",
     source: ["GitHubCommit.authoredAt"],
     frequency: GH_SYNC,

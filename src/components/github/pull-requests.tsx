@@ -21,11 +21,7 @@ import {
   TrendCard,
 } from "./common";
 import { GithubEvidenceButton } from "./github-evidence-button";
-import {
-  useGithubPullRequestList,
-  useGithubPullRequests,
-  type PullRequestRow,
-} from "./use-github";
+import { useGithubPullRequestList, useGithubPullRequests, type PullRequestRow } from "./use-github";
 
 const STATE_TONE: Record<string, "success" | "info" | "neutral"> = {
   merged: "success",

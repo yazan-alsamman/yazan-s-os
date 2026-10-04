@@ -24,7 +24,11 @@ import type {
   UpdateRequirementInput,
 } from "./opportunity.schemas";
 
-type ConcreteLink = { skillId: string | null; technologyId: string | null; certificationId: string | null };
+type ConcreteLink = {
+  skillId: string | null;
+  technologyId: string | null;
+  certificationId: string | null;
+};
 
 /**
  * Opportunities, their structured requirements, and transparent evidence-to-requirement matching
@@ -41,7 +45,11 @@ export function createOpportunityService(db: PrismaClient) {
     tx: Tx,
     userId: string,
     kind: string,
-    input: { skillId?: string | null; technologyId?: string | null; certificationId?: string | null },
+    input: {
+      skillId?: string | null;
+      technologyId?: string | null;
+      certificationId?: string | null;
+    },
   ): Promise<ConcreteLink> {
     const link: ConcreteLink = { skillId: null, technologyId: null, certificationId: null };
     async function assertOwned(model: "skill" | "technology" | "certification", id: string) {
@@ -68,7 +76,11 @@ export function createOpportunityService(db: PrismaClient) {
     return link;
   }
 
-  async function getRequirementDto(tx: Tx, userId: string, requirementId: string): Promise<RequirementDto> {
+  async function getRequirementDto(
+    tx: Tx,
+    userId: string,
+    requirementId: string,
+  ): Promise<RequirementDto> {
     const record = await tx.opportunityRequirement.findFirst({
       where: { id: requirementId, userId },
       include: {
@@ -120,7 +132,11 @@ export function createOpportunityService(db: PrismaClient) {
       });
     },
 
-    update(ctx: ServiceContext, id: string, input: UpdateOpportunityInput): Promise<OpportunityDetailDto> {
+    update(
+      ctx: ServiceContext,
+      id: string,
+      input: UpdateOpportunityInput,
+    ): Promise<OpportunityDetailDto> {
       return db.$transaction(async (tx) => {
         const existing = requireFound(await repo.findOwned(tx, ctx.userId, id));
         const updated = await tx.opportunity.update({ where: { id: existing.id }, data: input });
@@ -148,7 +164,11 @@ export function createOpportunityService(db: PrismaClient) {
       });
     },
 
-    addRequirement(ctx: ServiceContext, opportunityId: string, input: CreateRequirementInput): Promise<RequirementDto> {
+    addRequirement(
+      ctx: ServiceContext,
+      opportunityId: string,
+      input: CreateRequirementInput,
+    ): Promise<RequirementDto> {
       return db.$transaction(async (tx) => {
         requireFound(await repo.findOwned(tx, ctx.userId, opportunityId));
         const link = await resolveConcreteLink(tx, ctx.userId, input.kind, input);
@@ -167,15 +187,26 @@ export function createOpportunityService(db: PrismaClient) {
           entity: "opportunity_requirement",
           verb: "created",
           entityId: requirement.id,
-          after: { opportunityId, kind: requirement.kind, label: requirement.label, importance: requirement.importance },
+          after: {
+            opportunityId,
+            kind: requirement.kind,
+            label: requirement.label,
+            importance: requirement.importance,
+          },
         });
         return getRequirementDto(tx, ctx.userId, requirement.id);
       });
     },
 
-    updateRequirement(ctx: ServiceContext, requirementId: string, input: UpdateRequirementInput): Promise<RequirementDto> {
+    updateRequirement(
+      ctx: ServiceContext,
+      requirementId: string,
+      input: UpdateRequirementInput,
+    ): Promise<RequirementDto> {
       return db.$transaction(async (tx) => {
-        const existing = requireFound(await repo.findOwnedRequirement(tx, ctx.userId, requirementId));
+        const existing = requireFound(
+          await repo.findOwnedRequirement(tx, ctx.userId, requirementId),
+        );
         const kind = input.kind ?? existing.kind;
         // When kind or any concrete id is part of the update, re-resolve the (single) concrete link.
         const touchesLink =
@@ -186,7 +217,8 @@ export function createOpportunityService(db: PrismaClient) {
         const link = touchesLink
           ? await resolveConcreteLink(tx, ctx.userId, kind, {
               skillId: input.skillId ?? (kind === existing.kind ? existing.skillId : null),
-              technologyId: input.technologyId ?? (kind === existing.kind ? existing.technologyId : null),
+              technologyId:
+                input.technologyId ?? (kind === existing.kind ? existing.technologyId : null),
               certificationId:
                 input.certificationId ?? (kind === existing.kind ? existing.certificationId : null),
             })
@@ -211,7 +243,9 @@ export function createOpportunityService(db: PrismaClient) {
 
     deleteRequirement(ctx: ServiceContext, requirementId: string): Promise<void> {
       return db.$transaction(async (tx) => {
-        const existing = requireFound(await repo.findOwnedRequirement(tx, ctx.userId, requirementId));
+        const existing = requireFound(
+          await repo.findOwnedRequirement(tx, ctx.userId, requirementId),
+        );
         await tx.opportunityRequirement.delete({ where: { id: existing.id } });
         await auditInTx(tx, ctx, {
           entity: "opportunity_requirement",
@@ -223,15 +257,25 @@ export function createOpportunityService(db: PrismaClient) {
     },
 
     /** Replace the full evidence set mapped to a requirement (ADR 0015 replace-set semantics). */
-    replaceRequirementEvidence(ctx: ServiceContext, requirementId: string, evidenceIds: string[]): Promise<RequirementDto> {
+    replaceRequirementEvidence(
+      ctx: ServiceContext,
+      requirementId: string,
+      evidenceIds: string[],
+    ): Promise<RequirementDto> {
       return db.$transaction(async (tx) => {
         requireFound(await repo.findOwnedRequirement(tx, ctx.userId, requirementId));
-        const owned = await tx.evidence.count({ where: { userId: ctx.userId, id: { in: evidenceIds } } });
+        const owned = await tx.evidence.count({
+          where: { userId: ctx.userId, id: { in: evidenceIds } },
+        });
         assertAllOwned(owned, evidenceIds, "evidenceIds");
         await tx.requirementEvidence.deleteMany({ where: { userId: ctx.userId, requirementId } });
         if (evidenceIds.length) {
           await tx.requirementEvidence.createMany({
-            data: evidenceIds.map((evidenceId) => ({ userId: ctx.userId, requirementId, evidenceId })),
+            data: evidenceIds.map((evidenceId) => ({
+              userId: ctx.userId,
+              requirementId,
+              evidenceId,
+            })),
           });
         }
         await auditInTx(tx, ctx, {
@@ -267,7 +311,14 @@ export function createOpportunityService(db: PrismaClient) {
           if (!where) return [] as RequirementDto["evidence"];
           const rows = await db.evidence.findMany({
             where,
-            select: { id: true, title: true, type: true, date: true, verified: true, githubResourceType: true },
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              date: true,
+              verified: true,
+              githubResourceType: true,
+            },
             orderBy: [{ verified: "desc" }, { date: "desc" }],
             take: 10,
           });
@@ -291,7 +342,11 @@ export function createOpportunityService(db: PrismaClient) {
           status: detail.status,
           type: detail.type,
         },
-        coverage: { required: fit.required, preferred: fit.preferred, requiredCoverage: fit.requiredCoverage },
+        coverage: {
+          required: fit.required,
+          preferred: fit.preferred,
+          requiredCoverage: fit.requiredCoverage,
+        },
         requirements: detail.requirements.map((r, i) => ({
           ...r,
           status: byId.get(r.id)!.status,
@@ -309,17 +364,25 @@ function suggestionWhere(
   r: RequirementDto,
   mapped: string[],
 ): Prisma.EvidenceWhereInput | null {
-  const notMapped = { id: { notIn: mapped.length ? mapped : ["00000000-0000-0000-0000-000000000000"] } };
+  const notMapped = {
+    id: { notIn: mapped.length ? mapped : ["00000000-0000-0000-0000-000000000000"] },
+  };
   if (r.kind === "skill" && r.skill) {
     return { userId, skills: { some: { skillId: r.skill.id } }, ...notMapped };
   }
   if (r.kind === "certification" && r.certification) {
-    return { userId, certifications: { some: { certificationId: r.certification.id } }, ...notMapped };
+    return {
+      userId,
+      certifications: { some: { certificationId: r.certification.id } },
+      ...notMapped,
+    };
   }
   if (r.kind === "technology" && r.technology) {
     return {
       userId,
-      projects: { some: { project: { technologies: { some: { technologyId: r.technology.id } } } } },
+      projects: {
+        some: { project: { technologies: { some: { technologyId: r.technology.id } } } },
+      },
       ...notMapped,
     };
   }

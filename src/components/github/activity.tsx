@@ -25,7 +25,10 @@ import {
   type ActivityEvent,
 } from "./use-github";
 
-const EVENT_LABEL: Record<string, { label: string; tone: "info" | "success" | "neutral" | "warning" }> = {
+const EVENT_LABEL: Record<
+  string,
+  { label: string; tone: "info" | "success" | "neutral" | "warning" }
+> = {
   commit: { label: "Commit", tone: "neutral" },
   pull_request_opened: { label: "PR opened", tone: "info" },
   pull_request_merged: { label: "PR merged", tone: "success" },
@@ -63,7 +66,10 @@ function Timeline({ range, repo, type }: { range: string; repo: string; type: st
           {events.map((e: ActivityEvent, i) => {
             const meta = EVENT_LABEL[e.type] ?? { label: e.type, tone: "neutral" as const };
             return (
-              <li key={`${e.type}-${e.repoExternalId}-${e.timestamp}-${i}`} className="flex flex-col gap-1 p-3">
+              <li
+                key={`${e.type}-${e.repoExternalId}-${e.timestamp}-${i}`}
+                className="flex flex-col gap-1 p-3"
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={meta.tone}>{meta.label}</Badge>
                   <ExternalLink url={e.url}>
@@ -163,7 +169,11 @@ function Body() {
               Activity indicators
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <KpiCard metric={activity.data.total} href={null} detail={activity.data.period.label} />
+              <KpiCard
+                metric={activity.data.total}
+                href={null}
+                detail={activity.data.period.label}
+              />
             </div>
           </section>
 

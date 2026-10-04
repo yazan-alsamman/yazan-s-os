@@ -134,7 +134,10 @@ export const githubRangeQuerySchema = z.object({
   to: isoDate.optional(),
 });
 
-const githubExternalId = z.string().trim().regex(/^\d{1,20}$/);
+const githubExternalId = z
+  .string()
+  .trim()
+  .regex(/^\d{1,20}$/);
 
 /** Range + optional single-repository scope (PR/issue/release/activity analytics). */
 export const githubResourceQuerySchema = z.object({
@@ -173,7 +176,12 @@ export const githubComparisonQuerySchema = z.object({
     .string()
     .trim()
     .min(1)
-    .transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean))
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
     .pipe(z.array(githubExternalId).min(1).max(6)),
 });
 

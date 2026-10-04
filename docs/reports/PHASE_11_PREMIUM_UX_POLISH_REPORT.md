@@ -190,34 +190,34 @@ fixes) + decisions index updated. This report.
 
 ## 25. Acceptance matrix
 
-| Item | Status | Evidence |
-|------|--------|----------|
-| Design-system consistency | MET | tokens pre-existing; shared-primitive fixes only |
-| Premium visual quality | MET | coherent shell/tokens/dark mode (Phases 1–10), verified |
-| Navigation consistency | MET | shell/sidebar/mobile nav/active state pre-existing, intact |
-| Command palette | MET | Ctrl+K, search, navigate, **create**, **recents**, prefs; E2E + axe |
-| Global discovery | MET | existing owner-scoped `/api/v1/search` reused |
-| Saved filters | MET | `saved-views` + `SavedViewsMenu` in `ResourceList`; unit + E2E |
-| Recently viewed | MET | `recently-viewed` + recorder + palette group; unit + E2E |
-| Table UX | MET | `ResourceList` responsive table/cards, a11y, states (verified) |
-| Form UX | MET | `EntityFormDialog` (focus trap/restore, labels) (verified) |
-| Dialog UX | MET | shared Dialog + close-button target-size fix; E2E |
-| Loading states | MET | skeletons across surfaces (verified) |
-| Empty states | MET | explicit copy incl. new recents/views (verified) |
-| Error states | MET | `ErrorState` + retry (verified) |
-| Partial states | MET | GitHub partial-sync banner, opportunity coverage (verified) |
-| Chart accessibility | MET | `ChartCard` table alternatives + aria labels (verified) |
-| KPI drill-down | MET | `KpiCard` with definition + drill-down (verified) |
-| Progressive disclosure | MET | detail framework (verified) |
-| Keyboard navigation | MET | palette/dialog/table keyboard paths; E2E |
-| WCAG 2.2 AA | PARTIAL | automated axe clean incl. new fixes; manual SR testing not done |
-| Responsive behavior | PARTIAL | system pre-existing + phase1 mobile E2E; full device matrix not re-swept |
-| Dark/light/system themes | MET | `next-themes` + appearance panel + palette theme actions (verified) |
-| Performance / perceived | PARTIAL | no new cost; debounced search; no formal benchmark captured |
-| Phase 10 regression safety | MET | phase10 E2E + integration all pass |
-| Security preservation | MET | no auth/isolation/API/schema change; authz suites pass; ADR 0057 |
-| Tests | MET | unit 329, integration 227, E2E 17, new UX unit + E2E |
-| Documentation | MET | ADR 0057 + this report |
+| Item                       | Status  | Evidence                                                                 |
+| -------------------------- | ------- | ------------------------------------------------------------------------ |
+| Design-system consistency  | MET     | tokens pre-existing; shared-primitive fixes only                         |
+| Premium visual quality     | MET     | coherent shell/tokens/dark mode (Phases 1–10), verified                  |
+| Navigation consistency     | MET     | shell/sidebar/mobile nav/active state pre-existing, intact               |
+| Command palette            | MET     | Ctrl+K, search, navigate, **create**, **recents**, prefs; E2E + axe      |
+| Global discovery           | MET     | existing owner-scoped `/api/v1/search` reused                            |
+| Saved filters              | MET     | `saved-views` + `SavedViewsMenu` in `ResourceList`; unit + E2E           |
+| Recently viewed            | MET     | `recently-viewed` + recorder + palette group; unit + E2E                 |
+| Table UX                   | MET     | `ResourceList` responsive table/cards, a11y, states (verified)           |
+| Form UX                    | MET     | `EntityFormDialog` (focus trap/restore, labels) (verified)               |
+| Dialog UX                  | MET     | shared Dialog + close-button target-size fix; E2E                        |
+| Loading states             | MET     | skeletons across surfaces (verified)                                     |
+| Empty states               | MET     | explicit copy incl. new recents/views (verified)                         |
+| Error states               | MET     | `ErrorState` + retry (verified)                                          |
+| Partial states             | MET     | GitHub partial-sync banner, opportunity coverage (verified)              |
+| Chart accessibility        | MET     | `ChartCard` table alternatives + aria labels (verified)                  |
+| KPI drill-down             | MET     | `KpiCard` with definition + drill-down (verified)                        |
+| Progressive disclosure     | MET     | detail framework (verified)                                              |
+| Keyboard navigation        | MET     | palette/dialog/table keyboard paths; E2E                                 |
+| WCAG 2.2 AA                | PARTIAL | automated axe clean incl. new fixes; manual SR testing not done          |
+| Responsive behavior        | PARTIAL | system pre-existing + phase1 mobile E2E; full device matrix not re-swept |
+| Dark/light/system themes   | MET     | `next-themes` + appearance panel + palette theme actions (verified)      |
+| Performance / perceived    | PARTIAL | no new cost; debounced search; no formal benchmark captured              |
+| Phase 10 regression safety | MET     | phase10 E2E + integration all pass                                       |
+| Security preservation      | MET     | no auth/isolation/API/schema change; authz suites pass; ADR 0057         |
+| Tests                      | MET     | unit 329, integration 227, E2E 17, new UX unit + E2E                     |
+| Documentation              | MET     | ADR 0057 + this report                                                   |
 
 ## 26. Final status
 

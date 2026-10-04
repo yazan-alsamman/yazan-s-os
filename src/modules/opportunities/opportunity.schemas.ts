@@ -8,11 +8,7 @@ import {
   RequirementImportance,
   RequirementKind,
 } from "@/generated/prisma/enums";
-import {
-  paginationQuerySchema,
-  searchTermSchema,
-  sortSchema,
-} from "@/lib/http/pagination";
+import { paginationQuerySchema, searchTermSchema, sortSchema } from "@/lib/http/pagination";
 import {
   idSetSchema,
   optionalHttpUrl,

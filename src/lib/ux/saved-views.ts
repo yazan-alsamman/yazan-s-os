@@ -35,7 +35,9 @@ export function upsertView(
   const withoutMatch = list.filter(
     (v) => v.id !== id && v.name.toLowerCase() !== name.toLowerCase(),
   );
-  return [...withoutMatch, view].slice(-SAVED_VIEW_LIMIT).sort((a, b) => a.name.localeCompare(b.name));
+  return [...withoutMatch, view]
+    .slice(-SAVED_VIEW_LIMIT)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function removeView(list: readonly SavedView[], id: string): SavedView[] {
@@ -48,7 +50,11 @@ function isView(value: unknown): value is SavedView {
   return typeof v.id === "string" && typeof v.name === "string" && typeof v.query === "string";
 }
 
-export function readViews(storage: Storage | undefined, scope: string, surface: string): SavedView[] {
+export function readViews(
+  storage: Storage | undefined,
+  scope: string,
+  surface: string,
+): SavedView[] {
   if (!storage) return [];
   try {
     const raw = storage.getItem(savedViewsKey(scope, surface));
@@ -68,7 +74,10 @@ export function writeViews(
 ): void {
   if (!storage) return;
   try {
-    storage.setItem(savedViewsKey(scope, surface), JSON.stringify(views.slice(0, SAVED_VIEW_LIMIT)));
+    storage.setItem(
+      savedViewsKey(scope, surface),
+      JSON.stringify(views.slice(0, SAVED_VIEW_LIMIT)),
+    );
   } catch {
     /* non-fatal */
   }

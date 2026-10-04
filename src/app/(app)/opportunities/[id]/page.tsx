@@ -5,6 +5,10 @@ import { OpportunityDossier } from "@/components/opportunities/opportunity-dossi
 export const metadata: Metadata = { title: "Opportunity" };
 export const dynamic = "force-dynamic";
 
-export default async function OpportunityDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OpportunityDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return <OpportunityDossier id={(await params).id} />;
 }

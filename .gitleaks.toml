@@ -1,0 +1,22 @@
+# gitleaks configuration (Phase 12, ADR 0059). Extends the bundled default rule set and allowlists
+# only the deterministic, non-secret test values used by the suite (never real credentials).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ephemeral/test values that are not real secrets"
+regexes = [
+  # Integration/E2E tests generate ephemeral secrets at runtime and use obvious placeholders.
+  '''gho_x''',
+  '''test-github-(client|secret)''',
+  '''test-google-(client|secret)''',
+  '''LoadTest12345!''',
+  # AWS's own documented example access key, used only to test the copilot secret redactor.
+  '''AKIAIOSFODNN7EXAMPLE''',
+]
+paths = [
+  '''tests/.*''',
+  '''\.env\.example''',
+  # Fixtures that deliberately contain fake secret-shaped strings to test redaction.
+  '''src/modules/copilot/copilot\.redact\.test\.ts''',
+]

@@ -70,12 +70,12 @@ missing.
 
 Four additive, owner-scoped projections (cascade from owner), each with idempotent upsert keys:
 
-| Table | Unique key | Notes |
-|---|---|---|
-| `github_pull_requests` | `(userId, repoExternalId, number)` | `state` is GitHub's own; `merged` = closed + merge time; code-size fields nullable (list API omits them) |
-| `github_issues` | `(userId, repoExternalId, number)` | PRs returned by the issues endpoint are excluded at sync time |
-| `github_releases` | `(userId, repoExternalId, externalId)` | explicit GitHub objects — never inferred from commits/tags |
-| `github_contributors` | `(userId, repoExternalId, login)` | `contributions` = GitHub attribution, evidence not a score |
+| Table                  | Unique key                             | Notes                                                                                                    |
+| ---------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `github_pull_requests` | `(userId, repoExternalId, number)`     | `state` is GitHub's own; `merged` = closed + merge time; code-size fields nullable (list API omits them) |
+| `github_issues`        | `(userId, repoExternalId, number)`     | PRs returned by the issues endpoint are excluded at sync time                                            |
+| `github_releases`      | `(userId, repoExternalId, externalId)` | explicit GitHub objects — never inferred from commits/tags                                               |
+| `github_contributors`  | `(userId, repoExternalId, login)`      | `contributions` = GitHub attribution, evidence not a score                                               |
 
 Indexed by `(userId, ghCreatedAt|publishedAt)`, `(userId, repoExternalId)` and `(userId, state)` where
 relevant. Per-resource sync state reuses the Phase 9.5 `IntegrationSyncState`. `prisma validate` passes.

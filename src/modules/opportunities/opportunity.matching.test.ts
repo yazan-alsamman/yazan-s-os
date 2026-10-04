@@ -41,9 +41,7 @@ describe("computeFit", () => {
   });
 
   it("returns null coverage when there are no required requirements (never a fake 100%/0%)", () => {
-    const fit = computeFit([
-      { id: "d", importance: "preferred", evidence: [{ verified: true }] },
-    ]);
+    const fit = computeFit([{ id: "d", importance: "preferred", evidence: [{ verified: true }] }]);
     expect(fit.requiredCoverage).toBeNull();
   });
 
@@ -54,7 +52,17 @@ describe("computeFit", () => {
     ]);
     const a = fit.requirements.find((r) => r.id === "a")!;
     const b = fit.requirements.find((r) => r.id === "b")!;
-    expect(a).toMatchObject({ status: "supported", strength: "strong", evidenceCount: 2, verifiedCount: 1 });
-    expect(b).toMatchObject({ status: "unsupported", strength: "none", evidenceCount: 0, verifiedCount: 0 });
+    expect(a).toMatchObject({
+      status: "supported",
+      strength: "strong",
+      evidenceCount: 2,
+      verifiedCount: 1,
+    });
+    expect(b).toMatchObject({
+      status: "unsupported",
+      strength: "none",
+      evidenceCount: 0,
+      verifiedCount: 0,
+    });
   });
 });

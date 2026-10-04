@@ -647,7 +647,12 @@ export function CertificationDetail({ id }: { id: string }) {
     <DetailFrame query={query} backHref="/certifications" backLabel="All certifications">
       {(c) => (
         <>
-          <RecordRecentView type="certification" id={c.id} title={c.name} href={`/certifications/${c.id}`} />
+          <RecordRecentView
+            type="certification"
+            id={c.id}
+            title={c.name}
+            href={`/certifications/${c.id}`}
+          />
           <DetailHeader
             title={c.name}
             subtitle={c.issuer}
@@ -762,7 +767,9 @@ export function EvidenceDetail({ id }: { id: string }) {
                 ) : (
                   <Badge>Unverified</Badge>
                 )}
-                {e.github && <Badge tone="info">GitHub: {e.github.resourceType.replace("_", " ")}</Badge>}
+                {e.github && (
+                  <Badge tone="info">GitHub: {e.github.resourceType.replace("_", " ")}</Badge>
+                )}
                 <OriginBadge origin={e.origin} />
               </>
             }

@@ -52,7 +52,9 @@ test.describe("signed in", () => {
     // Add a required requirement → it is "Missing" and required coverage is 0%.
     await page.getByRole("button", { name: "Add requirement" }).click();
     const reqDialog = page.getByRole("dialog");
-    await reqDialog.getByRole("textbox", { name: "Requirement", exact: true }).fill("Advanced PostgreSQL");
+    await reqDialog
+      .getByRole("textbox", { name: "Requirement", exact: true })
+      .fill("Advanced PostgreSQL");
     await reqDialog.getByRole("button", { name: "Add requirement" }).click();
     await expect(reqDialog).toBeHidden();
 
@@ -69,7 +71,9 @@ test.describe("signed in", () => {
 
     await pickRelations(page, "Map evidence", [{ label: "E2E PostgreSQL migration" }]);
     // Unverified evidence makes the requirement "Partial" — it is never counted as supported.
-    await expect(page.getByText("Partial", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Partial", { exact: true }).first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Portfolio export uses real data only.
     await page.getByRole("link", { name: "Evidence portfolio" }).click();
@@ -80,9 +84,9 @@ test.describe("signed in", () => {
 
     // Evidence Vault itself remains axe-clean with the new provenance.
     await page.goto("/evidence");
-    await expect(
-      page.getByRole("link", { name: "E2E PostgreSQL migration" }).first(),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("link", { name: "E2E PostgreSQL migration" }).first()).toBeVisible({
+      timeout: 15_000,
+    });
     await expectNoAxeViolations(page);
 
     expect(
