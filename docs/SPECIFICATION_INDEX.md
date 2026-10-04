@@ -174,3 +174,12 @@ New ambiguities found and decided in Phase 1:
 | P9.5-4 | GitHub classic OAuth has no read-only private-repo scope                        | Request `repo` (minimum to read private repos); PEOS only reads; documented in the registry                            |
 | P9.5-5 | `08` Engineering/DORA integration metrics                                       | Still unavailable (ADR 0051); this phase adds the connection layer, not DORA metrics                                   |
 | P9.5-6 | GitHub `/user/repos` has no text query                                          | Page-level search/filter, labelled "within this page"                                                                  |
+
+## Phase 9.6 specification gaps (ADR 0054)
+
+| Gap    | Detail                                                                        | Handling                                                                        |
+| ------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| P9.6-1 | GitHub as a first-class product area not in the base specs                    | Net-new `/github` area built on Phase 9.5; governed metrics (ADR 0054)          |
+| P9.6-2 | Commit code additions/deletions wanted, but the commit-list API omits stats   | Surfaced as unavailable (per-commit detail would be N+1); never fabricated      |
+| P9.6-3 | PRs/Issues/Releases/contributors/heatmap/cross-repo-compare/personal-activity | Deferred (each needs its own adapter/sync/storage); documented in the report    |
+| P9.6-4 | Live validation needs a connected GitHub account                              | Credential-less + mock-adapter tested; live gated on the owner's GitHub connect |

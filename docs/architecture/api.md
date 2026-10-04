@@ -249,6 +249,24 @@ confirmation; **mutations require `confirm: true`** in the body and are audited 
 - No email is ever sent, archived or modified, and no event created/updated/cancelled, except by an
   explicit user action carrying `confirm:true`. The AI Copilot has no access to these mutations.
 
+### Phase 9.6 — GitHub Repository Intelligence (ADR 0054)
+
+Owner-scoped; reads aggregate the synced projection (no N+1); `integration` rate limit. All require a
+connected GitHub account (else `INTEGRATION_NOT_CONNECTED`).
+
+| Method | Path                                                                         | Purpose                                                                                                      |
+| ------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| POST   | `/github/sync`                                                               | Explicit full sync: repositories (all pages, ≤500) + recent commits (≤60 repos, 365d, ≤300/repo), idempotent |
+| GET    | `/github/overview?range=`                                                    | Repository + commit KPIs for the period, with previous-period comparison + freshness                         |
+| GET    | `/github/analytics?range=`                                                   | Commit trend, commits-by-repo, language/activity/visibility distributions, rankings                          |
+| GET    | `/github/repos?q=&visibility=&type=&status=&language=&activity=&sort=&page=` | Cached repositories with server-side filter/sort/pagination + facets                                         |
+| GET    | `/github/repositories/:id/languages`                                         | GitHub-reported byte-level language composition (live)                                                       |
+
+- Periods: `7d`/`30d`/`90d`/`180d`/`365d`/`all`/`custom`; timestamps aggregated in UTC. Phase 9.5's
+  `/github/repositories`, `/commits`, `/activity` and `/link` endpoints are unchanged.
+- Observed activity only — no productivity/quality score; rankings are separate and transparent.
+  Connected-but-not-synced returns an explicit "not synchronized" state (never fabricated).
+
 **Error codes:**
 
 | Code                                                                                      | HTTP status |

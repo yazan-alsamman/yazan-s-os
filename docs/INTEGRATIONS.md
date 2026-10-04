@@ -21,8 +21,11 @@ PEOS
 
 A connector = a `providers.ts` entry + an adapter. The hub does not change when a connector is added.
 
-**Status:** GitHub — **available** (read-only: repositories, commits, activity; explicit
-repository↔project linking). Google — **available**: Gmail (inbox/threads/search, HTML-sanitized
+**Status:** GitHub — **available**, a first-class product area at `/github` (Phase 9.6): Overview
+(repository + commit KPIs, period + comparison), Repositories explorer (search/filter/sort),
+repository detail (commits, activity, languages, linking) and Analytics (commit trend, commits-by-
+repo, language/activity distributions, transparent rankings), built on a synced commit projection
+(sync → store → aggregate). Read-only; explicit repository↔project linking (ADR 0054). Google — **available**: Gmail (inbox/threads/search, HTML-sanitized
 reader, and explicit mutations: star/read/archive/labels, drafts, send), Drive (read-only file/folder
 browse + search), Calendar (agenda across day/week/month + explicit create/update/cancel). MCP —
 **scaffolded** at the architecture boundary, **deferred**.

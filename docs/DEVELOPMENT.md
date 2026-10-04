@@ -242,3 +242,16 @@ HTTP 503 only when the database (critical) is unavailable.
 - **Live Google** needs a verified OAuth consent screen (Gmail/Calendar/Drive are restricted/sensitive
   scopes). Set `GOOGLE_*` + `INTEGRATION_ENCRYPTION_KEY`; callback `…/api/v1/integrations/callback/google`.
 - Tests use a mocked Google adapter (`google.int.test.ts`); live not validated in CI.
+
+## Phase 9.6 notes (GitHub Repository Intelligence)
+
+- First-class GitHub area at `/github` (Overview, Repositories, Analytics) + repository detail; built
+  on Phase 9.5. Settings → Integrations keeps connection management; the card links to `/github`.
+- **Migration:** `pnpm db:deploy` adds `github_commits` (a queryable commit projection). Repositories
+  stay in `IntegrationExternalResource`.
+- **Sync model:** `POST /api/v1/github/sync` (explicit, bounded, idempotent) pages repos + recent
+  commits into storage; analytics aggregate locally (no N+1). Code: `github-sync.service.ts`,
+  `github-analytics.service.ts`.
+- **Metrics:** 10 governed `github.*` metrics in the catalogue; drill-downs in `drilldown.ts`.
+- **Evidence, not scoring:** observed activity only; rankings are separate; inactivity is "no recent
+  GitHub activity observed". Code additions/deletions are unavailable from the commit-list API in bulk.
