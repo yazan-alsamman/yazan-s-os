@@ -126,3 +126,24 @@ export const cancelEventSchema = z.object({
   calendarId: z.string().trim().min(1).max(256).default("primary"),
   confirm: z.literal(true),
 });
+
+// ── GitHub Repository Intelligence (Phase 9.6) ────────────────────────────────
+export const githubRangeQuerySchema = z.object({
+  range: z.enum(["7d", "30d", "90d", "180d", "365d", "all", "custom"]).default("90d"),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+});
+
+export const githubReposQuerySchema = z.object({
+  q: searchTermSchema,
+  visibility: z.enum(["public", "private"]).optional(),
+  type: z.enum(["original", "fork"]).optional(),
+  status: z.enum(["active", "archived"]).optional(),
+  language: z.string().trim().min(1).max(80).optional(),
+  activity: z.enum(["recent", "idle_30", "idle_90", "idle_180"]).optional(),
+  sort: z
+    .enum(["pushed", "updated", "name", "stars", "forks", "issues", "commits"])
+    .default("pushed"),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});
