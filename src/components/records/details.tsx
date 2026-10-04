@@ -20,6 +20,7 @@ import {
   RelationPanel,
   type RelationItem,
 } from "@/components/data/detail";
+import { RecordRecentView } from "@/components/data/record-recent-view";
 import { RelationPicker, type PickedItem } from "@/components/data/relation-picker";
 import { ErrorState } from "@/components/data/states";
 import { EntityFormDialog, type FieldDescriptor } from "@/components/forms/entity-form";
@@ -211,6 +212,7 @@ export function ProjectDetail({ id }: { id: string }) {
       <DetailFrame query={query} backHref="/projects" backLabel="All projects">
         {(p) => (
           <>
+            <RecordRecentView type="project" id={p.id} title={p.name} href={`/projects/${p.id}`} />
             <DetailHeader
               title={p.name}
               subtitle={<span className="font-mono text-caption">{p.slug}</span>}
@@ -473,6 +475,7 @@ export function SkillDetail({ id }: { id: string }) {
       <DetailFrame query={query} backHref="/skills" backLabel="All skills">
         {(s) => (
           <>
+            <RecordRecentView type="skill" id={s.id} title={s.name} href={`/skills/${s.id}`} />
             <DetailHeader
               title={s.name}
               subtitle={s.category ?? undefined}
@@ -644,6 +647,7 @@ export function CertificationDetail({ id }: { id: string }) {
     <DetailFrame query={query} backHref="/certifications" backLabel="All certifications">
       {(c) => (
         <>
+          <RecordRecentView type="certification" id={c.id} title={c.name} href={`/certifications/${c.id}`} />
           <DetailHeader
             title={c.name}
             subtitle={c.issuer}
@@ -744,6 +748,7 @@ export function EvidenceDetail({ id }: { id: string }) {
     <DetailFrame query={query} backHref="/evidence" backLabel="All evidence">
       {(e) => (
         <>
+          <RecordRecentView type="evidence" id={e.id} title={e.title} href={`/evidence/${e.id}`} />
           <DetailHeader
             title={e.title}
             subtitle={formatDate(e.date) ?? undefined}

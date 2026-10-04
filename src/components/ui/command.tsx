@@ -119,6 +119,10 @@ function CommandSeparator({
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
+      // Decorative divider inside the cmdk listbox: a role="separator" is not a permitted child of
+      // role="listbox" (WCAG aria-required-children), so hide it from the accessibility tree.
+      role="presentation"
+      aria-hidden
       className={cn("-mx-1 h-px bg-border", className)}
       {...props}
     />

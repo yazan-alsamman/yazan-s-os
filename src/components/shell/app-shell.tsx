@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useState, type ReactNode } from "react";
 
+import { OwnerScopeProvider } from "@/components/providers/owner-scope";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -33,6 +34,7 @@ export function AppShell({ user, children }: { user: ShellUser; children: ReactN
   useCommandPaletteShortcut(togglePalette);
 
   return (
+    <OwnerScopeProvider seed={user.email}>
     <div className="flex min-h-dvh w-full">
       <a
         href="#main-content"
@@ -110,5 +112,6 @@ export function AppShell({ user, children }: { user: ShellUser; children: ReactN
       <MobileBottomNav onOpenMore={() => setDrawerOpen(true)} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
+    </OwnerScopeProvider>
   );
 }

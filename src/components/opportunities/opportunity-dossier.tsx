@@ -16,6 +16,7 @@ import {
   Panel,
   ProvenancePanel,
 } from "@/components/data/detail";
+import { RecordRecentView } from "@/components/data/record-recent-view";
 import { RelationPicker } from "@/components/data/relation-picker";
 import { ErrorState } from "@/components/data/states";
 import { EntityFormDialog } from "@/components/forms/entity-form";
@@ -207,6 +208,7 @@ export function OpportunityDossier({ id }: { id: string }) {
 
   return (
     <div>
+      <RecordRecentView type="opportunity" id={o.id} title={o.title} href={`/opportunities/${o.id}`} />
       <BackLink href="/opportunities" label="All opportunities" />
       <DetailHeader
         title={o.title}

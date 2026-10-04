@@ -61,3 +61,4 @@ An accepted ADR is changed only by a new ADR that supersedes it.
 | [0054](0054-github-repository-intelligence.md)                    | GitHub Repository Intelligence: projection model, sync, metrics                            | Accepted |
 | [0055](0055-github-intelligence-expansion.md)                     | GitHub Intelligence Expansion: PRs, issues, releases, contributors, activity, resumable sync | Accepted |
 | [0056](0056-evidence-vault-and-opportunities.md)                  | Opportunities, structured requirements, transparent evidence matching                      | Accepted |
+| [0057](0057-premium-ux-client-state.md)                           | Premium UX: owner-scoped client-side recently-viewed and saved views                       | Accepted |

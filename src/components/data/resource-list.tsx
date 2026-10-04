@@ -22,6 +22,7 @@ import { useApiList, useApiMutation, type QueryParams } from "@/lib/api/hooks";
 import { cn } from "@/lib/ui/cn";
 
 import { ConfirmDelete } from "./confirm-delete";
+import { SavedViewsMenu } from "./saved-views-menu";
 import { ErrorState, ListSkeleton } from "./states";
 import { useUrlState } from "./use-url-state";
 
@@ -103,6 +104,38 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
   const activeExtras = (props.extraParams ?? []).filter((p) => get(p.name));
   for (const extra of activeExtras) params[extra.name] = get(extra.name);
   const query = useApiList<T>(props.resource, props.path, params);
+
+  // Command-palette "Create …" actions open the list with ?new=1; honour it once, then clear.
+  const wantsNew = get("new");
+  useEffect(() => {
+    if (wantsNew && props.canCreate !== false) {
+      // Honour the command-palette ?new=1 deep link once, then strip it from the URL.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCreating(true);
+      set({ new: null });
+    }
+  }, [wantsNew, props.canCreate, set]);
+
+  // Saved views: the managed param keys for this surface and the current snapshot (page excluded).
+  const managedKeys = [
+    "q",
+    "sort",
+    ...(props.filters ?? []).map((f) => f.name),
+    ...(props.extraParams ?? []).map((p) => p.name),
+  ];
+  const currentView = new URLSearchParams();
+  for (const key of managedKeys) {
+    const value = key === "q" ? urlTerm : get(key);
+    if (value) currentView.set(key, value);
+  }
+  const currentQuery = currentView.toString();
+  const applyView = (query: string) => {
+    const parsed = new URLSearchParams(query);
+    const updates: Record<string, string | null> = { page: null };
+    for (const key of managedKeys) updates[key] = parsed.get(key) || null;
+    setTerm(parsed.get("q") ?? "");
+    set(updates);
+  };
 
   const create = useApiMutation<Record<string, unknown>>("POST", props.path, invalidates);
   const update = useApiMutation<Record<string, unknown> & { id: string }>(
@@ -195,6 +228,12 @@ export function ResourceList<T extends { id: string }>(props: ResourceListProps<
               ))}
             </NativeSelect>
           </label>
+          <SavedViewsMenu
+            surface={props.resource}
+            currentQuery={currentQuery}
+            onApply={applyView}
+            canSave={currentQuery.length > 0}
+          />
           {props.canCreate !== false && (
             <Button onClick={() => setCreating(true)}>
               <Plus aria-hidden />

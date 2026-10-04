@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Download, FileText, LogOut, Search, Upload } from "lucide-react";
+import { Clock, Download, FileText, LogOut, Plus, Search, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -17,6 +17,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { fetchJson, withQuery } from "@/lib/http/fetch-json";
+import { useRecentlyViewed } from "@/lib/ux/hooks";
 
 import { NAV_SECTIONS } from "./navigation";
 import { THEME_OPTIONS } from "./theme-menu";
@@ -44,6 +45,19 @@ const EXTRA_DESTINATIONS = [
   { label: "Technologies", href: "/skills/technologies", icon: FileText },
   { label: "Import data", href: "/settings/import", icon: Upload },
   { label: "Export data", href: "/settings/export", icon: Download },
+] as const;
+
+/**
+ * Create actions. Each opens the record's list surface with `?new=1`, which the shared ResourceList
+ * reads to auto-open its create dialog — so every command performs a real, working action.
+ */
+const CREATE_ACTIONS = [
+  { label: "Create project", href: "/projects?new=1" },
+  { label: "Create evidence", href: "/evidence?new=1" },
+  { label: "Create opportunity", href: "/opportunities?new=1" },
+  { label: "Add skill", href: "/skills?new=1" },
+  { label: "Add technology", href: "/skills/technologies?new=1" },
+  { label: "Create certification", href: "/certifications?new=1" },
 ] as const;
 
 interface SearchHit {
@@ -82,6 +96,7 @@ export function CommandPalette({
   const router = useRouter();
   const { setTheme } = useTheme();
   const { signOut } = useSignOut();
+  const recent = useRecentlyViewed();
   const [input, setInput] = useState("");
   const term = useDebounced(input.trim(), 200);
   const search = useQuery({
@@ -137,6 +152,40 @@ export function CommandPalette({
             <CommandSeparator />
           </>
         )}
+
+        {term.length < 2 && recent.length > 0 && (
+          <>
+            <CommandGroup heading="Recently viewed">
+              {recent.map((entry) => (
+                <CommandItem
+                  key={`recent-${entry.type}-${entry.id}`}
+                  value={`recent ${entry.title} ${entry.type}`}
+                  keywords={[entry.title, entry.type]}
+                  onSelect={() => run(() => router.push(entry.href as never))}
+                >
+                  <Clock aria-hidden />
+                  <span className="truncate">{entry.title}</span>
+                  <CommandShortcut>{entry.type}</CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
+
+        <CommandGroup heading="Create">
+          {CREATE_ACTIONS.map(({ label, href }) => (
+            <CommandItem
+              key={href}
+              value={label}
+              onSelect={() => run(() => router.push(href as never))}
+            >
+              <Plus aria-hidden />
+              <span>{label}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+        <CommandSeparator />
 
         <CommandGroup heading="Navigate">
           {NAV_SECTIONS.map((section) => {
