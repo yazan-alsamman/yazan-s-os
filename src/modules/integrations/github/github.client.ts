@@ -22,6 +22,7 @@ export interface GitHubRawRepo {
   stargazers_count: number;
   forks_count: number;
   watchers_count: number;
+  open_issues_count?: number;
   created_at: string | null;
   updated_at: string | null;
   pushed_at: string | null;
@@ -128,6 +129,10 @@ export function createGitHubClient(token: string, fetchImpl: typeof fetch = fetc
     },
     async getRepository(fullName: string): Promise<GitHubRawRepo> {
       return (await request<GitHubRawRepo>(`/repos/${fullName}`)).data;
+    },
+    /** GitHub-reported language byte composition for a repository. */
+    async listLanguages(fullName: string): Promise<Record<string, number>> {
+      return (await request<Record<string, number>>(`/repos/${fullName}/languages`)).data;
     },
     async listCommits(
       fullName: string,

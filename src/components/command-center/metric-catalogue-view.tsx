@@ -18,6 +18,7 @@ const CATEGORY_LABELS: Record<(typeof METRIC_CATEGORIES)[number], string> = {
   ai: "AI Lab",
   architecture: "Architecture",
   engineering: "Engineering",
+  github: "GitHub",
 };
 
 /** Every metric PEOS defines, with its full governance record (05 "Metric Governance"). */

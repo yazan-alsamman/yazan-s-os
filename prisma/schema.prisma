@@ -66,6 +66,7 @@ model User {
   integrationSyncStates        IntegrationSyncState[]
   integrationExternalResources IntegrationExternalResource[]
   integrationResourceLinks     IntegrationResourceLink[]
+  githubCommits                GitHubCommit[]
   componentTechnologies        ComponentTechnology[]
   importJobs                   ImportJob[]
   reviewedImports              ImportRecord[]                 @relation("ImportReviewer")
@@ -1507,4 +1508,32 @@ model IntegrationResourceLink {
   @@index([userId, projectId])
   @@index([userId, resourceId])
   @@map("integration_resource_links")
+}
+
+// ── GitHub Repository Intelligence (Phase 9.6, ADR 0054) ──────────────────────
+// A queryable projection of synced GitHub commits for fast cross-repository, time-series
+// aggregation (sync → store → aggregate locally). Repositories stay in IntegrationExternalResource.
+model GitHubCommit {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  connectionId   String    @map("connection_id") @db.Uuid
+  /// GitHub repository id (matches IntegrationExternalResource.externalId for the repo).
+  repoExternalId String    @map("repo_external_id")
+  repoFullName   String    @map("repo_full_name")
+  sha            String
+  message        String?
+  authorLogin    String?   @map("author_login")
+  authoredAt     DateTime? @map("authored_at") @db.Timestamptz(3)
+  committedAt    DateTime? @map("committed_at") @db.Timestamptz(3)
+  additions      Int?
+  deletions      Int?
+  url            String?
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, repoExternalId, sha])
+  @@index([userId, authoredAt])
+  @@index([userId, repoExternalId])
+  @@map("github_commits")
 }

@@ -22,6 +22,7 @@ export interface RepoDto {
   stars: number;
   forks: number;
   watchers: number;
+  openIssues: number;
   createdDate: string | null;
   updatedDate: string | null;
   pushedDate: string | null;
@@ -69,6 +70,7 @@ export function normalizeRepo(raw: GitHubRawRepo, now: Date): RepoDto {
     stars: raw.stargazers_count ?? 0,
     forks: raw.forks_count ?? 0,
     watchers: raw.watchers_count ?? 0,
+    openIssues: raw.open_issues_count ?? 0,
     createdDate: raw.created_at ?? null,
     updatedDate: raw.updated_at ?? null,
     pushedDate: raw.pushed_at ?? null,

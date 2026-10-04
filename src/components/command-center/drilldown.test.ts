@@ -17,6 +17,12 @@ const SAMPLE_BUCKET: Record<string, string> = {
   "architecture.decision_timeline": "2026-05",
   "engineering.activity_trend": "2026-05",
   "engineering.activity_by_domain": "projects",
+  "github.repositories_by_visibility": "public",
+  "github.repositories_by_type": "original",
+  "github.repositories_by_activity": "active",
+  "github.language_distribution": "TypeScript",
+  "github.commit_trend": "2026-05",
+  "github.commits_by_repository": "123",
 };
 
 describe("Command Center drill-down mapping", () => {

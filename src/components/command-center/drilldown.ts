@@ -227,6 +227,14 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
         "/analytics",
         period.from && period.to ? { range: "custom", from: period.from, to: period.to } : {},
       );
+    // Phase 9.6: GitHub Repository Intelligence.
+    case "github.repositories_total":
+      return "/github/repositories";
+    case "github.repositories_active":
+      return href("/github/repositories", { activity: "recent" });
+    case "github.commits":
+    case "github.active_days":
+      return "/github/analytics";
     default:
       return null;
   }
@@ -336,6 +344,19 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
     }
     case "engineering.activity_by_domain":
       return ENGINEERING_DOMAIN_LIST[bucket] ?? null;
+    // Phase 9.6: GitHub distributions drill into the repository explorer / analytics.
+    case "github.repositories_by_visibility":
+      return href("/github/repositories", { visibility: bucket });
+    case "github.repositories_by_type":
+      return href("/github/repositories", { type: bucket });
+    case "github.repositories_by_activity":
+      return href("/github/repositories", { activity: bucket === "active" ? "recent" : bucket });
+    case "github.language_distribution":
+      return href("/github/repositories", { language: bucket });
+    case "github.commit_trend":
+      return "/github/analytics";
+    case "github.commits_by_repository":
+      return `/github/repositories/${bucket}`;
     default:
       return null;
   }
