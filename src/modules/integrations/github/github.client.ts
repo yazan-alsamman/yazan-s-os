@@ -52,6 +52,66 @@ export interface GitHubRawEvent {
   repo?: { name?: string };
 }
 
+export interface GitHubRawPullRequest {
+  id: number;
+  number: number;
+  title: string | null;
+  user: { login?: string } | null;
+  state: string | null;
+  draft?: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  closed_at: string | null;
+  merged_at: string | null;
+  base?: { ref?: string } | null;
+  head?: { ref?: string } | null;
+  comments?: number;
+  html_url: string;
+}
+
+export interface GitHubRawIssue {
+  id: number;
+  number: number;
+  title: string | null;
+  user: { login?: string } | null;
+  state: string | null;
+  comments?: number;
+  labels?: (string | { name?: string })[];
+  assignees?: ({ login?: string } | null)[];
+  milestone?: { title?: string } | null;
+  /** Present only when GitHub's issue list item is actually a pull request. */
+  pull_request?: unknown;
+  created_at: string | null;
+  updated_at: string | null;
+  closed_at: string | null;
+  html_url: string;
+}
+
+export interface GitHubRawRelease {
+  id: number;
+  tag_name: string | null;
+  name: string | null;
+  author: { login?: string } | null;
+  draft?: boolean;
+  prerelease?: boolean;
+  created_at: string | null;
+  published_at: string | null;
+  html_url: string;
+}
+
+export interface GitHubRawContributor {
+  login?: string;
+  contributions?: number;
+  avatar_url?: string;
+  html_url?: string;
+}
+
+/** Rate-limit snapshot from GitHub response headers (for proactive, graceful pausing). */
+export interface RateLimit {
+  remaining: number | null;
+  resetAt: Date | null;
+}
+
 export interface GitHubIdentity {
   id: number;
   login: string;
@@ -64,6 +124,8 @@ export interface GitHubPage<T> {
   items: T[];
   /** From the Link header: whether a next page exists. */
   hasNextPage: boolean;
+  /** Rate-limit snapshot after this request (for budget-aware pausing). */
+  rateLimit: RateLimit;
 }
 
 export function createGitHubClient(token: string, fetchImpl: typeof fetch = fetch) {
@@ -106,6 +168,16 @@ export function createGitHubClient(token: string, fetchImpl: typeof fetch = fetc
   }
 
   const hasNext = (headers: Headers) => /rel="next"/.test(headers.get("link") ?? "");
+  const rateLimitOf = (headers: Headers): RateLimit => {
+    const remainingRaw = headers.get("x-ratelimit-remaining");
+    const resetRaw = headers.get("x-ratelimit-reset");
+    const remaining = remainingRaw !== null && remainingRaw !== "" ? Number(remainingRaw) : null;
+    const resetSec = resetRaw !== null && resetRaw !== "" ? Number(resetRaw) : null;
+    return {
+      remaining: Number.isFinite(remaining) ? remaining : null,
+      resetAt: resetSec && Number.isFinite(resetSec) ? new Date(resetSec * 1000) : null,
+    };
+  };
 
   return {
     async getAuthenticatedUser(): Promise<GitHubIdentity> {
@@ -125,7 +197,11 @@ export function createGitHubClient(token: string, fetchImpl: typeof fetch = fetc
         visibility: opts.visibility ?? "all",
         affiliation: opts.affiliation ?? "owner,collaborator,organization_member",
       });
-      return { items: Array.isArray(data) ? data : [], hasNextPage: hasNext(headers) };
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
     },
     async getRepository(fullName: string): Promise<GitHubRawRepo> {
       return (await request<GitHubRawRepo>(`/repos/${fullName}`)).data;
@@ -145,7 +221,11 @@ export function createGitHubClient(token: string, fetchImpl: typeof fetch = fetc
         since: opts.since,
         until: opts.until,
       });
-      return { items: Array.isArray(data) ? data : [], hasNextPage: hasNext(headers) };
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
     },
     async listRepoEvents(
       fullName: string,
@@ -155,7 +235,76 @@ export function createGitHubClient(token: string, fetchImpl: typeof fetch = fetc
         page: opts.page,
         per_page: opts.perPage,
       });
-      return { items: Array.isArray(data) ? data : [], hasNextPage: hasNext(headers) };
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
+    },
+    /** Pull requests (any state), newest-updated first for incremental sync. */
+    async listPullRequests(
+      fullName: string,
+      opts: { page: number; perPage: number },
+    ): Promise<GitHubPage<GitHubRawPullRequest>> {
+      const { data, headers } = await request<GitHubRawPullRequest[]>(`/repos/${fullName}/pulls`, {
+        page: opts.page,
+        per_page: opts.perPage,
+        state: "all",
+        sort: "updated",
+        direction: "desc",
+      });
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
+    },
+    /** Issues (any state), newest-updated first. GitHub mixes PRs in here; callers must exclude them. */
+    async listIssues(
+      fullName: string,
+      opts: { page: number; perPage: number; since?: string },
+    ): Promise<GitHubPage<GitHubRawIssue>> {
+      const { data, headers } = await request<GitHubRawIssue[]>(`/repos/${fullName}/issues`, {
+        page: opts.page,
+        per_page: opts.perPage,
+        state: "all",
+        sort: "updated",
+        direction: "desc",
+        since: opts.since,
+      });
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
+    },
+    async listReleases(
+      fullName: string,
+      opts: { page: number; perPage: number },
+    ): Promise<GitHubPage<GitHubRawRelease>> {
+      const { data, headers } = await request<GitHubRawRelease[]>(`/repos/${fullName}/releases`, {
+        page: opts.page,
+        per_page: opts.perPage,
+      });
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
+    },
+    async listContributors(
+      fullName: string,
+      opts: { page: number; perPage: number },
+    ): Promise<GitHubPage<GitHubRawContributor>> {
+      const { data, headers } = await request<GitHubRawContributor[]>(
+        `/repos/${fullName}/contributors`,
+        { page: opts.page, per_page: opts.perPage, anon: "false" },
+      );
+      return {
+        items: Array.isArray(data) ? data : [],
+        hasNextPage: hasNext(headers),
+        rateLimit: rateLimitOf(headers),
+      };
     },
   };
 }

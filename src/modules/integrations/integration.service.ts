@@ -23,6 +23,8 @@ import { getProviderDefinition, PROVIDER_LIST } from "./providers";
 export interface IntegrationDeps {
   fetchImpl?: typeof fetch;
   now?: () => Date;
+  /** Injectable delay for bounded sync retry/backoff (tests pass a no-op). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 interface Identity {

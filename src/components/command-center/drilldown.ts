@@ -235,6 +235,41 @@ export function metricHref(key: string, f: DrillFilters, period: DrillPeriod): s
     case "github.commits":
     case "github.active_days":
       return "/github/analytics";
+    // Phase 9.7: GitHub Intelligence Expansion.
+    case "github.pull_requests":
+    case "github.pull_request_trend":
+    case "github.pull_requests_merge_rate":
+    case "github.personal_pull_requests":
+      return "/github/pull-requests";
+    case "github.pull_requests_merged":
+    case "github.pull_request_time_to_merge":
+      return href("/github/pull-requests", { state: "merged" });
+    case "github.pull_requests_open":
+      return href("/github/pull-requests", { state: "open" });
+    case "github.issues":
+    case "github.issue_trend":
+    case "github.issue_closure_rate":
+    case "github.personal_issues":
+      return "/github/issues";
+    case "github.issues_closed":
+      return href("/github/issues", { state: "closed" });
+    case "github.issues_open":
+      return href("/github/issues", { state: "open" });
+    case "github.releases":
+    case "github.release_trend":
+      return "/github/releases";
+    case "github.contributors":
+      return "/github/contributors";
+    case "github.activity":
+    case "github.activity_trend":
+      return "/github/activity";
+    case "github.activity_heatmap":
+    case "github.commit_longest_gap":
+    case "github.personal_commits":
+    case "github.personal_active_days":
+      return "/github/analytics";
+    case "github.personal_repositories":
+      return "/github/repositories";
     default:
       return null;
   }
@@ -357,6 +392,29 @@ export function bucketHref(key: string, bucket: string, f: DrillFilters): string
       return "/github/analytics";
     case "github.commits_by_repository":
       return `/github/repositories/${bucket}`;
+    // Phase 9.7 distributions.
+    case "github.pull_requests_by_state":
+      return href("/github/pull-requests", { state: bucket });
+    case "github.pull_requests_by_repository":
+      return href("/github/pull-requests", { repo: bucket });
+    case "github.issues_by_state":
+      return href("/github/issues", { state: bucket });
+    case "github.issues_by_repository":
+      return href("/github/issues", { repo: bucket });
+    case "github.issue_labels":
+      return href("/github/issues", { label: bucket });
+    case "github.releases_by_repository":
+      return href("/github/releases", { repo: bucket });
+    case "github.contributors_by_repository":
+      return href("/github/contributors", { repo: bucket });
+    case "github.contributor_activity":
+    case "github.commits_by_author":
+      return "/github/contributors";
+    case "github.activity_by_repository":
+      return href("/github/activity", { repo: bucket });
+    case "github.commits_by_day_of_week":
+    case "github.commits_by_hour":
+      return "/github/analytics";
     default:
       return null;
   }

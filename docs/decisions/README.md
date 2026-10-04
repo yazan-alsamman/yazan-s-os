@@ -59,3 +59,4 @@ An accepted ADR is changed only by a new ADR that supersedes it.
 | [0052](0052-integration-platform.md)                              | Integration platform: connectors, token encryption, external identity                      | Accepted |
 | [0053](0053-integration-oauth-and-mcp-boundary.md)                | Integration OAuth flow, mutation confirmation, MCP boundary                                | Accepted |
 | [0054](0054-github-repository-intelligence.md)                    | GitHub Repository Intelligence: projection model, sync, metrics                            | Accepted |
+| [0055](0055-github-intelligence-expansion.md)                     | GitHub Intelligence Expansion: PRs, issues, releases, contributors, activity, resumable sync | Accepted |

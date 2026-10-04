@@ -134,6 +134,49 @@ export const githubRangeQuerySchema = z.object({
   to: isoDate.optional(),
 });
 
+const githubExternalId = z.string().trim().regex(/^\d{1,20}$/);
+
+/** Range + optional single-repository scope (PR/issue/release/activity analytics). */
+export const githubResourceQuerySchema = z.object({
+  range: z.enum(["7d", "30d", "90d", "180d", "365d", "all", "custom"]).default("90d"),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+  repo: githubExternalId.optional(),
+});
+
+/** Paginated drill-down lists for PRs / issues / releases / contributors. */
+export const githubListQuerySchema = z.object({
+  state: z.enum(["open", "closed", "merged"]).optional(),
+  repo: githubExternalId.optional(),
+  label: z.string().trim().min(1).max(100).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+/** Unified activity timeline. */
+export const githubActivityQuerySchema = z.object({
+  range: z.enum(["7d", "30d", "90d", "180d", "365d", "all", "custom"]).default("90d"),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+  repo: githubExternalId.optional(),
+  type: z.enum(["all", "commit", "pull_request", "issue", "release"]).default("all"),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(30),
+});
+
+/** Cross-repository comparison: 2–6 repositories by provider-native id. */
+export const githubComparisonQuerySchema = z.object({
+  range: z.enum(["7d", "30d", "90d", "180d", "365d", "all", "custom"]).default("all"),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+  repoIds: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean))
+    .pipe(z.array(githubExternalId).min(1).max(6)),
+});
+
 export const githubReposQuerySchema = z.object({
   q: searchTermSchema,
   visibility: z.enum(["public", "private"]).optional(),

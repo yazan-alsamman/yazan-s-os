@@ -97,6 +97,8 @@ const githubFetch = (async (input: string | URL) => {
     return json(page === 1 ? (COMMITS[commitsMatch[1]!] ?? []) : []);
   }
   if (url.includes("/repos/octo/alpha/languages")) return json({ TypeScript: 1000, CSS: 200 });
+  // Phase 9.7 resources: the 9.6 fixtures have none — return empty pages so those syncs succeed at 0.
+  if (/\/(pulls|issues|releases|contributors)\b/.test(url)) return json([]);
   const repoMatch = url.match(/\/repos\/(octo\/\w+)$/);
   if (repoMatch)
     return json(REPOS.find((r) => (r as Record<string, unknown>).full_name === repoMatch[1]) ?? {});
@@ -130,7 +132,7 @@ describe("Phase 9.6 GitHub Repository Intelligence (service + database)", () => 
 
     const result = await createGitHubSyncService(db, deps).sync(alice);
     expect(result.repositories).toBe(2);
-    expect(result.commits).toBe(5);
+    expect(result.resources.github_commit?.fetched).toBe(5);
     expect(await db.gitHubCommit.count({ where: { userId: alice.userId } })).toBe(5);
   });
 
