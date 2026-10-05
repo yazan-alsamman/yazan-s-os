@@ -17,6 +17,7 @@ import {
   Network,
   Settings,
   ShieldCheck,
+  Sparkles,
   Target,
 } from "lucide-react";
 
@@ -222,6 +223,17 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     summary: "Professional opportunities with transparent requirement-to-evidence fit.",
     availability: "available",
     plannedIn: "Phase 10 — Evidence Vault & Opportunities (available)",
+    placement: "main",
+  },
+  {
+    id: "intelligence",
+    label: "Intelligence",
+    href: "/intelligence",
+    icon: Sparkles,
+    summary:
+      "Continuous, grounded signals: evidence candidates, skill freshness, opportunity gaps, weekly review.",
+    availability: "available",
+    plannedIn: "Phase 13 — Continuous Intelligence (available)",
     placement: "main",
   },
   {

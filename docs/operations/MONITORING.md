@@ -52,3 +52,27 @@ either triggers an incident (see [INCIDENT_RESPONSE_RUNBOOK.md](./INCIDENT_RESPO
 
 These are documented recommendations; integrating a specific alerting provider is deferred (no
 external monitoring vendor is provisioned for this private system).
+
+## Continuous Intelligence (Phase 13)
+
+New background-style operation: the deterministic detection orchestrator (`POST
+/api/v1/intelligence/run`) and the weekly executive review (`/api/v1/intelligence/weekly-review`,
+generate-on-read). Both are owner-scoped, idempotent and audited (`intelligence_signal.generated`,
+`evidence_candidate.accepted/rejected`, `weekly_review.generated`).
+
+- **What to watch:** run frequency and failures in the structured logs (`route:
+v1.intelligence.run`), signal volume and resolution rate (active vs resolved in
+  `intelligence_signals`), evidence-candidate acceptance rate, and weekly reviews stuck in `partial`
+  (data-coverage issues, usually a stale GitHub sync).
+- **Failure behaviour:** detection is deterministic DB work — if a query fails the run errors and is
+  retried by the caller; no signal is lost (reconciliation is idempotent). No AI provider is on the
+  detection path, so provider outages cannot block intelligence. If GitHub is unavailable/stale, the
+  weekly review is marked `partial` rather than concluding "no activity".
+- **Scheduling:** the orchestrator + weekly generator are designed to be driven periodically by the
+  existing BullMQ queue (`src/lib/queue`). Phase 13 triggers them on demand (owner-initiated, rate-
+  limited); wiring a periodic worker (e.g. a daily `run` + Monday `weekly-review` per owner) is a
+  deployment step and is **not** yet enabled. Because both are idempotent, a double-fire never
+  duplicates signals, candidates or reviews.
+- **Retention:** signals and candidates are bounded per owner by deduplication (one row per
+  condition/source); resolved signals remain for history. A future retention job may archive resolved
+  signals and old weekly reviews; not required for current data volumes.

@@ -21,6 +21,7 @@ const SPEC_NAVIGATION = [
   "Analytics",
   "Evidence Vault",
   "Opportunities",
+  "Intelligence",
   "Settings / Integrations",
   "AI Copilot",
 ];
@@ -56,6 +57,7 @@ describe("navigation registry", () => {
       "analytics",
       "evidence",
       "opportunities",
+      "intelligence",
       "settings",
       "copilot",
     ]);

@@ -64,3 +64,4 @@ An accepted ADR is changed only by a new ADR that supersedes it.
 | [0057](0057-premium-ux-client-state.md)                           | Premium UX: owner-scoped client-side recently-viewed and saved views                         | Accepted |
 | [0058](0058-operational-hardening.md)                             | Operational hardening: backups, restore, DR, dependency exceptions                           | Accepted |
 | [0059](0059-security-scanning.md)                                 | Security scanning: secret scanning (gitleaks) and SAST (CodeQL) in CI                        | Accepted |
+| [0060](0060-continuous-intelligence.md)                           | Continuous Intelligence: deterministic signals, grounded generators, human-in-the-loop       | Accepted |

@@ -77,6 +77,9 @@ model User {
   opportunities                Opportunity[]
   opportunityRequirements      OpportunityRequirement[]
   requirementEvidence          RequirementEvidence[]
+  intelligenceSignals          IntelligenceSignal[]
+  evidenceCandidates           EvidenceCandidate[]
+  weeklyReviews                WeeklyReview[]
 
   @@map("users")
 }
@@ -1824,4 +1827,148 @@ model RequirementEvidence {
   @@index([evidenceId])
   @@index([userId])
   @@map("requirement_evidence")
+}
+
+// ── Phase 13 — Continuous Intelligence (ADR 0060) ────────────────────────────
+
+/// What a continuous-intelligence signal is about. Deterministic detectors emit these; AI is an
+/// optional narrator, never the source of truth.
+enum IntelligenceSignalType {
+  skill_stale
+  skill_aging
+  opportunity_gap
+  opportunity_deadline
+  evidence_candidate
+  weekly_review
+
+  @@map("intelligence_signal_type")
+}
+
+/// Severity drives attention, not alarm. `critical` requires strong evidence (never a weak signal).
+enum IntelligenceSeverity {
+  info
+  attention
+  warning
+  critical
+
+  @@map("intelligence_severity")
+}
+
+/// Signal lifecycle: a detected condition is active until the owner reviews/dismisses it, or a later
+/// detection run finds the condition no longer holds (auto-resolved).
+enum IntelligenceStatus {
+  active
+  reviewed
+  dismissed
+  resolved
+
+  @@map("intelligence_status")
+}
+
+enum EvidenceCandidateStatus {
+  candidate
+  accepted
+  rejected
+
+  @@map("evidence_candidate_status")
+}
+
+/// A grounded, owner-scoped intelligence signal (Phase 13, ADR 0060). Every signal references the
+/// real source records it was derived from (`sourceType`/`sourceId` + `metadata`), is idempotent via
+/// `dedupeKey`, and never stores an AI-invented fact. Detectors re-run safely: an existing active
+/// signal for the same condition is updated, not duplicated; a resolved condition is marked resolved.
+model IntelligenceSignal {
+  id          String                 @id @default(uuid()) @db.Uuid
+  userId      String                 @map("user_id") @db.Uuid
+  type        IntelligenceSignalType
+  severity    IntelligenceSeverity   @default(info)
+  status      IntelligenceStatus     @default(active)
+  title       String
+  /// One-sentence, evidence-referencing explanation. Observed facts only — no invented outcomes.
+  explanation String
+  /// Provenance: the primary source record kind and id (e.g. skill:<uuid>, opportunity:<uuid>).
+  sourceType  String?                @map("source_type")
+  sourceId    String?                @map("source_id")
+  /// Stable per (owner, condition) so repeated detection is idempotent.
+  dedupeKey   String                 @map("dedupe_key")
+  /// Structured provenance (source record ids, metric values, thresholds) — never secrets.
+  metadata    Json?
+  detectedAt  DateTime               @default(now()) @map("detected_at") @db.Timestamptz(3)
+  occurredAt  DateTime?              @map("occurred_at") @db.Timestamptz(3)
+  reviewedAt  DateTime?              @map("reviewed_at") @db.Timestamptz(3)
+  dismissedAt DateTime?              @map("dismissed_at") @db.Timestamptz(3)
+  resolvedAt  DateTime?              @map("resolved_at") @db.Timestamptz(3)
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, status, severity])
+  @@index([userId, type, status])
+  @@map("intelligence_signals")
+}
+
+/// Automatically extracted *candidate* evidence (Phase 13, ADR 0060). Distinct from authoritative
+/// Evidence: a candidate is a suggestion derived from a real source (a GitHub release / merged PR, a
+/// completed milestone) that the owner must review. Accepting one creates a real Evidence row;
+/// rejecting one records the decision so it is not re-suggested. Never silently authoritative.
+model EvidenceCandidate {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  userId             String                  @map("user_id") @db.Uuid
+  /// github_release | github_pull_request | milestone
+  sourceType         String                  @map("source_type")
+  /// Stable provider/record id used for deduplication.
+  sourceId           String                  @map("source_id")
+  suggestedType      EvidenceType            @map("suggested_type")
+  suggestedTitle     String                  @map("suggested_title")
+  suggestedDate      DateTime?               @map("suggested_date") @db.Date
+  sourceUrl          String?                 @map("source_url")
+  repoFullName       String?                 @map("repo_full_name")
+  /// low | medium | high — transparency about extraction confidence, never a fabricated score.
+  confidence         String
+  /// Extraction method + version, e.g. "github-release-v1".
+  method             String
+  status             EvidenceCandidateStatus @default(candidate)
+  /// GitHub provenance carried onto the Evidence row on acceptance.
+  githubResourceType String?                 @map("github_resource_type")
+  githubResourceId   String?                 @map("github_resource_id")
+  /// The authoritative Evidence created when this candidate was accepted (if any).
+  acceptedEvidenceId String?                 @map("accepted_evidence_id") @db.Uuid
+  reviewedAt         DateTime?               @map("reviewed_at") @db.Timestamptz(3)
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([userId, status])
+  @@map("evidence_candidates")
+}
+
+/// A deterministic weekly executive review (Phase 13, ADR 0060). Idempotent per owner + ISO week
+/// (`weekStart`, Monday UTC): re-running the generator updates the same row rather than duplicating.
+/// `summary` holds the computed, grounded sections; `coverage` records data-coverage caveats so a
+/// quiet/partial week is never presented as a confident conclusion.
+model WeeklyReview {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  weekStart   DateTime  @map("week_start") @db.Date
+  weekEnd     DateTime  @map("week_end") @db.Date
+  /// generated | partial | reviewed | dismissed | archived
+  status      String    @default("generated")
+  /// Data-coverage flags (e.g. githubConnected, githubLastSync, partial reasons).
+  coverage    Json
+  /// Deterministic section data (counts, deltas, highlighted records) — grounded, no prose facts.
+  summary     Json
+  generatedAt DateTime  @default(now()) @map("generated_at") @db.Timestamptz(3)
+  reviewedAt  DateTime? @map("reviewed_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId, weekStart])
+  @@map("weekly_reviews")
 }
